@@ -58,7 +58,6 @@ Route::middleware('auth:api')->group(function () {
     Route::post('importSiswa', [userController::class, 'importSiswa']);
     Route::get('importSiswa', [userController::class, 'importSiswaGet']);
     Route::delete('importSiswa/{id}', [userController::class, 'importSiswaHapus']);
-    Route::post('importSiswa/multiple-delete', [userController::class, 'importSiswaMultipleHapus']);
     Route::get('cekUser/{email}', [userController::class, 'cekUser']);
     Route::post('userSiswa', [userController::class, 'userSiswa']);
     Route::delete('userSiswa/{id}', [userController::class, 'userSiswaHapus']);
@@ -168,6 +167,11 @@ Route::middleware('auth:api')->group(function () {
     Route::put('dataTugas/nilai/{id}/{nilai}', [classroomController::class, 'dataTugasNilai']);
 
     Route::get('filemodul', [classroomController::class, 'moduls']);
+
+    // MODUL / LKPD - laboran/guru
+    Route::get('modul/lkpd', [\App\Http\Controllers\api\ModulLkpdController::class, 'index']);
+    Route::post('modul/lkpd', [\App\Http\Controllers\api\ModulLkpdController::class, 'store']);
+    Route::delete('modul/lkpd/{id}', [\App\Http\Controllers\api\ModulLkpdController::class, 'destroy']);
 });
 
 // SISWA

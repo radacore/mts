@@ -90,40 +90,39 @@ class classroomController extends Controller
         return response()->json($data);
     }
 
-    // ✅ DIPERBARUI: Simpan materi (modul_id + link_tambahan)
-    public function materiPost(Request $request)
-    {
-        $request->validate([
-            'judul' => 'required|string|max:255',
-            'class_id' => 'required|exists:classrooms,id',
-            'file' => 'nullable|file|mimes:pdf,ppt,pptx|max:20480',
-            'modul_id' => 'nullable|exists:modul_lkpd,id',
-            'link_tambahan' => 'nullable|url',
-        ]);
+    // ✅ DIPERBARUI SESUAI PERMINTAAN:  
+// Modul dan file BENAR-BENAR OPSIONAL — hanya judul wajib.
+public function materiPost(Request $request)
+{
+    $request->validate([
+        'judul' => 'required|string|max:255',
+        'class_id' => 'required|exists:classrooms,id',
+        'file' => 'nullable|file|mimes:pdf,ppt,pptx|max:20480',
+        'modul_id' => 'nullable|exists:modul_lkpd,id',
+        'link_tambahan' => 'nullable|url',
+    ]);
 
-        // Validasi bisnis: minimal salah satu (modul_id atau file)
-        if (!$request->modul_id && !$request->hasFile('file')) {
-            return response()->json([
-                'message' => 'Harap pilih modul dari laboran atau upload file.'
-            ], 422);
-        }
+    // Normalisasi modul_id → null jika kosong
+    $modulId = $request->modul_id ? (int) $request->modul_id : null;
 
-        $file_path = $request->file ? $request->file('file')->store('modul', 'public') : null;
+    // ✅ HAPUS VALIDASI BISNIS: modul_id/file tidak wajib lagi
 
-        $data = materi_ajar::updateOrCreate(
-            ['id' => $request->id],
-            [
-                'judul' => $request->judul,
-                'des' => $request->des,
-                'file' => $file_path,
-                'modul_id' => $request->modul_id,
-                'link_tambahan' => $request->link_tambahan,
-                'classroom_id' => $request->class_id,
-            ]
-        );
+    $file_path = $request->file ? $request->file('file')->store('modul', 'public') : null;
 
-        return response()->json($data);
-    }
+    $data = materi_ajar::updateOrCreate(
+        ['id' => $request->id],
+        [
+            'judul' => $request->judul,
+            'des' => $request->des,
+            'file' => $file_path,
+            'modul_id' => $modulId,
+            'link_tambahan' => $request->link_tambahan,
+            'classroom_id' => $request->class_id,
+        ]
+    );
+
+    return response()->json($data);
+}
 
     // ✅ DIPERBARUI: Edit materi
     public function materiEdit($id)

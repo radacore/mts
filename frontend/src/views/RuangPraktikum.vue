@@ -289,7 +289,7 @@
           <q-input
             v-model="modulFilter"
             dense
-            placeholder="Cari judul/modul..."
+            placeholder="Cari judul/modul/uploader by..."
             clearable
             debounce="300"
             class="q-mt-sm"
@@ -582,50 +582,45 @@ export default {
 
     // ✅ Simpan dengan link_tambahan — pakai this.$toast
     async simpan() {
-      if (!this.judul || !this.judul.toString().trim()) {
-        this.$toast.warning('Judul materi wajib diisi');
-        return;
-      }
+  if (!this.judul || !this.judul.toString().trim()) {
+    this.$toast.warning('Judul materi wajib diisi');
+    return;
+  }
 
-      if (!this.selectedModulId) {
-        this.$toast.warning('Harap pilih modul dari laboran');
-        return;
-      }
+  const form = new FormData();
+  form.append('id', this.id);
+  form.append('class_id', this.class_id);
+  form.append('judul', this.judul);
+  form.append('des', this.des);
+  // ✅ modul_id opsional — kirim hanya jika dipilih
+  if (this.selectedModulId) {
+    form.append('modul_id', this.selectedModulId);
+  }
+  // ✅ link_tambahan opsional — kirim hanya jika diisi
+  if (this.link_tambahan) {
+    form.append('link_tambahan', this.link_tambahan);
+  }
 
-      const form = new FormData();
-      form.append('id', this.id);
-      form.append('class_id', this.class_id);
-      form.append('judul', this.judul);
-      form.append('des', this.des);
-      form.append('modul_id', this.selectedModulId);
-      // Only include link_tambahan when user provided one. Sending an
-      // empty string causes server-side "nullable|url" validation to fail.
-      if (this.link_tambahan) {
-        form.append('link_tambahan', this.link_tambahan);
+  try {
+    await axios.post('materi_ajar', form);
+    this.$toast.success('Materi berhasil disimpan');
+    this.batal();
+    this.getMateri();
+  } catch (error) {
+    console.error('Error simpan materi:', error);
+    const resp = error.response && error.response.data;
+    if (resp && resp.message) {
+      if (resp.errors) {
+        const first = Object.values(resp.errors)[0];
+        this.$toast.error(first[0] || resp.message);
+      } else {
+        this.$toast.error(resp.message);
       }
-
-      try {
-        await axios.post('materi_ajar', form);
-        this.$toast.success('Materi berhasil disimpan');
-        this.batal();
-        this.getMateri();
-      } catch (error) {
-        console.error('Error simpan materi:', error);
-        // Show more helpful message when validation fails
-        const resp = error.response && error.response.data;
-        if (resp && resp.message) {
-          // If Laravel sends validation errors, show the first one
-          if (resp.errors) {
-            const first = Object.values(resp.errors)[0];
-            this.$toast.error(first[0] || resp.message);
-          } else {
-            this.$toast.error(resp.message);
-          }
-        } else {
-          this.$toast.error('Gagal menyimpan materi');
-        }
-      }
-    },
+    } else {
+      this.$toast.error('Gagal menyimpan materi');
+    }
+  }
+},
 
     async edit($id) {
       try {

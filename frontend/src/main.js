@@ -9,7 +9,7 @@ import Toaster from "@meforma/vue-toaster";
 import quasarUserOptions from './quasar-user-options'
 import 'viewerjs/dist/viewer.css'
 import VueViewer from 'v-viewer'
-axios.defaults.baseURL = 'http://localhost:8000/api/'
+axios.defaults.baseURL = 'https://api.mtsn1kotamks.com/api/'
 require('@/store/subcriber')
 
 store.dispatch('auth/attempt', localStorage.getItem('token')).then(() => {

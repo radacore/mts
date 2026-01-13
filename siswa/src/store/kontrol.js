@@ -2,38 +2,38 @@ import axios from 'axios'
 export default {
     namespaced: true,
     state: {
-        url:'http://127.0.0.1:8000/storage/',
-        triger:false,
-        role:[],
-        users:[],
-        kelas:[],
-        katalog:[],
+        url: 'https://api.mtsn1kotamks.com/storage/',
+        triger: false,
+        role: [],
+        users: [],
+        kelas: [],
+        katalog: [],
     },
     getters: {
         role: (state) => state.role,
         users: (state) => state.users,
         kelas: (state) => state.kelas,
         katalog: (state) => state.katalog,
-        triger(state){
+        triger(state) {
             return state.triger
-         },
+        },
     },
     mutations: {
-        SET_ROLE(state,role) {
+        SET_ROLE(state, role) {
             state.role = role
         },
-        SET_USERS(state,users) {
+        SET_USERS(state, users) {
             state.users = users
         },
-        SET_KELAS(state,kelas) {
+        SET_KELAS(state, kelas) {
             state.kelas = kelas
         },
-        SET_KATALOG(state,katalog) {
+        SET_KATALOG(state, katalog) {
             state.katalog = katalog
         },
-        SET_TRIGER(state){
-            state.triger=!state.triger
-          },
+        SET_TRIGER(state) {
+            state.triger = !state.triger
+        },
     },
     actions: {
         async getRole({ commit }) {
@@ -52,6 +52,6 @@ export default {
             let res = await axios.get('katalog')
             commit('SET_KATALOG', res.data)
         },
-  
+
     }
 }

@@ -19,33 +19,48 @@
       <q-btn :disable="!teks" label="serahkan" rounded class="q-mt-sm" color="green-7" @click="postEsay"/>
     </div>
     <div v-if="status==2">
-      <q-card v-for="up in dataFile" :key="up.id" class="bayangan q-mb-sm" style="max-width:400px">
-        <q-card-section horizontal>
-          <div class="images" v-viewer>
-          <img :src="url+up.file" style="width:100px"/>
-          </div>
-          <q-card-actions vertical class="justify-around q-px-md">
-            <q-avatar v-if="up.nilai" color="green-7" size="25px" class="q-mr-sm q-mb-sm text-white">
-              {{up.nilai}}
-            </q-avatar>
-            <q-icon name="delete" color="red" @click="hapusUpload(up.id)"/>
-          </q-card-actions>
-        </q-card-section>
-       
-      </q-card>
+      <!-- ✅ Tampilkan file yang sudah diupload dengan banner format -->
+      <div v-for="up in dataFile" :key="up.id" class="q-mb-md">
+        <a :href="getDownloadUrl(up.file)" target="_blank">
+          <q-banner rounded class="bg-grey-3 q-mb-md">
+            <template v-slot:avatar>
+              <q-icon
+                :name="getFileIcon(getFileExtension(up.file_name || up.file))"
+                :color="getIconColor(getFileExtension(up.file_name || up.file))"
+                size="lg"
+              />
+            </template>
+            <div>
+              <div class="text-weight-bold">{{ up.file_name || getFileName(up.file) }}</div>
+              <div class="text-caption text-grey-7">{{ formatFileSize(up.file_size) }}</div>
+            </div>
+          </q-banner>
+        </a>
+        <!-- Tampilkan nilai jika ada -->
+        <div v-if="up.nilai" class="q-pl-md">
+          <q-avatar color="green-7" size="30px" text-color="white" class="q-mr-sm">
+            {{ up.nilai }}
+          </q-avatar>
+          <span class="text-caption">Nilai dari guru</span>
+        </div>
+        <!-- Tombol hapus -->
+        <q-btn flat icon="delete" color="red" size="sm" @click="hapusUpload(up.id)" class="q-mt-sm"/>
+      </div>
+
+      <!-- ✅ Form upload file baru -->
       <q-file filled bottom-slots v-model="file" label="Pilih File" counter>
         <template v-slot:prepend>
           <q-icon name="cloud_upload" @click.stop.prevent />
         </template>
         <template v-slot:append>
-          <q-icon name="close" @click.stop.prevent="model = null" class="cursor-pointer" />
+          <q-icon name="close" @click.stop.prevent="file = null" class="cursor-pointer" />
         </template>
 
         <template v-slot:hint>
-          .jpg, .jpeg, .png
+          Format: jpg, jpeg, png, pdf, doc, docx, xls, xlsx, ppt, pptx
         </template>
       </q-file>
-      <q-btn label="upload tugas" rounded class="q-mt-sm" color="green-7" @click="postUpload"/>
+      <q-btn label="upload tugas" rounded class="q-mt-sm" color="green-7" @click="postUpload" :disable="!file"/>
     </div>
     <div v-if="status==3">
       <div>
@@ -180,6 +195,54 @@ methods:{
       this.getLinks();
       return response
     })
+  },
+  // ✅ Helper untuk format ukuran file
+  formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  },
+  // ✅ Helper untuk mendapatkan extension dari file path
+  getFileExtension(filePath) {
+    if (!filePath) return '';
+    return filePath.split('.').pop().toLowerCase();
+  },
+  // ✅ Helper untuk mendapatkan nama file dari path
+  getFileName(filePath) {
+    if (!filePath) return 'File';
+    return filePath.split('/').pop();
+  },
+  // ✅ Helper untuk download URL
+  getDownloadUrl(filePath) {
+    if (!filePath) return '#';
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    return `http://127.0.0.1:8000/storage/${filePath}`;
+  },
+  // ✅ Helper untuk file icon
+  getFileIcon(extension) {
+    if (!extension) return 'help';
+    const ext = extension.toLowerCase();
+    if (ext === 'pdf') return 'picture_as_pdf';
+    if (['ppt', 'pptx'].includes(ext)) return 'slideshow';
+    if (['doc', 'docx'].includes(ext)) return 'description';
+    if (['xls', 'xlsx'].includes(ext)) return 'table_chart';
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'image';
+    return 'file_present';
+  },
+  // ✅ Helper untuk icon color
+  getIconColor(extension) {
+    if (!extension) return 'grey';
+    const ext = extension.toLowerCase();
+    if (ext === 'pdf') return 'red';
+    if (['ppt', 'pptx'].includes(ext)) return 'orange';
+    if (['doc', 'docx'].includes(ext)) return 'blue';
+    if (['xls', 'xlsx'].includes(ext)) return 'green';
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'purple';
+    return 'grey';
   }
 },
 created(){

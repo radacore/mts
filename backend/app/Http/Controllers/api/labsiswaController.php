@@ -54,7 +54,33 @@ class labsiswaController extends Controller
     }
     public function modul($id)
     {
-        $data=materi_ajar::where('classroom_id', $id)->get();
+        $data = materi_ajar::where('classroom_id', $id)
+            ->with(['modul:id,judul,file_path,file_name'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($m) {
+                $extension = null;
+                $file_name = null;
+                $file_path = null;
+
+                if ($m->modul) {
+                    $file_name = $m->modul->file_name;
+                    $file_path = $m->modul->file_path;
+                    $extension = pathinfo($file_name, PATHINFO_EXTENSION);
+                }
+
+                return [
+                    'id' => $m->id,
+                    'judul' => $m->judul,
+                    'des' => $m->des,
+                    'modul_id' => $m->modul_id,
+                    'modul_judul' => $m->modul ? $m->modul->judul : null,
+                    'modul_file_name' => $file_name,
+                    'modul_file_path' => $file_path,
+                    'modul_extension' => $extension,
+                    'link_tambahan' => $m->link_tambahan,
+                ];
+            });
         return response()->json($data);
     }
     public function tugas($id)
@@ -99,12 +125,22 @@ class labsiswaController extends Controller
     public function tugasUploadPost(Request $request)
     {
         $request->validate([
-            'file'=>'required|mimes:jpg,jpeg,png'
+            'file'=>'required|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,ppt,pptx'
         ]);
-        $file=$request->file('file')->store('penugasan','public');
+        
+        // ✅ Simpan file dengan nama asli (tidak digenerate random)
+        $file = $request->file('file');
+        $original_name = $file->getClientOriginalName();
+        $file_size = $file->getSize();
+        
+        // Store dengan original name (tanpa random prefix)
+        $file_path = $file->storeAs('penugasan', $original_name, 'public');
+        
         $data=data_tugas::create([
             'penugasan_id'=>$request->penugasan_id,
-            'file'=>$file,
+            'file'=>$file_path,
+            'file_name'=>$original_name,  // ✅ Simpan nama asli
+            'file_size'=>$file_size,      // ✅ Simpan ukuran file
             'user_id'=>Auth()->User()->id
         ]);
         return response()->json($data);

@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class data_tugas extends Model
 {
     protected $table ="data_tugas";
-    public $fillable = ['penugasan_id','user_id','nilai','file','esay','tautan'];
+    // ✅ Tambah 'file_name' dan 'file_size' ke fillable
+    public $fillable = ['penugasan_id','user_id','nilai','file','file_name','file_size','esay','tautan'];
 
     public function penugasan()
     {

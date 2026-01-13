@@ -36,7 +36,7 @@
     </div>
     <div v-if="status==2">
       <q-list bordered class="rounded-borders">
-        <q-item-label header>Jawaban | <download-file :tid="tugas_id"/></q-item-label>
+        <q-item-label header>Jawaban File | <download-file :tid="tugas_id"/></q-item-label>
         <q-item v-for="row in files" :key="row.id">
           <q-item-section avatar>
             <q-avatar>
@@ -47,20 +47,48 @@
           <q-item-section>
             <q-item-label lines="1">{{row.user.name}}</q-item-label>
             <q-item-label caption>
-              <span class="text-weight-bold">Jawaban</span>
+              <span class="text-weight-bold">File: {{ row.file_name }}</span>
               <br/>
-              <div class="images" v-viewer>
-              <img :src="url+row.file" style="width:50px" class="rounded-borders shadow-8"/>
+              <span class="text-grey-7">Ukuran: {{ formatFileSize(row.file_size) }}</span>
+              <br/>
+              <!-- ✅ PREVIEW IMAGE untuk file gambar -->
+              <div class="images q-mt-sm" v-viewer v-if="isImageFile(row.file_name)">
+                <img :src="url+row.file" style="width:100px" class="rounded-borders shadow-8 cursor-pointer"/>
+              </div>
+              <!-- ✅ PREVIEW FILE TYPE ICON untuk non-image -->
+              <div v-else class="q-mt-sm">
+                <q-icon 
+                  :name="getFileIcon(getFileExtension(row.file_name))"
+                  :color="getIconColor(getFileExtension(row.file_name))"
+                  size="lg"
+                />
+                <q-btn 
+                  label="Buka File" 
+                  flat rounded color="primary" size="sm"
+                  @click="openFile(url+row.file)"
+                  class="q-ml-sm"
+                />
               </div>
             </q-item-label>
           </q-item-section>
   
           <q-item-section side top>
-            Nilai: {{row.nilai}}
-            <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-              <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
-            </q-popup-edit>
-            <nilai-tugas :id="row.id" :nilai="row.nilai"/>
+            <div class="text-right">
+              <div>Nilai: {{row.nilai}}</div>
+              <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
+                <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
+              </q-popup-edit>
+              <nilai-tugas :id="row.id" :nilai="row.nilai"/>
+              <!-- ✅ TOMBOL DOWNLOAD -->
+              <q-btn 
+                flat round icon="download" 
+                color="primary" size="sm"
+                :href="url+row.file"
+                target="_blank"
+                download
+                class="q-mt-sm"
+              />
+            </div>
           </q-item-section>
           <q-separator/>
         </q-item>
@@ -83,7 +111,7 @@
               <span class="text-weight-bold">Jawaban</span>
               <br/>
               <div>
-                <a :href="url+row.tautan" target="_blank">
+                <a :href="row.tautan" target="_blank">
                   <span>{{row.tautan}}</span>
                   </a>
               </div>
@@ -205,6 +233,51 @@ tableToExcel(table, name) {
       link.href = this.uri + this.base64(this.format(this.template, ctx));
       link.click();
     },
+    // ✅ Helper untuk format ukuran file
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    },
+    // ✅ Helper untuk check tipe file gambar
+    isImageFile(fileName) {
+      if (!fileName) return false;
+      const ext = fileName.split('.').pop().toLowerCase();
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+    },
+    // ✅ Helper untuk mendapatkan extension dari file path
+    getFileExtension(filePath) {
+      if (!filePath) return '';
+      return filePath.split('.').pop().toLowerCase();
+    },
+    // ✅ Helper untuk file icon
+    getFileIcon(extension) {
+      if (!extension) return 'help';
+      const ext = extension.toLowerCase();
+      if (ext === 'pdf') return 'picture_as_pdf';
+      if (['ppt', 'pptx'].includes(ext)) return 'slideshow';
+      if (['doc', 'docx'].includes(ext)) return 'description';
+      if (['xls', 'xlsx'].includes(ext)) return 'table_chart';
+      if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'image';
+      return 'file_present';
+    },
+    // ✅ Helper untuk icon color
+    getIconColor(extension) {
+      if (!extension) return 'grey';
+      const ext = extension.toLowerCase();
+      if (ext === 'pdf') return 'red';
+      if (['ppt', 'pptx'].includes(ext)) return 'orange';
+      if (['doc', 'docx'].includes(ext)) return 'blue';
+      if (['xls', 'xlsx'].includes(ext)) return 'green';
+      if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'purple';
+      return 'grey';
+    },
+    // ✅ Helper untuk buka file di tab baru
+    openFile(fileUrl) {
+      window.open(fileUrl, '_blank');
+    }
 },
 created(){
 this.getDataTugas()

@@ -281,4 +281,57 @@ public function materiPost(Request $request)
             ->get();
         return response()->json($data);
     }
+
+    // ✅ DATA TUGAS — Jawaban Essay (untuk guru lihat)
+    public function dataTugasEsay($id)
+    {
+        $data = data_tugas::where('penugasan_id', $id)
+            ->with(['user', 'user.foto_profile'])
+            ->whereNotNull('esay')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($data);
+    }
+
+    // ✅ DATA TUGAS — File Upload (untuk guru lihat)
+    public function dataTugasFile($id)
+    {
+        $data = data_tugas::where('penugasan_id', $id)
+            ->with(['user', 'user.foto_profile'])
+            ->whereNotNull('file')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'user' => $item->user,
+                    'nilai' => $item->nilai,
+                    'file' => $item->file,
+                    'file_name' => $item->file_name,  // ✅ Include nama file asli
+                    'file_size' => $item->file_size,  // ✅ Include ukuran file
+                    'created_at' => $item->created_at,
+                ];
+            });
+        return response()->json($data);
+    }
+
+    // ✅ DATA TUGAS — Link/Tautan (untuk guru lihat)
+    public function dataTugasTautan($id)
+    {
+        $data = data_tugas::where('penugasan_id', $id)
+            ->with(['user', 'user.foto_profile'])
+            ->whereNotNull('tautan')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($data);
+    }
+
+    // ✅ DATA TUGAS — Update nilai
+    public function dataTugasNilai($id, $nilai)
+    {
+        $data = data_tugas::findOrFail($id);
+        $data->nilai = $nilai;
+        $data->save();
+        return response()->json($data);
+    }
 }

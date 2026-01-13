@@ -20,7 +20,7 @@
                 </q-card>
               </q-expansion-item>
               </div>
-              <div class="q-my-sm">
+              <div class="q-my-sm" v-if="moduls.length">
                 <q-expansion-item
                 class="shadow-1 overflow-hidden"
                 style="border-radius: 10px"
@@ -32,28 +32,47 @@
                 <q-card>
                   <q-card-section>
                     <div v-for="mod in moduls" :key="mod.id" >
-                        <q-banner rounded class="bg-white">
+                        <!-- ✅ BANNER FILE MODUL (DARI LABORAN) -->
+                        <a :href="getDownloadUrl(mod.modul_file_path)" target="_blank" v-if="mod.modul_file_path">
+                          <q-banner rounded class="bg-grey-3 q-mb-md">
                             <template v-slot:avatar>
-                                <a :href="url+mod.file" target="_blank">
-                                <img
-                                v-if="mod.file.split('.').pop()=='pdf'"
-                                src="../assets/pdf2.png"
-                                style="width: 60px; height: 60px"
+                              <q-icon
+                                :name="getFileIcon(mod.modul_extension)"
+                                :color="getIconColor(mod.modul_extension)"
+                                size="lg"
                               />
-                              <img
-                                v-else
-                                src="../assets/ppt.jpg"
-                                style="width: 60px; height: 50px"
-                              />
-                              </a>
                             </template>
-                            <p>{{mod.judul}}<br/>
-                                <span class="text-caption">{{mod.des}}</span>
-                            </p>
+                            <div>{{ mod.modul_file_name }}</div>
                           </q-banner>
-                        <q-separator/>
+                        </a>
+                        <q-banner v-else rounded class="bg-grey-3 q-mb-md">
+                          <template v-slot:avatar>
+                            <q-icon name="error" color="red" />
+                          </template>
+                          Modul tidak ditemukan
+                        </q-banner>
+
+                        <!-- ✅ JUDUL DAN DESKRIPSI MODUL -->
+                        <div class="q-mb-md">
+                          <div class="text-h6">{{ mod.judul }}</div>
+                          <div class="text-caption text-grey-7">{{ mod.des }}</div>
+                        </div>
+
+                        <!-- ✅ LINK TAMBAHAN (JIKA ADA) -->
+                        <q-card-section v-if="mod.link_tambahan" class="q-pa-none q-mb-md">
+                          <q-item clickable tag="a" :href="mod.link_tambahan" target="_blank">
+                            <q-item-section avatar>
+                              <q-icon name="open_in_new" color="primary" />
+                            </q-item-section>
+                            <q-item-section>
+                              <q-item-label class="text-primary">🔗 Link Tambahan</q-item-label>
+                              <q-item-label caption lines="2">{{ mod.link_tambahan }}</q-item-label>
+                            </q-item-section>
+                          </q-item>
+                        </q-card-section>
+
+                        <q-separator class="q-my-md"/>
                     </div>
-                    
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
@@ -124,6 +143,37 @@ methods:{
         await axios.get("tugasSiswa/"+this.class_id).then((response)=>{
             this.tugas=response.data
         })
+    },
+    // ✅ Helper function untuk download URL modul
+    getDownloadUrl(filePath) {
+        if (!filePath) return '#';
+        // Jika file_path sudah full URL dari storage
+        if (filePath.startsWith('http')) {
+            return filePath;
+        }
+        // Jika relative path, tambahkan base URL dari localStorage atau default
+        // Gunakan same-origin storage URL untuk development & production
+        return `http://127.0.0.1:8000/storage/${filePath}`;
+    },
+    // ✅ Helper function untuk get file icon
+    getFileIcon(extension) {
+        if (!extension) return 'help';
+        const ext = extension.toLowerCase();
+        if (ext === 'pdf') return 'picture_as_pdf';
+        if (ext === 'ppt' || ext === 'pptx') return 'slideshow';
+        if (ext === 'doc' || ext === 'docx') return 'description';
+        if (ext === 'xls' || ext === 'xlsx') return 'table_chart';
+        return 'file_present';
+    },
+    // ✅ Helper function untuk get icon color
+    getIconColor(extension) {
+        if (!extension) return 'grey';
+        const ext = extension.toLowerCase();
+        if (ext === 'pdf') return 'red';
+        if (ext === 'ppt' || ext === 'pptx') return 'orange';
+        if (ext === 'doc' || ext === 'docx') return 'blue';
+        if (ext === 'xls' || ext === 'xlsx') return 'green';
+        return 'grey';
     }
 },
 created(){

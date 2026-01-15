@@ -1,4 +1,4 @@
-<template>
+``<template>
     <q-list style="width:100%">
         <q-item dense> 
           <q-item-section>

@@ -53,7 +53,7 @@
               <br/>
               <!-- ✅ PREVIEW IMAGE untuk file gambar -->
               <div class="images q-mt-sm" v-viewer v-if="isImageFile(row.file_name)">
-                <img :src="url+row.file" style="width:100px" class="rounded-borders shadow-8 cursor-pointer"/>
+                <img :src="getDownloadUrl(row.file)" style="width:100px" class="rounded-borders shadow-8 cursor-pointer"/>
               </div>
               <!-- ✅ PREVIEW FILE TYPE ICON untuk non-image -->
               <div v-else class="q-mt-sm">
@@ -65,7 +65,7 @@
                 <q-btn 
                   label="Buka File" 
                   flat rounded color="primary" size="sm"
-                  @click="openFile(url+row.file)"
+                  @click="openFile(getDownloadUrl(row.file))"
                   class="q-ml-sm"
                 />
               </div>
@@ -79,13 +79,11 @@
                 <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
               </q-popup-edit>
               <nilai-tugas :id="row.id" :nilai="row.nilai"/>
-              <!-- ✅ TOMBOL DOWNLOAD -->
+              <!-- ✅ TOMBOL DOWNLOAD (FORCE DOWNLOAD) -->
               <q-btn 
                 flat round icon="download" 
                 color="primary" size="sm"
-                :href="url+row.file"
-                target="_blank"
-                download
+                @click="downloadFile(row)"
                 class="q-mt-sm"
               />
             </div>
@@ -277,6 +275,36 @@ tableToExcel(table, name) {
     // ✅ Helper untuk buka file di tab baru
     openFile(fileUrl) {
       window.open(fileUrl, '_blank');
+    },
+    // ✅ Helper untuk force download
+    async downloadFile(row) {
+      try {
+        const url = this.getDownloadUrl(row.file);
+        const response = await axios.get(url, { responseType: 'blob' });
+        const blob = new Blob([response.data], { type: response.headers['content-type'] });
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = row.file_name || this.getFileName(row.file) || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(link.href);
+      } catch (error) {
+        console.error('Download failed:', error);
+        window.open(this.getDownloadUrl(row.file), '_blank');
+      }
+    },
+    // ✅ Helper untuk download URL
+    getDownloadUrl(filePath) {
+      if (!filePath) return '#';
+      if (filePath.startsWith('http')) {
+        return filePath;
+      }
+      return `http://127.0.0.1:8000/storage/${filePath}`;
+    },
+    getFileName(filePath) {
+        if (!filePath) return 'download';
+        return filePath.split('/').pop();
     }
 },
 created(){

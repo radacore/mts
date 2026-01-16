@@ -1,0 +1,33 @@
+@import './quasar.variables.sass'
+@import '~quasar-styl'
+// @import '~quasar-addon-styl'
+
+
+.shadow
+    box-shadow: 0px 2px 30px rgba(146, 153, 184, 0.1019607843)
+
+.q-card
+  box-shadow: 0 5px 20px rgba(146, 153, 184, 0.03) !important
+
+.q-toolbar
+    height: 60px
+
+.constrain
+    max-width: 1200px
+    margin: 0 auto
+
+.small-screen-only
+    @media (max-width: $breakpoint-xs-max)
+        display: block
+    @media (min-width: $breakpoint-sm-min)
+        display: none
+
+.large-screen-only
+    @media (max-width: $breakpoint-xs-max)
+        display: none
+    @media (min-width: $breakpoint-sm-min)
+        display: block
+
+
+
+

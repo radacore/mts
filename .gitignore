@@ -1,0 +1,11 @@
+node_modules
+vendor
+.env
+.DS_Store
+storage/*.key
+storage/app/public
+!storage/app/public/.gitignore
+public/storage
+.idea
+.vscode
+*.log

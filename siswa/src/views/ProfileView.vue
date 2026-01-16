@@ -40,6 +40,18 @@
                    <q-btn flat round icon="edit" color="primary" @click="openDialogUsername" />
                 </q-item-section>
               </q-item>
+              
+               <!-- Menampilkan Kelas (Read Only) -->
+               <q-item v-if="user.kelas">
+                <q-item-section>
+                  <q-item-label caption>Kelas</q-item-label>
+                  <q-item-label class="text-subtitle1">{{ user.kelas.kelas }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-icon name="school" color="grey" />
+                </q-item-section>
+              </q-item>
+
                <q-item>
                 <q-item-section>
                   <q-item-label caption>Password</q-item-label>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use App\Models\bioguru;
 use App\Models\foto_profile;
+use App\Models\data_siswa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class authController extends Controller
@@ -48,9 +49,18 @@ class authController extends Controller
         $pp = null;
      }
 
+     $kelas = null;
+     // Jika user adalah siswa (presumsi role_id 4)
+     if($user->role_id == 4) {
+         $siswa = data_siswa::where('nis', $user->username)->with('kelas')->first();
+         if($siswa && $siswa->kelas) {
+             $kelas = $siswa->kelas;
+         }
+     }
+
     //  $nip=bioguru::where('user_id', $user->id)->firstOrFail();
      $role=DB::table('roles')->where('id', Auth()->User()->role_id)->first();
-     return response()->json(['user' => $user,'pp'=>$pp,'role'=>$role], 200);
+     return response()->json(['user' => $user,'pp'=>$pp,'role'=>$role, 'kelas'=>$kelas], 200);
  
     }
 

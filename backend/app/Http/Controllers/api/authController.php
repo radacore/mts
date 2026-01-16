@@ -50,17 +50,22 @@ class authController extends Controller
      }
 
      $kelas = null;
+     $nis_siswa = null;
+     
      // Jika user adalah siswa (presumsi role_id 4)
      if($user->role_id == 4) {
          $siswa = data_siswa::where('nis', $user->username)->with('kelas')->first();
-         if($siswa && $siswa->kelas) {
-             $kelas = $siswa->kelas;
+         if($siswa) {
+             $nis_siswa = $siswa->nis;
+             if($siswa->kelas) {
+                 $kelas = $siswa->kelas;
+             }
          }
      }
 
     //  $nip=bioguru::where('user_id', $user->id)->firstOrFail();
      $role=DB::table('roles')->where('id', Auth()->User()->role_id)->first();
-     return response()->json(['user' => $user,'pp'=>$pp,'role'=>$role, 'kelas'=>$kelas], 200);
+     return response()->json(['user' => $user,'pp'=>$pp,'role'=>$role, 'kelas'=>$kelas, 'nis'=>$nis_siswa], 200);
  
     }
 

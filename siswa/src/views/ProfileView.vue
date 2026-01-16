@@ -52,6 +52,17 @@
                 </q-item-section>
               </q-item>
 
+               <!-- Menampilkan NIS (Read Only) -->
+               <q-item v-if="user.nis">
+                <q-item-section>
+                  <q-item-label caption>NIS</q-item-label>
+                  <q-item-label class="text-subtitle1">{{ user.nis }}</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <q-icon name="badge" color="grey" />
+                </q-item-section>
+              </q-item>
+
                <q-item>
                 <q-item-section>
                   <q-item-label caption>Password</q-item-label>

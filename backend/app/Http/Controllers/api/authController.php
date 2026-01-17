@@ -54,7 +54,14 @@ class authController extends Controller
      
      // Jika user adalah siswa (presumsi role_id 4)
      if($user->role_id == 4) {
-         $siswa = data_siswa::where('nis', $user->username)->with('kelas')->first();
+         // Fix: Cari berdasarkan NIS, ATAU Nama.
+         // Kasus user: Username = "ayatullah" (bukan NIS), tapi Nama di data siswa = "ayatullah".
+         $siswa = data_siswa::where('nis', $user->username)
+                            ->orWhere('nama', $user->username) 
+                            ->orWhere('nama', $user->name)
+                            ->with('kelas')
+                            ->first();
+
          if($siswa) {
              $nis_siswa = $siswa->nis;
              if($siswa->kelas) {

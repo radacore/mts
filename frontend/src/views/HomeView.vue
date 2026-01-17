@@ -54,6 +54,7 @@
       </q-card>
     </div>
   </div>
+
   <div v-else class="landing-page q-pa-md text-center">
       <div class="row justify-center q-my-xl">
         <div class="col-12 col-md-8">

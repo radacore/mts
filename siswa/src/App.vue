@@ -10,19 +10,7 @@
           <q-btn v-if="authenticated" label="ruang praktikum" rounded dense no-caps style="width:150px" to="/ruang-praktikum" unelevated/>
           <q-btn v-if="authenticated" icon="o_home" size="sm" class="q-mx-sm" to="/" round unelevated />
           <q-icon v-if="authenticated" name="o_notifications" size="sm" class="q-mx-sm"/>
-          <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat >
-            <q-menu>
-              <q-list bordered separator style="min-width:200px">
-                <q-item >
-                  <q-item-section>
-                    <q-input  outlined v-model="username" placeholder="username" dense />
-                    <q-input  outlined v-model="password" placeholder="password" type="password" class="q-my-sm" dense />
-                    <q-btn label="login" color="green-7" @click.prevent="submit"/>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </q-btn>
+          <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat href="http://localhost:8081/login" />
           <q-avatar v-if="authenticated" color="green-10">
             <q-img :src="url+user.pp.foto"/>
             <q-menu  transition-show="jump-up" transition-hide="jump-down" class="text-green-7">
@@ -87,8 +75,6 @@ export default {
     const visible = ref(false)
     return {
       leftDrawerOpen: ref(false),
-      username:ref(""),
-      password:ref(""),
       visible,
       visibleClass: computed(
         () => `${visible.value ? 'bg-transparent' : 'bg-white'}`
@@ -107,30 +93,13 @@ export default {
     ...mapState("kontrol", ["url"]),
   },
   methods:{
-    submit() {
-      const form=new FormData
-      form.append("username", this.username)
-      form.append("password", this.password)
-      this.signIn(form).then(() => {
-        this.$router.replace({
-          name: "home",
-        });
-      }).catch((e)=>{
-         this.$toast.error(`Gagal Login, Cek Username dan Password`,{
-            position: "top",
-            duration:2000,
-            dismissible:true
-         });
-           return e
-      })
-    },
     ...mapActions({
-      signIn: "auth/signIn",
-    }),
-    ...mapActions({
+      attempt: "auth/attempt",
       logoutAction: "auth/logout",
     }),
     logout() {
+      // Clear cookie
+      document.cookie = "token=; path=/; domain=localhost; max-age=0";
       this.logoutAction().then(() => {
         this.$router.replace({
           name: "home",
@@ -139,7 +108,21 @@ export default {
     },
   },
   created(){
-
+    // Helper to get cookie
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    
+    const token = getCookie('token');
+    
+    if (token && !this.authenticated) {
+       this.attempt(token).then(() => {
+           // Redirect to appropriate page
+           this.$router.replace({ name: 'ruang-praktikum' });
+       });
+    }
   },
 watch:{
   visible(){

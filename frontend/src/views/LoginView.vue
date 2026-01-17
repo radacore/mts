@@ -1,4 +1,4 @@
-<template>
+``<template>
   <q-page class="flex flex-center">
     <q-card style="width:400px; height:500px" flat>
         <q-card-section>
@@ -48,9 +48,25 @@ methods:{
       form.append("username", this.username)
       form.append("password", this.password)
       this.signIn(form).then(() => {
-        this.$router.replace({
-          name: "home",
-        });
+        // Get token from store state instead of response
+        const token = this.$store.state.auth.token;
+        // console.log("Login success, token:", token);
+
+        if (token) {
+             document.cookie = `token=${token}; path=/; domain=localhost; max-age=86400`;
+        }
+
+        const user = this.$store.getters['auth/user'];
+        // console.log("User role:", user?.role?.id);
+
+        if (user && user.role && user.role.id === 4) {
+             window.location.href = `http://localhost:8082`;
+        } else {
+            this.$router.replace({
+                name: "home",
+            });
+        }
+
       }).catch((e)=>{
          this.$toast.error(`Gagal Login, Cek Username dan Password`,{
             position: "top",

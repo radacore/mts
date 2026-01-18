@@ -49,12 +49,7 @@
                             <div>{{ mod.modul_file_name }}</div>
                           </q-banner>
                         </a>
-                        <q-banner v-else rounded class="bg-grey-3 q-mb-md">
-                          <template v-slot:avatar>
-                            <q-icon name="error" color="red" />
-                          </template>
-                          Modul tidak ditemukan
-                        </q-banner>
+
 
                         <!-- ✅ JUDUL DAN DESKRIPSI MODUL -->
                         <div class="q-mb-md">

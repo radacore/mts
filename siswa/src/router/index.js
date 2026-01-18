@@ -67,6 +67,13 @@ const routes = [
       next();
     }
   },
+
+  // Route untuk auto-login dari frontend (8080)
+  {
+    path: '/auto-login',
+    name: 'auto-login',
+    component: () => import('../views/AutoLogin.vue'),
+  },
 ];
 
 const router = createRouter({

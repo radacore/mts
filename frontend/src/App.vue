@@ -1,6 +1,6 @@
 <template>
   <q-layout view="hHh LpR fFf">
-    <q-header class="bg-white text-green-7 shadow">
+    <q-header class="bg-white text-green-7 shadow z-max">
       <q-toolbar>
         <q-btn
           v-if="authenticated"
@@ -20,8 +20,7 @@
         <q-space/>
         <q-icon v-if="authenticated" name="o_mail" size="sm" class="q-mx-sm"/>
         <q-icon v-if="authenticated" name="o_notifications" size="sm" class="q-mx-sm"/>
-        <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" to="/login" rounded flat/>
-        <q-btn v-if="!authenticated" label="Home" icon="o_home" color="green-7" to="/" flat rounded/>
+        <q-btn v-if="!authenticated && $route.name !== 'login'" label="Login" icon="o_login" color="green-7" to="/login" rounded flat/>
         <q-avatar v-if="authenticated" color="green-10">
           <q-img :src="url+user.pp.foto"/>
           <q-menu  transition-show="jump-up" transition-hide="jump-down" class="text-green-7">
@@ -227,6 +226,14 @@
         <q-item-label>Slide Informasi</q-item-label>
       </q-item-section>
     </q-item>
+    <q-item v-if="user.user.role_id==1" clickable to="/setelan/lokasi" active-class="my-menu-link" class="linkmenu">
+      <q-item-section avatar>
+        <q-icon name="o_location_on" />
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>Pengaturan Lokasi</q-item-label>
+      </q-item-section>
+    </q-item>
   </q-list>
     </q-drawer>
 
@@ -275,6 +282,10 @@ export default {
     }),
     logout() {
       this.logoutAction().then(() => {
+        this.$toast.success('Berhasil logout', {
+          position: 'top',
+          duration: 2000,
+        });
         this.$router.replace({
           name: "login",
         });

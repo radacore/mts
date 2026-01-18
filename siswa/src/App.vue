@@ -9,7 +9,7 @@
           <q-space/>
           <q-btn v-if="authenticated" label="ruang praktikum" rounded dense no-caps style="width:150px" to="/ruang-praktikum" unelevated/>
           <q-btn v-if="authenticated" icon="o_home" size="sm" class="q-mx-sm" to="/" round unelevated />
-          <q-icon v-if="authenticated" name="o_notifications" size="sm" class="q-mx-sm"/>
+
           <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat >
             <q-menu>
               <q-list bordered separator style="min-width:200px">
@@ -36,12 +36,7 @@
                   </q-item-section>
                   <q-item-section>Profile</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup class="linkmenu">
-                  <q-item-section side>
-                    <q-icon name="o_folder_open" color="green"/>
-                  </q-item-section>
-                  <q-item-section>My Drive</q-item-section>
-                </q-item>
+
                 <q-separator />
                 <q-item clickable class="linkmenu" @click="logout">
                   <q-item-section side>
@@ -126,9 +121,14 @@ export default {
     }),
     logout() {
       this.logoutAction().then(() => {
-        this.$router.replace({
-          name: "home",
+        this.$toast.success('Berhasil logout', {
+          position: 'top',
+          duration: 2000,
         });
+        // Redirect ke frontend login page
+        setTimeout(() => {
+          window.location.href = 'http://localhost:8080/login';
+        }, 500);
       });
     },
   },

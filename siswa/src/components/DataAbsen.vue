@@ -1,6 +1,6 @@
 <template>
   <div>
-    <q-btn v-if="typeof(status)=='undefined'" label="Click untuk Absen" rounded color="green-7" @click="absen"/>
+    <q-btn v-if="typeof(status)=='undefined'" :disable="late" label="Click untuk Absen" rounded color="green-7" @click="absen"/>
     <q-btn v-else  label="Sudah Absen" rounded color="grey" disable @click="absen"/>
   </div>
 </template>
@@ -10,7 +10,7 @@ import axios from 'axios'
 import { ref } from '@vue/reactivity'
 
 export default {
-props:["absen_id"],
+props:["absen_id", "late"],
 setup(){
     return{
         status:ref(""),

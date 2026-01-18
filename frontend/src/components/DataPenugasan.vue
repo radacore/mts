@@ -25,7 +25,7 @@
           <q-item-section side top>
             Nilai: {{row.nilai}}
             <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-              <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
+              <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
             </q-popup-edit>
             <nilai-tugas :id="row.id" :nilai="row.nilai"/>
           </q-item-section>
@@ -76,7 +76,7 @@
             <div class="text-right">
               <div>Nilai: {{row.nilai}}</div>
               <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-                <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
+                <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
               </q-popup-edit>
               <nilai-tugas :id="row.id" :nilai="row.nilai"/>
               <!-- ✅ TOMBOL DOWNLOAD -->
@@ -121,7 +121,7 @@
           <q-item-section side top>
             Nilai: {{row.nilai}}
             <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-              <q-input v-model="scope.value" dense autofocus counter @keyup.enter="scope.set" />
+              <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
             </q-popup-edit>
             <nilai-tugas :id="row.id" :nilai="row.nilai"/>
           </q-item-section>

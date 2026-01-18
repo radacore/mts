@@ -15,7 +15,11 @@
                 <q-card>
                   <q-card-section>
                     Absensi Dibuka Pada Pukul {{abs.jam_buka}} Wita, dan Ditutup pada Pukul {{abs.jam_tutup}} Wita
-                    <data-absen :absen_id="abs.id"/>
+                    <div v-if="serverTime > abs.jam_tutup" class="q-my-sm text-red text-weight-bold row items-center">
+                        <q-icon name="warning" size="sm" class="q-mr-sm"/>
+                        Waktu absensi telah habis!
+                    </div>
+                    <data-absen :absen_id="abs.id" :late="serverTime > abs.jam_tutup"/>
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
@@ -94,7 +98,7 @@
                         <span class="text-caption">{{tgs.soal}}</span>
                     </p>
                     <q-separator class="q-mb-sm"/>
-                    <data-tugas :tugas_id="tgs.id"/>
+                    <data-tugas :tugas_id="tgs.id" :tugas_data="tgs"/>
                   </div>
                 </q-card-section>
               </q-card>
@@ -123,6 +127,7 @@ setup(){
         absens:ref([]),
         moduls:ref([]),
         tugas:ref([]),
+        serverTime:ref(''),
     }
 },
 computed:{
@@ -132,6 +137,7 @@ methods:{
     async getAbsen(){
         await axios.get("absenSiswa/"+this.class_id).then((response)=>{
             this.absens=response.data.data
+            this.serverTime=response.data.jam
         })
     },
     async getMateri(){

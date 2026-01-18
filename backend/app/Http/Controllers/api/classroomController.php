@@ -191,6 +191,9 @@ public function materiPost(Request $request)
             'jt' => 'required|string|max:255',
             'class_id' => 'required|exists:classrooms,id',
             'soal' => 'nullable|string',
+            'tipe_esay' => 'boolean',
+            'tipe_upload' => 'boolean',
+            'tipe_link' => 'boolean',
         ]);
 
         $data = penugasan::updateOrCreate(
@@ -199,6 +202,9 @@ public function materiPost(Request $request)
                 'jt' => $request->jt,
                 'soal' => $request->soal,
                 'classroom_id' => $request->class_id,
+                'tipe_esay' => $request->tipe_esay ?? true,
+                'tipe_upload' => $request->tipe_upload ?? true,
+                'tipe_link' => $request->tipe_link ?? true,
             ]
         );
 

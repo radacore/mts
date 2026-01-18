@@ -375,5 +375,31 @@ class userController extends Controller
             'deleted' => $deleted
         ]);
     }
+
+    // Reset password siswa ke NIS
+    public function resetPasswordSiswa(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Reset password ke NIS (username)
+        $user->password = bcrypt($user->username);
+        
+        // Set updated_at = created_at agar banner ganti password muncul
+        $user->updated_at = $user->created_at;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke NIS'
+        ]);
+    }
 }
 

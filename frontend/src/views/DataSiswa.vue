@@ -194,7 +194,7 @@ setup(){
         { name: 'nama', align: 'left', label: 'NAMA LENGKAP',field:'nama', sortable: true },
         { name: 'kelas', align: 'left', label: 'KELAS',field:'kelas', sortable: true },
         { name: 'email', align: 'left', label: 'E-mail',field:'email', sortable: true },
-        { name: 'user', align: 'left', label: 'Status', sortable: true },
+        { name: 'user', align: 'left', label: 'Reset Password', sortable: true },
         { name: 'aksi', align: 'left', label: 'AKSI', sortable: true },
     ]
     const duplicateColumns=[

@@ -59,14 +59,8 @@
     <div v-intersection="onIntersection"></div>
     <q-page-container>
       <router-view v-slot="{ Component, route }">
-        <transition
-          name="fade"
-          mode="out-in"
-          :enter-active-class="route.meta.enterClass"
-          :leave-active-class="route.meta.leaveClass"
-          class="page"
-        >
-          <component :is="Component" />
+        <transition name="fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
         </transition>
       </router-view>
     </q-page-container>
@@ -113,7 +107,7 @@ export default {
       form.append("password", this.password)
       this.signIn(form).then(() => {
         this.$router.replace({
-          name: "home",
+          name: "ruang-praktikum",
         });
       }).catch((e)=>{
          this.$toast.error(`Gagal Login, Cek Username dan Password`,{

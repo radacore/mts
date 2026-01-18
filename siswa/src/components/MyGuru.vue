@@ -8,13 +8,13 @@
         <q-item>
             <q-item-section top avatar>
               <q-avatar>
-                <img :src="url+row.foto_profile.foto">
+                <img :src="url+(row.foto_profile?.foto || 'foto/user.jpg')">
               </q-avatar>
             </q-item-section>
     
             <q-item-section>
               <q-item-label>{{row.name}}</q-item-label>
-              <q-item-label caption>{{row.bioguru.nip}}</q-item-label>
+              <q-item-label caption>{{row.bioguru?.nip || '-'}}</q-item-label>
             </q-item-section>
           </q-item>
     </q-list>

@@ -3,7 +3,7 @@
     <q-list dense>
       <q-item>
         <q-item-section>
-          <q-btn label="download" flat dense rounded style="max-width:100px"  @click="tableToExcel('table', 'mts Table')"/>
+          <q-btn label="download" flat dense rounded style="max-width:100px"  @click="downloadExcel"/>
         </q-item-section>
       </q-item>
       <q-separator/>
@@ -20,28 +20,6 @@
             </q-item-section>
           </q-item>
     </q-list>
-    <div id="document" style="display: none">
-      <table class="table1" width="100%" ref="table">
-        <thead>
-          <tr>
-            <th class="th">NAMA SISWA</th>
-            <th class="th">TANGGAL ABSEN</th>
-            <th class="th">JAM ABSEN</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="lst in datas" :key="lst.id">
-            <td>{{lst.user.name}}</td>
-            <td>
-              {{dateTime(lst.tgl_absen)}}
-            </td>
-            <td>
-              {{pukul(lst.created_at)}}
-            </td>
-          </tr>
-        </tbody>
-      </table>  
-    </div>
   </div>
 </template>
 
@@ -51,24 +29,14 @@ import axios from 'axios'
 import { mapState } from 'vuex'
 import moment from "moment";
 import "moment/locale/id";
+import * as XLSX from 'xlsx';
+
 moment.locale("id");
 export default {
 props:["absen_id"],
 setup(){
     return{
         datas:ref([]),
-        excelName: "Data Absensi",
-            uri: "data:application/vnd.ms-excel;base64,",
-            template:
-            '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table>{table}</table></body></html>',
-            base64: function (s) {
-            return window.btoa(unescape(encodeURIComponent(s)));
-            },
-            format: function (s, c) {
-            return s.replace(/{(\w+)}/g, function (m, p) {
-                return c[p];
-            });
-            },
     }
 },
 watch:{
@@ -91,15 +59,17 @@ methods:{
             this.datas=response.data
         })
     },
-    tableToExcel(table, name) {
-      if (!table.nodeType) table = this.$refs.table;
-      var ctx = { worksheet: name || "Worksheet", table: table.innerHTML };
-      var link = document.createElement("a");
-      link.download = !this.excelName.split(".").pop().length
-        ? this.excelName + ".xls"
-        : this.excelName;
-      link.href = this.uri + this.base64(this.format(this.template, ctx));
-      link.click();
+    downloadExcel() {
+       const dataToExport = this.datas.map(row => ({
+          'Nama Siswa': row.user.name,
+          'Tanggal Absen': this.dateTime(row.tgl_absen),
+          'Jam Absen': this.pukul(row.created_at)
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Absensi");
+        XLSX.writeFile(wb, `Data_Absensi_${this.dateTime(new Date())}.xlsx`);
     },
   
 },

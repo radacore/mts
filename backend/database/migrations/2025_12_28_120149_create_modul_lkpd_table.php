@@ -9,6 +9,8 @@ return new class extends Migration
     public function up()
     {
         Schema::create('modul_lkpd', function (Blueprint $table) {
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
             $table->id();
             $table->string('judul');                     // Judul modul
             $table->string('file_path');                 // Path di storage: "modul/nama_file.pdf"

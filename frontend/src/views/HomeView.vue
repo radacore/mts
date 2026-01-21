@@ -30,7 +30,20 @@
           </q-card>
           <q-card class="bg-white absolute-center bayangan" style="width:90%; height:100px; margin-top:120px;border-radius:10px">
             <q-card-section>
-              waiting.....
+               <div class="row justify-between items-center">
+                 <div>
+                    <span class="text-h5 text-red">{{ total_inv - kondisi }}</span>
+                    <p class="text-caption text-grey">Kondisi Rusak</p>
+                 </div>
+                 <q-circular-progress
+                    :value="(total_inv - kondisi) / total_inv * 100"
+                    size="50px"
+                    :thickness="0.22"
+                    color="red"
+                    track-color="grey-3"
+                    class="q-ma-md"
+                 />
+               </div>
             </q-card-section>
           </q-card>
         </q-card-section>

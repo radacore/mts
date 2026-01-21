@@ -13,6 +13,14 @@ use App\Http\Controllers\api\classroomController;
 use App\Http\Controllers\api\labsiswaController;
 use App\Http\Controllers\api\bioguruController;
 use App\Http\Controllers\api\landingController;
+use App\Http\Controllers\api\ModulLkpdController;
+
+// MODUL LKPD
+Route::middleware('auth:api')->group(function () {
+    Route::get('modul/lkpd', [ModulLkpdController::class, 'index']);
+    Route::post('modul/lkpd', [ModulLkpdController::class, 'store']);
+    Route::delete('modul/lkpd/{id}', [ModulLkpdController::class, 'destroy']);
+});
 
 Route::post('login', [authController::class, 'login']);
 Route::post('login/siswa', [authController::class, 'loginSiswa']);

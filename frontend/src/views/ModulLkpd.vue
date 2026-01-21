@@ -1,10 +1,10 @@
 <template>
   <q-page class="q-pa-sm">
     <div v-if="authenticated">
-      <q-card v-if="user.user.role_id == 2">
+      <q-card v-if="[1,2,3].includes(user.user.role_id)">
         <q-card-section>
           <q-table
-            title="Modul Ajar dan LKPD"
+            :title="user.user.role_id === 3 ? 'Kumpulan Modul & LKPD' : 'Manajemen Modul & LKPD'"
             :rows="rows"
             :columns="columns"
             :filter="filter"
@@ -29,11 +29,12 @@
                 v-model="filter"
                 placeholder="Search"
               >
-                <template v-slot:append>
+                 <template v-slot:append>
                   <q-icon name="search" />
                 </template>
               </q-input>
               <q-btn
+                v-if="user.user.role_id === 2"
                 label="Tambah Modul"
                 icon="add"
                 color="green-7"

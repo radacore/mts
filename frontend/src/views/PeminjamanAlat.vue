@@ -79,8 +79,8 @@
                   :pid="props.row.id"
                   :kid="props.row.katalog_id"
                   :dt="props.row.updated_at"
-                  :nip="props.row.user.bioguru.nip"
-                  :hp="props.row.user.bioguru.hp"
+                  :nip="props.row.user.bioguru ? props.row.user.bioguru.nip : '-'"
+                  :hp="props.row.user.bioguru ? props.row.user.bioguru.hp : '-'"
                   :lokasi="props.row.lokasi"
                />
                </div>

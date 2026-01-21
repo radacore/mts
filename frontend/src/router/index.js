@@ -82,6 +82,21 @@ const routes = [
     }
   },
   {
+    path: '/modul-lkpd',
+    name: 'ModulLkpd',
+    component: () => import('../views/ModulLkpd.vue'),
+    meta: {
+      enterClass: "animate__animated animate__fadeInUp animate__slow",
+      leaveClass: "animate__animated animate__fadeOut"
+    },
+    beforeEnter: (to, from, next) => {
+      if (!store.getters['auth/authenticated']) {
+        return next({ name: 'login' })
+      }
+      next();
+    }
+  },
+  {
     path: '/user/siswa',
     name: 'UserSiswa',
     component: () => import('../views/UserSiswa.vue'),

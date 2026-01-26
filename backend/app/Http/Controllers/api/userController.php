@@ -10,6 +10,7 @@ use App\Models\role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use App\Imports\importSiswa;
 
 class userController extends Controller
@@ -244,20 +245,44 @@ class userController extends Controller
     }
     public function updateProfile(Request $request)
     {
-        $request->validate([
-            'password'=>'required'
-        ]);
+        // Validasi dasar
+        $rules = [];
+        
+        // Jika ingin ganti password
+        if ($request->filled('password')) {
+            $rules['old_password'] = 'required';
+            $rules['password'] = 'min:6|confirmed'; // confirmed expects password_confirmation
+        }
+
+        $request->validate($rules);
         
         if($request->id){
-            $update=User::find($request->id);
-            $update->update([
-                'name'=>$request->name,
-                'username'=>$request->username,
-                'email'=>$request->email,
-                'password'=>bcrypt($request->passowrd),
-            ]);
+            $user = User::find($request->id);
+
+            // 1. Cek Password Lama Logic
+            if ($request->filled('password')) {
+                if (!Hash::check($request->old_password, $user->password)) {
+                    return response()->json([
+                        'message' => 'Password lama tidak sesuai',
+                        'errors' => ['old_password' => ['Password lama salah']]
+                    ], 422);
+                }
+                // Update password jika lolos
+                $user->password = bcrypt($request->password);
+            }
+
+            // 2. Update field lain (OPSIONAL / SECURE)
+            // Jika request mengirim name/email, kita update. 
+            // Namun Frontend siswa akan men-disable input ini.
+            if ($request->filled('name')) $user->name = $request->name;
+            if ($request->filled('username')) $user->username = $request->username;
+            if ($request->filled('email')) $user->email = $request->email;
+
+            $user->save();
+            return response()->json($user);
         }
-        return response()->json($update);
+        
+        return response()->json(['message' => 'User ID not found'], 404);
     }
     public function importSiswa(Request $request)
     {
@@ -348,6 +373,54 @@ class userController extends Controller
         return response()->json([
             'success' => true,
             'deleted' => $deleted
+        ]);
+    }
+
+    // Reset password siswa ke NIS
+    public function resetPasswordSiswa(Request $request)
+    {
+        $request->validate([
+            'id' => 'required'
+        ]);
+
+        $user = User::where('id', $request->id)->where('role_id', 4)->first();
+        
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Reset password ke NIS (username)
+        $user->password = bcrypt($user->username);
+        
+        // Set updated_at = created_at agar banner ganti password muncul
+        $user->updated_at = $user->created_at;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke NIS'
+        ]);
+    }
+    // Reset password guru ke 12345678
+    public function resetPasswordGuru(Request $request)
+    {
+        $request->validate([
+            'id' => 'required'
+        ]);
+
+        $user = User::where('id', $request->id)->where('role_id', 3)->first();
+        
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Reset password ke 12345678
+        $user->password = bcrypt('12345678');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke 12345678'
         ]);
     }
 }

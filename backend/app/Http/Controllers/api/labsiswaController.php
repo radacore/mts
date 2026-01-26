@@ -28,10 +28,6 @@ class labsiswaController extends Controller
         $sekarang=Carbon::now()->format('Y-m-d');
         $jam=Carbon::now()->format('H:i:s');
         $data=DB::table('absensis')
-            ->where(function($q)use($jam){
-                    $q->whereTime('jam_buka','<',$jam)
-                    ->whereTime('jam_tutup','>',$jam);
-                })
                 ->where('tgl_absen', $sekarang)
                 ->where('classroom_id', $id)
                 ->get();
@@ -42,9 +38,21 @@ class labsiswaController extends Controller
     }
     public function absenPost(Request $request)
     {
-        $data=data_absen::create([
-            'absensi_id'=>$request->absensi_id,
-            'user_id'=>Auth()->User()->id,
+        $request->validate(['absensi_id' => 'required']);
+
+        $absen = absensi::find($request->absensi_id);
+        if (!$absen) {
+            return response()->json(['message' => 'Absensi tidak ditemukan'], 404);
+        }
+
+        $jam = Carbon::now()->format('H:i:s');
+        if ($jam < $absen->jam_buka || $jam > $absen->jam_tutup) {
+            return response()->json(['message' => 'Waktu absensi telah habis atau belum dimulai'], 400);
+        }
+
+        $data = data_absen::create([
+            'absensi_id' => $request->absensi_id,
+            'user_id' => Auth()->User()->id,
         ]);
         return response()->json($data);
     }

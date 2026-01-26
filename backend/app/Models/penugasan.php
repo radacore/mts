@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class penugasan extends Model
 {
     protected $table ="penugasans";
-    public $fillable = ['classroom_id','jt','soal'];
+    public $fillable = ['classroom_id','jt','soal','tipe_esay','tipe_upload','tipe_link'];
 
     public function classroom()
     {

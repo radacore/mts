@@ -17,7 +17,17 @@ class peminjamanController extends Controller
 {
     public function index()
     {
-        $data=pinjam_lab::with(['kelas','katalog','User'])->with(['user.bioguru'])->where('user_id', Auth()->User()->id)->get();
+        $user = Auth()->User();
+        // Laboran (2) & Admin (1) bisa lihat semua
+        if ($user->role_id == 2 || $user->role_id == 1) {
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru'])->latest()->get();
+        } else {
+            // Guru/Siswa hanya lihat punya sendiri
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru'])
+                ->where('user_id', $user->id)
+                ->latest()
+                ->get();
+        }
         return response()->json($data);
     }
     public function pinjamLabPost(Request $request)
@@ -215,7 +225,15 @@ class peminjamanController extends Controller
     }
     public function pinjamAlat()
     {
-        $data=pinjam_alat::with(['katalog','kelas','user'])->with(['user.bioguru'])->where('user_id', Auth()->User()->id)->get();
+        $user = Auth()->User();
+        if ($user->role_id == 2 || $user->role_id == 1) {
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru'])->latest()->get();
+        } else {
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru'])
+                ->where('user_id', $user->id)
+                ->latest()
+                ->get();
+        }
         return response()->json($data);
     }
     public function pinjamAlatPost(Request $request)
@@ -260,7 +278,15 @@ class peminjamanController extends Controller
     }
     public function pinjamLain()
     {
-        $data=pinjam_lain::with('user')->where('user_id', Auth()->User()->id)->latest()->get();
+        $user = Auth()->User();
+        if ($user->role_id == 2 || $user->role_id == 1) {
+            $data = pinjam_lain::with('user')->latest()->get();
+        } else {
+            $data = pinjam_lain::with('user')
+                ->where('user_id', $user->id)
+                ->latest()
+                ->get();
+        }
         return response()->json($data);
     }
     public function pinjamLainPost(Request $request)

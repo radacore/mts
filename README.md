@@ -271,12 +271,36 @@ npm run build
 
 ## 👥 Role & Hak Akses
 
-| Role ID | Nama | Akses |
-|---------|------|-------|
-| 1 | Super Admin | Full access - Manajemen user, role, slide |
-| 2 | Laboran | Inventaris, katalog, rombel, approval peminjaman, data siswa |
-| 3 | Guru | Peminjaman lab/alat, ruang praktikum (classroom) |
-| 4 | Siswa | Portal siswa - absensi, tugas |
+### 1. Super Admin (Role ID: 1)
+Pemegang kendali penuh atas sistem, khususnya manajemen user.
+- **Manajemen User**: Bisa mengelola semua data user (Super User, Guru, Siswa).
+- **Level User**: Bisa mengatur role/level access.
+- **Inventaris & Katalog**: Mengelola alat, bahan, dan katalog praktikum.
+- **Ruang Belajar**: Mengatur kelas/rombel.
+- **Slide Informasi**: Mengatur gambar slide informasi di halaman depan.
+
+### 2. Laboran (Role ID: 2)
+Pengelola operasional laboratorium sehari-hari.
+- **Inventaris & Katalog**: Mengelola stok alat dan bahan.
+- **Ruang Belajar**: Mengatur kelas.
+- **Manajemen User**: Bisa mengelola data Guru dan Siswa (tapi tidak Super User).
+- **Data Siswa**: Akses ke master data siswa.
+- **Approval Peminjaman**: Memproses/menyetujui pengajuan peminjaman Lab, Alat, dan Lainnya dari Guru.
+- **Modul Ajar & LKPD**: Mengelola arsip modul.
+
+### 3. Guru (Role ID: 3)
+Pengguna fasilitas laboratorium untuk kegiatan mengajar.
+- **Peminjaman Lab**: Mengajukan penggunaan ruangan lab.
+- **Peminjaman Alat**: Mengajukan peminjaman alat praktikum.
+- **Peminjaman Lainnya**: Mengajukan kegiatan lain.
+- **Ruang Praktikum**: Mengelola kelas virtual, absensi siswa, dan materi.
+
+### 4. Siswa (Role ID: 4)
+User yang mengakses portal khusus (aplikasi terpisah di folder `siswa`).
+- **Portal Siswa**: Login khusus siswa.
+- **Absensi**: Melakukan absensi online.
+- **Tugas**: Melihat dan mengumpulkan tugas (Essay, Upload File, Link).
+- **Materi**: Mendownload modul/LKPD yang dibagikan guru.
 
 ---
 

@@ -1,0 +1,458 @@
+<template>
+  <q-page>
+    <!-- HERO SECTION -->
+    <section class="hero-section relative-position overflow-hidden">
+      <!-- Background Shapes -->
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+
+      <div class="row items-center justify-center container q-pa-md q-py-xl">
+        <!-- Left: Text Content -->
+        <div class="col-12 col-md-6 q-pa-md z-top animate__animated animate__fadeInLeft">
+          <div class="glass-morph q-pa-lg rounded-xl">
+             <div class="row items-center q-mb-md">
+                <div class="text-subtitle1 text-green-8 text-weight-bold tracking-widest">LABORATORIUM DIGITAL</div>
+             </div>
+             
+            <h1 class="text-h2 text-weight-bolder text-grey-9 q-mb-md leading-tight">
+              Eksplorasi Sains <br>
+              <span class="text-green-6">Tanpa Batas</span>
+            </h1>
+            
+            <p class="text-h6 text-grey-7 q-mb-xl" style="line-height: 1.6;">
+              Tingkatkan pengalaman belajar IPA dengan sistem manajemen laboratorium yang terintegrasi, modern, dan mudah diakses.
+            </p>
+
+            <div class="q-gutter-md row">
+              <q-btn
+                label="Jelajahi Fitur"
+                color="white"
+                text-color="green-8"
+                outline
+                rounded
+                padding="12px 32px"
+                class="btn-action"
+                @click="scrollToSection('features')"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Slider -->
+        <div class="col-12 col-md-6 q-pa-md q-pt-xl animate__animated animate__fadeInRight">
+          <div class="slider-container shadow-20 rounded-borders overflow-hidden border-white">
+            <q-carousel
+              v-model="slide"
+              animated
+              infinite
+              autoplay
+              transition-prev="slide-right"
+              transition-next="slide-left"
+              height="480px"
+              class="bg-white"
+            >
+              <q-carousel-slide
+                v-for="(item, index) in slides"
+                :key="item.id"
+                :name="index"
+                class="column no-wrap flex-center q-pa-none"
+              >
+                 <q-img 
+                   :src="url + item.gambar" 
+                   style="height: 320px; width: 100%"
+                   fit="cover"
+                 />
+                 <div class="full-width q-pa-md text-center bg-white" style="flex-grow: 1;">
+                    <div class="text-h6 text-weight-bold text-green-9 q-mb-xs">{{ item.judul }}</div>
+                    <div class="text-body2 text-grey-7">{{ item.ket }}</div>
+                 </div>
+              </q-carousel-slide>
+              
+              <!-- Empty State -->
+              <q-carousel-slide v-if="slides.length === 0" :name="0" class="flex flex-center bg-grey-2">
+                 <div class="text-center">
+                    <q-icon name="o_image" size="50px" color="grey-5" />
+                    <div class="text-grey-6 q-mt-sm">Memuat Slide...</div>
+                 </div>
+              </q-carousel-slide>
+            </q-carousel>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="features" class="q-py-xl bg-gradient">
+      <div class="container q-pa-md">
+        <div class="text-center q-mb-xl" data-aos="fade-up">
+           <div class="text-overline text-green-7 q-mb-sm">KEUNGGULAN KAMI</div>
+          <h2 class="text-h3 text-weight-bold text-grey-9 q-mt-none">Fitur Unggulan</h2>
+          <p class="text-grey-7 text-h6" style="max-width: 600px; margin: 0 auto;">
+            Solusi yang dirancang khusus untuk mempermudah administrasi dan kegiatan praktikum.
+          </p>
+        </div>
+        
+        <div class="row q-col-gutter-lg">
+          <div class="col-12 col-sm-6 col-md-3" v-for="(feature, idx) in features" :key="idx">
+            <q-card class="feature-card text-center q-pa-lg full-height no-shadow hover-lift bg-white">
+              <div class="icon-box q-mx-auto q-mb-lg bg-green-1 text-green-7 shadow-3">
+                 <q-icon :name="feature.icon" size="32px" />
+              </div>
+              <div class="text-h6 text-weight-bold q-mb-sm">{{ feature.title }}</div>
+              <div class="text-body2 text-grey-7">{{ feature.desc }}</div>
+            </q-card>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATISTICS SECTION -->
+    <section class="q-py-xl bg-stats-gradient text-white relative-position overflow-hidden">
+       <!-- Decorative Circles -->
+       <div class="circle-deco circle-1"></div>
+       <div class="circle-deco circle-2"></div>
+
+      <div class="container q-pa-md relative-position">
+        <div class="text-center q-mb-xl" data-aos="fade-up">
+           <div class="text-overline text-green-2 q-mb-sm">DATA TERKINI</div>
+          <h2 class="text-h3 text-weight-bold text-white q-mt-none">Statistik Laboratorium</h2>
+          <p class="text-green-1 text-h6 opacity-80" style="max-width: 600px; margin: 0 auto;">
+            Gambaran umum aktivitas dan sumber daya laboratorium secara real-time.
+          </p>
+        </div>
+
+        <div class="row q-col-gutter-lg text-center items-center justify-center">
+          <div class="col-6 col-sm-3 col-md-3" v-for="stat in statsDisplay" :key="stat.label">
+            <div class="stat-card q-pa-lg glass-effect cursor-pointer relative-position overflow-hidden">
+              <div class="absolute-full gradient-overlay"></div>
+              
+              <div class="relative-position z-top column items-center">
+                 <div class="icon-ring q-mb-md flex flex-center">
+                    <q-icon :name="stat.icon" size="36px" class="text-white icon-anim" />
+                 </div>
+                 <div class="text-h3 text-weight-bolder text-white q-mb-xs count-up">{{ stat.value }}</div>
+                 <div class="text-subtitle2 text-uppercase text-green-1 tracking-wider opacity-80">{{ stat.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPS SECTION -->
+    <section class="q-py-xl" v-if="siteSettings.maps_embed_url">
+      <div class="container q-pa-md">
+         <div class="row items-center q-col-gutter-xl">
+            <div class="col-12 col-md-5">
+               <div class="text-overline text-green-7">LOKASI KAMI</div>
+               <p class="text-h6 text-grey-7 q-mb-lg">{{ siteSettings.school_address || 'Alamat sekolah belum diatur.' }}</p>
+               
+               <div class="q-list">
+                  <div class="row items-center q-mb-md text-grey-8">
+                     <q-icon name="place" color="green-7" size="sm" class="q-mr-md" />
+                     <span>{{ siteSettings.school_address_detail || 'Detail alamat belum diatur' }}</span>
+                  </div>
+                  <div class="row items-center q-mb-md text-grey-8">
+                     <q-icon name="email" color="green-7" size="sm" class="q-mr-md" />
+                     <span>{{ siteSettings.school_email || 'email@sekolah.sch.id' }}</span>
+                  </div>
+                   <div class="row items-center text-grey-8">
+                     <q-icon name="phone" color="green-7" size="sm" class="q-mr-md" />
+                     <span>{{ siteSettings.school_phone || '(021) 123456' }}</span>
+                  </div>
+               </div>
+            </div>
+            
+            <div class="col-12 col-md-7">
+               <div class="map-frame shadow-10 rounded-xl overflow-hidden">
+                  <iframe
+                    :src="siteSettings.maps_embed_url"
+                    width="100%"
+                    height="450"
+                    style="border: 0"
+                    allowfullscreen
+                    loading="lazy"
+                    class="grayscale-map hover-color"
+                  ></iframe>
+               </div>
+            </div>
+         </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-blue-grey-10 text-white q-py-lg">
+      <div class="container q-pa-md">
+        <div class="row justify-between items-center text-grey-6 text-caption">
+          <div>&copy; {{ new Date().getFullYear() }} E-IPA Lab Management. All rights reserved.</div>
+          <div class="row q-gutter-sm">
+             <q-icon name="facebook" class="cursor-pointer hover-white" size="xs" />
+             <q-icon name="ion-logo-instagram" class="cursor-pointer hover-white" size="xs" />
+             <q-icon name="ion-logo-twitter" class="cursor-pointer hover-white" size="xs" />
+          </div>
+        </div>
+      </div>
+    </footer>
+  </q-page>
+</template>
+
+<script>
+import { ref } from 'vue';
+import axios from 'axios';
+import { mapState } from 'vuex';
+
+export default {
+  name: 'LandingPage',
+  setup() {
+    return {
+      slide: ref(0),
+      slides: ref([]),
+      stats: ref({ guru: 0, siswa: 0, katalog: 0, classroom: 0 }),
+      siteSettings: ref({
+        maps_embed_url: '',
+        school_name: '',
+        school_address: '',
+        school_address_detail: '',
+        school_email: '',
+        school_phone: ''
+      }),
+      features: [
+        { icon: 'science', title: 'Manajemen Lab', desc: 'Sistem inventarisasi alat dan bahan praktikum yang terstruktur dan mudah dipantau.' },
+        { icon: 'event_note', title: 'Penjadwalan', desc: 'Booking ruang laboratorium secara oniline, menghindari bentrok jadwal antar kelas.' },
+        { icon: 'menu_book', title: 'E-Modul', desc: 'Akses ribuan materi ajar, modul praktikum, dan LKPD digital dimana saja.' },
+        { icon: 'school', title: 'Data Siswa', desc: 'Pangkalan data siswa yang terintegrasi untuk pemantauan aktivitas lab.' },
+      ],
+    };
+  },
+  computed: {
+    ...mapState('kontrol', ['url']),
+    statsDisplay() {
+      return [
+        { label: 'Guru Aktif', value: this.stats.guru, icon: 'school' },
+        { label: 'Siswa Terdaftar', value: this.stats.siswa, icon: 'groups' },
+        { label: 'Katalog Alat', value: this.stats.katalog, icon: 'biotech' },
+        { label: 'Kelas Praktikum', value: this.stats.classroom, icon: 'class' },
+      ];
+    },
+  },
+  methods: {
+    async loadSlides() {
+      try {
+        const res = await axios.get('landing/slides');
+        this.slides = res.data;
+      } catch (e) {
+        // Fallback dummy slides if empty or error, for UI preview
+        if(this.slides.length === 0) {
+           // Optional: logic to show dummy slides
+        }
+      }
+    },
+    async loadStats() {
+      try {
+        const res = await axios.get('landing/stats');
+        this.stats = res.data;
+      } catch (e) { console.log(e) }
+    },
+    async loadSettings() {
+      try {
+        const res = await axios.get('landing/settings');
+        this.siteSettings = res.data;
+      } catch (e) { console.log(e) }
+    },
+    scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    },
+  },
+  created() {
+    this.loadSlides();
+    this.loadStats();
+    this.loadSettings();
+  },
+};
+</script>
+
+<style scoped lang="scss">
+// UTILS
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// FEATURES
+.bg-gradient {
+   background: linear-gradient(180deg, white 0%, #f1f8e9 100%);
+}
+.bg-green-limit {
+   background-color: #e8f5e9; /* Green-1 matches svg fill */
+}
+.hero-section {
+  background: white;
+  position: relative;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.6;
+}
+.blob-1 {
+  top: -10%;
+  left: -10%;
+  width: 600px;
+  height: 600px;
+  background: #dcfce7; // green-100
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  animation: morph 20s infinite;
+}
+.blob-2 {
+  bottom: -10%;
+  right: -5%;
+  width: 500px;
+  height: 500px;
+  background: #ecfccb; // lime-100
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: morph 15s infinite reverse;
+}
+
+@keyframes morph {
+  0% { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
+  100% { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
+}
+
+.glass-morph {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.slider-container {
+   border: 8px solid white; 
+   transform: rotate(2deg);
+   transition: transform 0.5s ease;
+}
+.slider-container:hover {
+   transform: rotate(0deg) scale(1.02);
+}
+
+.custom-caption {
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  width: 100%;
+}
+
+// FEATURES
+.bg-green-limit {
+   background-color: #e8f5e9;
+}
+
+.feature-card {
+  border-radius: 20px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+  border-color: #4caf50;
+}
+
+.icon-box {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+.feature-card:hover .icon-box {
+   transform: scale(1.1) rotate(5deg);
+   background: #4caf50;
+   color: white !important;
+}
+
+// STATS
+.bg-stats-gradient {
+  background: linear-gradient(135deg, #1b5e20 0%, #004d40 100%); /* Green-9 to Teal-9 */
+}
+.circle-deco {
+   position: absolute;
+   background: rgba(255,255,255,0.05);
+   border-radius: 50%;
+}
+.circle-1 { top: -100px; left: -100px; width: 400px; height: 400px; }
+.circle-2 { bottom: -50px; right: -50px; width: 300px; height: 300px; }
+
+.stat-card {
+   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+   border: 1px solid rgba(255,255,255,0.1);
+   border-radius: 24px; /* Rounded XL */
+}
+.glass-effect {
+   background: rgba(255,255,255,0.1);
+   backdrop-filter: blur(10px);
+}
+.gradient-overlay {
+   background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+   opacity: 0;
+   transition: opacity 0.4s ease;
+}
+
+.stat-card:hover {
+   transform: translateY(-10px) scale(1.02);
+   border-color: rgba(255,255,255,0.4);
+   box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+.stat-card:hover .gradient-overlay {
+   opacity: 1;
+}
+
+.icon-ring {
+   width: 60px;
+   height: 60px;
+   background: rgba(255,255,255,0.15); /* Soft blended background */
+   border-radius: 50%;
+   transition: all 0.4s ease;
+   box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+}
+.stat-card:hover .icon-ring {
+   transform: scale(1.1) rotate(5deg);
+   background: rgba(255,255,255,0.25);
+   box-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+.icon-anim {
+   transition: transform 0.4s ease;
+}
+
+.text-yellow-4 { color: #facc15; }
+.opacity-80 { opacity: 0.8; }
+
+// MAPS
+.map-frame {
+   border: 8px solid white;
+}
+.grayscale-map {
+   filter: grayscale(100%);
+   transition: filter 0.5s ease;
+}
+.grayscale-map:hover {
+   filter: grayscale(0%);
+}
+
+// FOOTER
+.footer-link {
+  color: #b0bec5;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.footer-link:hover {
+  color: #4caf50;
+  padding-left: 5px;
+}
+.hover-white:hover {
+   color: white;
+}
+.opacity-20 { opacity: 0.2; }
+</style>

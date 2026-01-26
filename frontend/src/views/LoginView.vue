@@ -1,6 +1,6 @@
 ``<template>
   <q-page class="flex flex-center">
-    <q-card style="width:400px; height:500px" flat>
+    <q-card style="width:400px" class="shadow-10 q-pa-md" bordered>
         <q-card-section>
           <div>
             <img src="../assets/eipa2.png" style="max-width:200px"/>
@@ -25,7 +25,7 @@
               </q-input>
         </q-card-section>
         <q-card-actions align="right">
-            <q-btn label="Sig IN" class="q-mr-md" style="width:100px" color="green-7" @click="submit"/>
+            <q-btn label="Login" class="q-mr-md" style="width:100px" color="green-7" @click="submit"/>
         </q-card-actions>
            
        </q-card>
@@ -48,25 +48,23 @@ methods:{
       form.append("username", this.username)
       form.append("password", this.password)
       this.signIn(form).then(() => {
-        // Get token from store state instead of response
-        const token = this.$store.state.auth.token;
-        // console.log("Login success, token:", token);
-
-        if (token) {
-             document.cookie = `token=${token}; path=/; domain=localhost; max-age=86400`;
-        }
-
+        // Cek role_id setelah login berhasil
         const user = this.$store.getters['auth/user'];
-        // console.log("User role:", user?.role?.id);
-
-        if (user && user.role && user.role.id === 4) {
-             window.location.href = `http://localhost:8082`;
+        
+        if (user && user.user && user.user.role_id === 4) {
+          // Jika siswa (role_id=4), redirect ke siswa app dengan token
+          const token = this.$store.state.auth.token;
+          // Logout dari frontend (bersihkan state)
+          this.$store.commit('auth/SET_TOKEN', null);
+          this.$store.commit('auth/SET_USER', null);
+          // Redirect ke siswa app
+          window.location.href = `http://localhost:8081/auto-login?token=${token}`;
         } else {
-            this.$router.replace({
-                name: "home",
-            });
+          // Role lainnya tetap di frontend
+          this.$router.replace({
+            name: "home", // Sekarang mengarah ke /dashboard
+          });
         }
-
       }).catch((e)=>{
          this.$toast.error(`Gagal Login, Cek Username dan Password`,{
             position: "top",

@@ -12,6 +12,15 @@ use App\Http\Controllers\api\peminjamanController;
 use App\Http\Controllers\api\classroomController;
 use App\Http\Controllers\api\labsiswaController;
 use App\Http\Controllers\api\bioguruController;
+use App\Http\Controllers\api\landingController;
+use App\Http\Controllers\api\ModulLkpdController;
+
+// MODUL LKPD
+Route::middleware('auth:api')->group(function () {
+    Route::get('modul/lkpd', [ModulLkpdController::class, 'index']);
+    Route::post('modul/lkpd', [ModulLkpdController::class, 'store']);
+    Route::delete('modul/lkpd/{id}', [ModulLkpdController::class, 'destroy']);
+});
 
 Route::post('login', [authController::class, 'login']);
 Route::post('login/siswa', [authController::class, 'loginSiswa']);
@@ -20,6 +29,11 @@ Route::get('jadwals', [dashboardController::class, 'jadwalLab']);
 Route::get('slides', [dashboardController::class, 'dataSlide']);
 Route::get('gurus', [dashboardController::class, 'guru']);
 Route::get('pinjamlain', [peminjamanController::class, 'pinjamLainClient']);
+
+// Public Landing Page APIs
+Route::get('landing/stats', [landingController::class, 'getStats']);
+Route::get('landing/slides', [landingController::class, 'getSlides']);
+Route::get('landing/settings', [landingController::class, 'getSiteSettings']);
 
 // AUTHENTIFIKASI
 Route::middleware('auth:api')->group(function () {
@@ -58,9 +72,12 @@ Route::middleware('auth:api')->group(function () {
     Route::post('importSiswa', [userController::class, 'importSiswa']);
     Route::get('importSiswa', [userController::class, 'importSiswaGet']);
     Route::delete('importSiswa/{id}', [userController::class, 'importSiswaHapus']);
+    Route::post('importSiswa/multiple-delete', [userController::class, 'importSiswaMultipleHapus']);
     Route::get('cekUser/{email}', [userController::class, 'cekUser']);
     Route::post('userSiswa', [userController::class, 'userSiswa']);
     Route::delete('userSiswa/{id}', [userController::class, 'userSiswaHapus']);
+    Route::post('resetPasswordSiswa', [userController::class, 'resetPasswordSiswa']);
+    Route::post('resetPasswordGuru', [userController::class, 'resetPasswordGuru']);
 
 
     Route::get('user/superole', [userController::class, 'superole']);
@@ -70,6 +87,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('profiles/update', [userController::class, 'updateProfile']);
     Route::get('biodata', [bioguruController::class, 'guruBio']);
     Route::put('biodata', [bioguruController::class, 'guruBioUpdate']);
+    
+    // Site Settings (Super Admin)
+    Route::post('site-settings', [landingController::class, 'updateSiteSettings']);
 });
 
 // INVENTARIS

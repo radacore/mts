@@ -1,8 +1,8 @@
 <template>
   <div>
-    <q-btn flat label="jawaban Singkat/essay" rounded class="q-mx-sm q-px-md" color="green-7" @click="esay" dense/>
-    <q-btn flat label="Upload Tugas" rounded class="q-mx-sm q-px-md" color="primary" @click="up" dense/>
-    <q-btn flat label="Link Tugas" rounded class="q-mx-sm q-px-md" color="purple" @click="link" dense/>
+    <q-btn v-if="checkPermission('esay')" flat label="jawaban Singkat/essay" rounded class="q-mx-sm q-px-md" color="green-7" @click="esay" dense/>
+    <q-btn v-if="checkPermission('upload')" flat label="Upload Tugas" rounded class="q-mx-sm q-px-md" color="primary" @click="up" dense/>
+    <q-btn v-if="checkPermission('link')" flat label="Link Tugas" rounded class="q-mx-sm q-px-md" color="purple" @click="link" dense/>
     <q-separator class="q-my-sm"/>
     <div v-if="status==1">
       <div v-for="es in dataEsay" :key="es.id">
@@ -98,7 +98,7 @@ import { ref } from '@vue/reactivity'
 import axios from 'axios'
 import { mapState } from 'vuex'
 export default {
-props:["tugas_id"],
+props:["tugas_id", "tugas_data"],
 setup(){
   return{
     status:ref(0),
@@ -243,12 +243,31 @@ methods:{
     if (['xls', 'xlsx'].includes(ext)) return 'green';
     if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'purple';
     return 'grey';
+  },
+  // ✅ Helper Check Permission
+  checkPermission(type) {
+    if (!this.tugas_data) return true; // Default true
+    
+    // Ambil value based on type
+    let val;
+    if (type === 'esay') val = this.tugas_data.tipe_esay;
+    if (type === 'upload') val = this.tugas_data.tipe_upload;
+    if (type === 'link') val = this.tugas_data.tipe_link;
+
+    // Handle null/undefined -> Default True (for backward compatibility)
+    if (val === undefined || val === null) return true;
+
+    // Handle number/string '0' -> False
+    if (val == 0) return false;
+
+    return true;
   }
 },
 created(){
   this.getEsay();
   this.getUpload();
   this.getLinks();
+  console.log('Tugas Data:', this.tugas_data);
 }
 }
 </script>

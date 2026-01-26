@@ -10,7 +10,19 @@
           <q-btn v-if="authenticated" label="ruang praktikum" rounded dense no-caps style="width:150px" to="/ruang-praktikum" unelevated/>
           <q-btn v-if="authenticated" icon="o_home" size="sm" class="q-mx-sm" to="/" round unelevated />
           <q-icon v-if="authenticated" name="o_notifications" size="sm" class="q-mx-sm"/>
-          <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat href="http://localhost:8081/login" />
+          <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat >
+            <q-menu>
+              <q-list bordered separator style="min-width:200px">
+                <q-item >
+                  <q-item-section>
+                    <q-input  outlined v-model="username" placeholder="username" dense />
+                    <q-input  outlined v-model="password" placeholder="password" type="password" class="q-my-sm" dense />
+                    <q-btn label="login" color="green-7" @click.prevent="submit"/>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
           <q-avatar v-if="authenticated" color="green-10">
             <q-img :src="url+user.pp.foto"/>
             <q-menu  transition-show="jump-up" transition-hide="jump-down" class="text-green-7">
@@ -24,12 +36,7 @@
                   </q-item-section>
                   <q-item-section>Profile</q-item-section>
                 </q-item>
-                <q-item clickable v-close-popup class="linkmenu">
-                  <q-item-section side>
-                    <q-icon name="o_folder_open" color="green"/>
-                  </q-item-section>
-                  <q-item-section>My Drive</q-item-section>
-                </q-item>
+
                 <q-separator />
                 <q-item clickable class="linkmenu" @click="logout">
                   <q-item-section side>
@@ -45,16 +52,10 @@
     </q-header>
     
     <div v-intersection="onIntersection"></div>
-    <q-page-container>
+    <q-page-container class="bg-grey-2">
       <router-view v-slot="{ Component, route }">
-        <transition
-          name="fade"
-          mode="out-in"
-          :enter-active-class="route.meta.enterClass"
-          :leave-active-class="route.meta.leaveClass"
-          class="page"
-        >
-          <component :is="Component" />
+        <transition name="fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
         </transition>
       </router-view>
     </q-page-container>
@@ -75,6 +76,8 @@ export default {
     const visible = ref(false)
     return {
       leftDrawerOpen: ref(false),
+      username: ref(""),
+      password: ref(""),
       visible,
       visibleClass: computed(
         () => `${visible.value ? 'bg-transparent' : 'bg-white'}`
@@ -93,6 +96,26 @@ export default {
     ...mapState("kontrol", ["url"]),
   },
   methods:{
+    submit() {
+      const form=new FormData
+      form.append("username", this.username)
+      form.append("password", this.password)
+      this.signIn(form).then(() => {
+        this.$router.replace({
+          name: "ruang-praktikum",
+        });
+      }).catch((e)=>{
+         this.$toast.error(`Gagal Login, Cek Username dan Password`,{
+            position: "top",
+            duration:2000,
+            dismissible:true
+         });
+           return e
+      })
+    },
+    ...mapActions({
+      signIn: "auth/signIn",
+    }),
     ...mapActions({
       attempt: "auth/attempt",
       logoutAction: "auth/logout",
@@ -101,9 +124,14 @@ export default {
       // Clear cookie
       document.cookie = "token=; path=/; domain=localhost; max-age=0";
       this.logoutAction().then(() => {
-        this.$router.replace({
-          name: "home",
+        this.$toast.success('Berhasil logout', {
+          position: 'top',
+          duration: 2000,
         });
+        // Redirect ke frontend login page
+        setTimeout(() => {
+          window.location.href = 'http://localhost:8080/login';
+        }, 500);
       });
     },
   },

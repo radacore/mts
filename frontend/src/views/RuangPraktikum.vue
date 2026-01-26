@@ -89,12 +89,7 @@
                         <div>{{ row.modul_file_name }}</div>
                       </q-banner>
                     </a>
-                    <q-banner v-else rounded class="bg-grey-3">
-                      <template v-slot:avatar>
-                        <q-icon name="error" color="red" />
-                      </template>
-                      Modul tidak ditemukan
-                    </q-banner>
+
 
                     <!-- 🔗 Link Tambahan (Jika Ada) -->
                     <q-card-section v-if="row.link_tambahan" class="q-pa-none">
@@ -348,6 +343,15 @@
           <q-form>
             <q-input v-model="jt" label="Judul Tugas" />
             <q-input v-model="soal" label="Deskripsi" autogrow />
+            <!-- ✅ Opsi Pengumpulan Tugas -->
+            <div class="q-mt-sm">
+              <div class="text-caption text-grey-7 q-mb-xs">Opsi Pengumpulan:</div>
+              <div class="row q-gutter-sm">
+                <q-checkbox dense v-model="tipe_esay" label="Izinkan Esay" color="green-7" />
+                <q-checkbox dense v-model="tipe_upload" label="Izinkan Upload File" color="primary" />
+                <q-checkbox dense v-model="tipe_link" label="Izinkan Tautan" color="purple" />
+              </div>
+            </div>
           </q-form>
         </q-card-section>
         <q-separator />
@@ -469,6 +473,10 @@ export default {
       des: ref(''),
       jt: ref(''),
       soal: ref(''),
+      // ✅ Tipe Submission (Default TRUE)
+      tipe_esay: ref(true),
+      tipe_upload: ref(true),
+      tipe_link: ref(true),
       tgl_absen: ref(''),
       jam_buka: ref(''),
       jam_tutup: ref(''),
@@ -517,7 +525,12 @@ export default {
       this.selectedModulId = null;
       this.selectedModulJudul = '';
       this.selectedModulFileName = '';
+      this.selectedModulFileName = '';
       this.link_tambahan = '';
+      // Reset Tipe Submission
+      this.tipe_esay = true;
+      this.tipe_upload = true;
+      this.tipe_link = true;
     },
 
     async cekRuang() {
@@ -671,6 +684,9 @@ export default {
       form.append('class_id', this.class_id);
       form.append('jt', this.jt);
       form.append('soal', this.soal);
+      form.append('tipe_esay', this.tipe_esay ? 1 : 0);
+      form.append('tipe_upload', this.tipe_upload ? 1 : 0);
+      form.append('tipe_link', this.tipe_link ? 1 : 0);
       try {
         await axios.post('penugasan', form);
         this.$toast.success('berhasil tersimpan');
@@ -738,6 +754,10 @@ export default {
         this.tugas_id = res.data.id;
         this.jt = res.data.jt;
         this.soal = res.data.soal;
+        // Load opsi (handle jika null -> anggap true untuk backward compatibility)
+        this.tipe_esay = res.data.tipe_esay !== 0;
+        this.tipe_upload = res.data.tipe_upload !== 0;
+        this.tipe_link = res.data.tipe_link !== 0;
         this.dialogTugas = true;
       } catch (e) {
         this.$toast.error('Gagal memuat data tugas');

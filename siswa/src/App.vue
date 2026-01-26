@@ -130,7 +130,7 @@ export default {
         });
         // Redirect ke frontend login page
         setTimeout(() => {
-          window.location.href = 'http://localhost:8080/login';
+          window.location.href = 'https://mtsn1kotamks.com/login';
         }, 500);
       });
     },

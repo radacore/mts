@@ -58,7 +58,7 @@ methods:{
           this.$store.commit('auth/SET_TOKEN', null);
           this.$store.commit('auth/SET_USER', null);
           // Redirect ke siswa app
-          window.location.href = `http://localhost:8081/auto-login?token=${token}`;
+          window.location.href = `https://siswa.mtsn1kotamks.com/auto-login?token=${token}`;
         } else {
           // Role lainnya tetap di frontend
           this.$router.replace({

@@ -52,7 +52,7 @@
     </q-header>
     
     <div v-intersection="onIntersection"></div>
-    <q-page-container>
+    <q-page-container class="bg-grey-2">
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
           <component :is="Component" :key="route.fullPath" />

@@ -31,6 +31,9 @@
            <template v-slot:body-cell-aksi="props">
              <q-td :props="props">
                <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
+               <q-btn @click="resetPassword(props.row.id)" round icon="o_lock_reset" color="amber-10" size="xs" flat>
+                   <q-tooltip>Reset Password (12345678)</q-tooltip>
+                </q-btn>
                <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
                <foto-inv :id="props.row.id"/>
              </q-td>
@@ -93,7 +96,28 @@
                </q-card-actions>
              </q-card>
            </q-dialog>
-           </div>
+            <!-- KONFIRMASI RESET PASSWORD -->
+            <q-dialog v-model="confirmReset" persistent>
+              <q-card>
+                <q-card-section class="row items-center">
+                  <q-item>
+                    <q-item-section side>
+                      <q-icon color="amber-10" name="o_lock_reset" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="text-subtitle2">Reset Password Guru?</q-item-label>
+                      <q-item-label caption lines="2">Password akan diatur ulang menjadi: 12345678</q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </q-card-section>
+          
+                <q-card-actions align="right">
+                  <q-btn label="Batal" color="primary" @click="batal" dense flat />
+                  <q-btn label="Reset Sekarang" color="amber-10" @click="doResetPassword" dense unelevated />
+                </q-card-actions>
+              </q-card>
+            </q-dialog>
+            </div>
        </q-page>
 </template>
 
@@ -116,6 +140,7 @@ setup(){
         filter:ref(null),
         dialogInsert:ref(false),
         confirm:ref(false),
+        confirmReset:ref(false),
         loading:ref(false),
     }
 },
@@ -138,6 +163,7 @@ methods:{
     batal(){
         this.dialogInsert=false
         this.confirm=false
+        this.confirmReset=false
         this.form.id=""
         this.form.name=""
         this.form.username=""
@@ -178,6 +204,23 @@ methods:{
             this.form.username=response.data.username
             this.form.email=response.data.email
             this.dialogInsert=true
+        })
+    },
+    async resetPassword(id){
+        this.form.id = id
+        this.confirmReset = true
+    },
+    async doResetPassword(){
+        await axios.post("resetPasswordGuru", { id: this.form.id }).then((response) => {
+            this.batal()
+            this.$toast.success(`Password berhasil direset menjadi 12345678`, {
+                position: "top",
+                duration: 3000
+            })
+            return response
+        }).catch((error) => {
+            this.$toast.error(`Gagal meriset password`)
+            return error
         })
     },
     async hapus(){

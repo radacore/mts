@@ -380,10 +380,10 @@ class userController extends Controller
     public function resetPasswordSiswa(Request $request)
     {
         $request->validate([
-            'email' => 'required|email'
+            'id' => 'required'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('id', $request->id)->where('role_id', 4)->first();
         
         if (!$user) {
             return response()->json(['message' => 'User tidak ditemukan'], 404);
@@ -399,6 +399,28 @@ class userController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Password berhasil direset ke NIS'
+        ]);
+    }
+    // Reset password guru ke 12345678
+    public function resetPasswordGuru(Request $request)
+    {
+        $request->validate([
+            'id' => 'required'
+        ]);
+
+        $user = User::where('id', $request->id)->where('role_id', 3)->first();
+        
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Reset password ke 12345678
+        $user->password = bcrypt('12345678');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke 12345678'
         ]);
     }
 }

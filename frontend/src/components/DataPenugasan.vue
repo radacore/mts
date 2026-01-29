@@ -168,8 +168,7 @@ DownloadLink,
 },
 props:["tugas_id"],
 computed:{
-    ...mapState("kontrol", ["url"]),
-    ...mapState("kontrol",["triger"])
+    ...mapState("kontrol", ["url", "triger"])
 },
 setup(){
     return{
@@ -190,10 +189,6 @@ setup(){
             });
             },
     }
-},
-computed:{
-...mapState("kontrol",["url"]),
-...mapState("kontrol",["triger"])
 },
 watch:{
   triger(){

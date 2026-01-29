@@ -444,7 +444,7 @@
 
 <script>
 import { ref } from '@vue/reactivity';
-import { mapGetters, } from 'vuex';
+import { mapGetters, mapState } from 'vuex';
 import DataAbsen from '@/components/DataAbsen.vue';
 import DataPenugasan from '@/components/DataPenugasan.vue';
 import axios from 'axios';
@@ -505,7 +505,7 @@ export default {
         return judul.includes(q) || file.includes(q) || uploader.includes(q);
       });
     },
-    // ❌ Hapus dependency ke 'url' (tidak dipakai lagi)
+    ...mapState('kontrol', ['url']),
   },
   methods: {
     dateTime(value) {

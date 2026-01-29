@@ -423,5 +423,27 @@ class userController extends Controller
             'message' => 'Password berhasil direset ke 12345678'
         ]);
     }
+    // Reset password laboran/super ke 12345678
+    public function resetPasswordLaboran(Request $request)
+    {
+        $request->validate([
+            'id' => 'required'
+        ]);
+
+        $user = User::where('id', $request->id)->whereIn('role_id', [1, 2])->first();
+        
+        if (!$user) {
+            return response()->json(['message' => 'User tidak ditemukan'], 404);
+        }
+
+        // Reset password ke 12345678
+        $user->password = bcrypt('12345678');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke 12345678'
+        ]);
+    }
 }
 

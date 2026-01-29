@@ -2,7 +2,7 @@ import axios from 'axios'
 export default {
     namespaced: true,
     state: {
-        url: 'https://mtsn1kotamks.com/storage/',
+        url: 'http://127.0.0.1:8000/storage/',
         triger: false,
         role: [],
         users: [],

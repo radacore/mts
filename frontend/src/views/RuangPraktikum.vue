@@ -674,7 +674,7 @@ export default {
     },
     getDownloadUrl(filePath) {
       // ✅ Sesuaikan dengan baseURL Anda
-      return `http://127.0.0.1:8000/storage/${filePath}`;
+      return `${this.url}${filePath}`;
     },
 
     // Method lain — semua pakai this.$toast

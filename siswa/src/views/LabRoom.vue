@@ -154,7 +154,7 @@ methods:{
         }
         // Jika relative path, tambahkan base URL dari localStorage atau default
         // Gunakan same-origin storage URL untuk development & production
-        return `https://mtsn1kotamks.com/storage/${filePath}`;
+        return `${this.url}${filePath}`;
     },
     // ✅ Helper function untuk get file icon
     getFileIcon(extension) {

@@ -157,9 +157,9 @@
 import axios from 'axios';
 import { ref } from '@vue/reactivity';
 import { mapState } from 'vuex';
-import NilaiTugas from './NilaiTugas.vue';
-import DownloadFile from './DownloadFile.vue'
-import DownloadLink from './DownloadLink.vue';
+import NilaiTugas from '@/components/NilaiTugas.vue';
+import DownloadFile from '@/components/DownloadFile.vue'
+import DownloadLink from '@/components/DownloadLink.vue';
 export default {
 components:{
 NilaiTugas,
@@ -167,6 +167,10 @@ DownloadFile,
 DownloadLink,
 },
 props:["tugas_id"],
+computed:{
+    ...mapState("kontrol", ["url"]),
+    ...mapState("kontrol",["triger"])
+},
 setup(){
     return{
       esays:ref([]),
@@ -300,7 +304,7 @@ tableToExcel(table, name) {
       if (filePath.startsWith('http')) {
         return filePath;
       }
-      return `http://127.0.0.1:8000/storage/${filePath}`;
+      return `${this.url}${filePath}`;
     },
     getFileName(filePath) {
         if (!filePath) return 'download';

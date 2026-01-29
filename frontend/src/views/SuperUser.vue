@@ -28,13 +28,20 @@
         </q-input>
         <q-btn label="Insert" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
       </template>
-      <template v-slot:body-cell-aksi="props">
-        <q-td :props="props">
-          <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
-          <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
-          <foto-inv :id="props.row.id"/>
-        </q-td>
-      </template>
+        <template v-slot:body-cell-aksi="props">
+          <q-td :props="props">
+            <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat>
+               <q-tooltip>Edit Account</q-tooltip>
+            </q-btn>
+            <q-btn @click="resetPassword(props.row.id)" round icon="o_lock_reset" color="amber-9" size="xs" flat>
+                <q-tooltip>Reset Password</q-tooltip>
+            </q-btn>
+            <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat="">
+                <q-tooltip>Hapus User</q-tooltip>
+            </q-btn>
+            <foto-inv :id="props.row.id"/>
+          </q-td>
+        </template>
        </q-table>
     </q-card-section>
    </q-card>
@@ -74,23 +81,45 @@
         </q-card>
       </q-dialog>
        <!-- KONFIRMASI -->
-       <q-dialog v-model="confirm" persistent>
+        <q-dialog v-model="confirm" persistent>
+         <q-card>
+           <q-card-section class="row items-center">
+             <q-item>
+               <q-item-section side>
+                 <q-icon color="red" name="fas fa-exclamation-circle" />
+               </q-item-section>
+               <q-item-section>
+                 <q-item-label class="text-subtitle2">Apakah Anda Ingin Menghapus Data ini?</q-item-label>
+                 <q-item-label caption lines="2">Data User</q-item-label>
+               </q-item-section>
+             </q-item>
+           </q-card-section>
+     
+           <q-card-actions align="right">
+             <q-btn label="No" color="primary" @click="batal" dense />
+             <q-btn label="Yes" color="red" @click="hapus" dense />
+           </q-card-actions>
+         </q-card>
+       </q-dialog>
+
+       <!-- KONFIRMASI RESET -->
+       <q-dialog v-model="confirmReset" persistent>
         <q-card>
           <q-card-section class="row items-center">
             <q-item>
               <q-item-section side>
-                <q-icon color="red" name="fas fa-exclamation-circle" />
+                <q-icon color="amber-9" name="o_lock_reset" />
               </q-item-section>
               <q-item-section>
-                <q-item-label class="text-subtitle2">Apakah Anda Ingin Menghapus Data ini?</q-item-label>
-                <q-item-label caption lines="2">Data Inventaris</q-item-label>
+                <q-item-label class="text-subtitle2">Reset Password User ini?</q-item-label>
+                <q-item-label caption lines="2">Password akan direset menjadi default: 12345678</q-item-label>
               </q-item-section>
             </q-item>
           </q-card-section>
     
           <q-card-actions align="right">
-            <q-btn label="No" color="primary" @click="batal" dense />
-            <q-btn label="Yes" color="red" @click="hapus" dense />
+            <q-btn label="Batal" color="primary" @click="batal" dense flat />
+            <q-btn label="Reset Sekarang" color="amber-9" @click="doResetPassword" dense />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -118,6 +147,7 @@ setup(){
         roles:ref([]),
         dialogInsert:ref(false),
         confirm:ref(false),
+        confirmReset:ref(false),
         loading:ref(false),
     }
 },
@@ -141,6 +171,7 @@ methods:{
     batal(){
         this.dialogInsert=false
         this.confirm=false
+        this.confirmReset=false
         this.form.id=""
         this.form.name=""
         this.form.username=""
@@ -196,6 +227,21 @@ methods:{
             this.$toast.success(`berhasil dihapus`)
             this.getUser();
             return response
+        })
+    },
+    resetPassword($id){
+        this.form.id=$id
+        this.confirmReset=true
+    },
+    async doResetPassword(){
+        await axios.post("resetPasswordLaboran", {id: this.form.id}).then((response)=>{
+            this.batal()
+            this.$toast.success(response.data.message)
+            this.getUser()
+            return response
+        }).catch((error)=>{
+            this.$toast.error(`Gagal mereset password`)
+            return error
         })
     }
 },

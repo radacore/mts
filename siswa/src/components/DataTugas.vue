@@ -220,7 +220,7 @@ methods:{
     if (filePath.startsWith('http')) {
       return filePath;
     }
-    return `http://127.0.0.1:8000/storage/${filePath}`;
+    return `${this.url}${filePath}`;
   },
   // ✅ Helper untuk file icon
   getFileIcon(extension) {

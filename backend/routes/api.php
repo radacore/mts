@@ -78,6 +78,7 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('userSiswa/{id}', [userController::class, 'userSiswaHapus']);
     Route::post('resetPasswordSiswa', [userController::class, 'resetPasswordSiswa']);
     Route::post('resetPasswordGuru', [userController::class, 'resetPasswordGuru']);
+    Route::post('resetPasswordLaboran', [userController::class, 'resetPasswordLaboran']);
 
 
     Route::get('user/superole', [userController::class, 'superole']);

@@ -88,13 +88,19 @@ setup(){
 computed:{
 ...mapState("kontrol",["triger"])
 },
-watch:{
-    triger(){
-        this.getKatalog();
-    },
- 
-},
-methods:{
+  watch:{
+      triger(){
+          if (this.modal) {
+            this.getKatalog();
+          }
+      },
+      modal(val){
+          if (val) {
+            this.getKatalog();
+          }
+      }
+  },
+  methods:{
 async getKatalog(){
     this.loading=true
     await axios.get("filterTopik/"+this.katalog_id+"/"+this.plid).then((response)=>{
@@ -108,9 +114,6 @@ async getKatalog(){
     })
 },
 
-},
-created(){
-this.getKatalog()
 }
 }
 </script>

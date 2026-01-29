@@ -185,19 +185,16 @@ methods:{
   dateTime(value) {
       return moment(value).format('LL');
     },
-    generateReport() {
+    async generateReport() {
+      await this.getKatalog();
       this.$refs.html2Pdf.generatePdf();
     },
     async getKatalog(){
-      this.loading=true
       await axios.get("filterTopik/"+this.kid+"/"+this.pid).then((response)=>{
           this.datas=response.data
       })
   },
 },
-created(){
-  this.getKatalog()
-}
 
 }
 </script>

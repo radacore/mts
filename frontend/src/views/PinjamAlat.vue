@@ -5,7 +5,7 @@
           <q-card-section>
             <q-table
                     title="Peminjaman Alat"
-                    :rows="rows"
+                    :rows="filteredRows"
                     :columns="columns"
                     :filter="filter"
                     :loading="loading"
@@ -22,6 +22,16 @@
                     </q-inner-loading>
                   </template>
                    <template v-slot:top-right>
+                    <q-select
+                      v-model="statusFilter"
+                      :options="['Semua', 'diajukan', 'disetujui', 'ditolak', 'dikembalikan']"
+                      label="Filter Status"
+                      dense
+                      flat
+                      outlined
+                      class="q-mx-md"
+                      style="min-width: 150px"
+                    />
                     <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
                       <template v-slot:append>
                         <q-icon name="search" />
@@ -76,6 +86,9 @@
                           {{props.row.status}}
                       </q-chip>
                       <q-chip v-else-if="props.row.status=='ditolak'" color="red-7" text-color="white" icon="o_water_drop" dense>
+                          {{props.row.status}}
+                      </q-chip>
+                      <q-chip v-else-if="props.row.status=='dikembalikan'" color="blue-7" text-color="white" icon="history" dense>
                           {{props.row.status}}
                       </q-chip>
                       <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
@@ -252,6 +265,7 @@ components:{
 setup(){
     const columns = [
         { name: 'copy', align: 'left', label: 'kopi', sortable: true },
+        { name: 'peminjam', align: 'left', label: 'peminjam', field: row => row.user.name, sortable: true },
         { name: 'topik', align: 'left', label: 'topik', sortable: true },
         { name: 'tgl_pakai', align: 'left', label: 'Tanggal Penggunaan', field:'tgl_pakai', sortable: true },
         { name: 'jam_pakai', align: 'left', label: 'Jam', field:'jam_pakai', sortable: true },
@@ -276,7 +290,8 @@ setup(){
         filter:ref(null),
         dialogInsert:ref(false),
         confirm:ref(false),
-        loading:ref(false)
+        loading:ref(false),
+        statusFilter:ref('Semua'),
     }
 },
 data:()=>({
@@ -302,6 +317,12 @@ computed:{
     ...mapState("kontrol",["katalog"]),
     ...mapState("kontrol",["triger"]),
     ...mapState("kontrol",["url"]),
+    filteredRows() {
+      if (this.statusFilter === 'Semua') {
+        return this.rows;
+      }
+      return this.rows.filter(row => row.status === this.statusFilter);
+    }
 },
 watch:{
 triger(){
@@ -382,4 +403,3 @@ this.$store.dispatch("kontrol/getKatalog")
 }
 }
 </script>
-

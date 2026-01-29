@@ -5,7 +5,7 @@
               <q-card-section>
                  <q-table
                     title="Peminjaman Lab"
-                    :rows="rows"
+                    :rows="filteredRows"
                     :columns="columns"
                     :filter="filter"
                     :loading="loading"
@@ -22,6 +22,16 @@
                   </q-inner-loading>
                 </template>
                  <template v-slot:top-right>
+                  <q-select
+                      v-model="statusFilter"
+                      :options="['Semua', 'diajukan', 'disetujui', 'ditolak']"
+                      label="Filter Status"
+                      dense
+                      flat
+                      outlined
+                      class="q-mx-md"
+                      style="min-width: 150px"
+                    />
                   <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
                     <template v-slot:append>
                       <q-icon name="search" />
@@ -240,6 +250,7 @@ BuktiLab,
 setup(){
     const columns = [
         { name: 'copy', align: 'left', label: 'kopi', sortable: true },
+        { name: 'peminjam', align: 'left', label: 'peminjam', field: 'peminjam', sortable: true },
         { name: 'hari', align: 'left', label: 'hari', sortable: true },
         { name: 'jam', align: 'left', label: 'jam', field:'jam', sortable: true },
         { name: 'jam_selesai', align: 'left', label: 'jam Selesai', field:'jam_selesai', sortable: true },
@@ -262,6 +273,7 @@ setup(){
         confirm:ref(false),
         loading:ref(false),
         filter:ref(null),
+        statusFilter:ref('Semua'),
     }
 },
 data:()=>({
@@ -285,6 +297,12 @@ computed:{
     ...mapState("kontrol",["katalog"]),
     ...mapState("kontrol",["triger"]),
     ...mapState("kontrol",["url"]),
+    filteredRows() {
+      if (this.statusFilter === 'Semua') {
+        return this.rows;
+      }
+      return this.rows.filter(row => row.status === this.statusFilter);
+    }
 },
 watch:{
 triger(){
@@ -367,4 +385,3 @@ this.$store.dispatch("kontrol/getKatalog")
 }
 }
 </script>
-

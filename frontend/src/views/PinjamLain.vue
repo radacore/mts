@@ -4,8 +4,8 @@
       <q-card v-if="user.user.role_id==1 || user.user.role_id==3 || user.user.role_id==2">
         <q-card-section>
           <q-table
-          title="Peminjaman Alat"
-          :rows="rows"
+          title="Peminjaman Lain"
+          :rows="filteredRows"
           :columns="columns"
           :filter="filter"
           :loading="loading"
@@ -21,6 +21,16 @@
         </q-inner-loading>
       </template>
        <template v-slot:top-right>
+        <q-select
+            v-model="statusFilter"
+            :options="['Semua', 'diajukan', 'disetujui', 'ditolak']"
+            label="Filter Status"
+            dense
+            flat
+            outlined
+            class="q-mx-md"
+            style="min-width: 150px"
+          />
         <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
           <template v-slot:append>
             <q-icon name="search" />
@@ -45,7 +55,6 @@
           <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
               {{props.row.status}}
           </q-chip>
-          <list-alat :paid="props.row.id" :kat_id="props.row.katalog_id"/>
       </div>
         </q-td>
       </template>
@@ -153,6 +162,7 @@ export default {
 setup(){
   const columns=[
     { name: 'tgl', align: 'left', label: 'Tanggal Pinjam', sortable: true },
+    { name: 'peminjam', align: 'left', label: 'peminjam', field: row => row.user.name, sortable: true },
     { name: 'mulai', align: 'left', label: 'Jam Mulai', field:'mulai', sortable: true },
     { name: 'selesai', align: 'left', label: 'Jam Selesai', field:'selesai', sortable: true },
     { name: 'kegiatan', align: 'left', label: 'Kegiatan', field:'kegiatan', sortable: true },
@@ -166,6 +176,7 @@ setup(){
     loading:ref(false),
     filter:ref(null),
     rows:ref([]),
+    statusFilter:ref('Semua'),
   }
 },
 data:()=>({
@@ -182,6 +193,12 @@ computed:{
       authenticated: "auth/authenticated",
       user: "auth/user",
     }),
+    filteredRows() {
+      if (this.statusFilter === 'Semua') {
+        return this.rows;
+      }
+      return this.rows.filter(row => row.status === this.statusFilter);
+    }
 },
 methods:{
   dateTime(value) {
@@ -252,4 +269,3 @@ this.getData()
 }
 }
 </script>
-

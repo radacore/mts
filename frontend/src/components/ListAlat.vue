@@ -34,7 +34,7 @@
               </q-avatar>
               <q-popup-edit v-model="props.row.minta" title="diajukan"  buttons v-slot="scope">
                 <q-input type="number" v-model="scope.value" dense autofocus   />
-            </q-popup-edit>
+              </q-popup-edit>
            
           </q-td>
         </template>
@@ -91,7 +91,14 @@
   },
   watch:{
       triger(){
-          this.getKatalog();
+          if (this.modal) {
+            this.getKatalog();
+          }
+      },
+      modal(val){
+          if (val) {
+            this.getKatalog();
+          }
       }
   },
   methods:{
@@ -103,16 +110,9 @@
           setTimeout(()=>{
               this.loading=false
           },1000);
-  
-          
       })
   },
   
   },
-  created(){
-  this.getKatalog()
-  }
   }
   </script>
-  
-  

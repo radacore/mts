@@ -90,7 +90,14 @@
   },
   watch:{
       triger(){
-          this.getKatalog();
+          if (this.modal) {
+            this.getKatalog();
+          }
+      },
+      modal(val){
+          if (val) {
+            this.getKatalog();
+          }
       }
   },
   methods:{
@@ -102,16 +109,9 @@
           setTimeout(()=>{
               this.loading=false
           },1000);
-  
-          
       })
   },
   
   },
-  created(){
-  this.getKatalog()
-  }
   }
   </script>
-  
-  

@@ -12,11 +12,6 @@ setup(){
 
     }
 },
-watch:{
-    alat_id(){
-        this.copyData()
-    }
-},
 methods:{
     async copyData(){
         await axios.get("pinjamAlat/copy/"+this.alat_id).then((response)=>{

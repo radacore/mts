@@ -251,7 +251,7 @@ setup(){
     const columns = [
         { name: 'copy', align: 'left', label: 'kopi', sortable: true },
         { name: 'peminjam', align: 'left', label: 'peminjam', field: 'peminjam', sortable: true },
-        { name: 'hari', align: 'left', label: 'hari', sortable: true },
+        { name: 'hari', align: 'left', label: 'hari', field: 'tgl', sortable: true },
         { name: 'jam', align: 'left', label: 'jam', field:'jam', sortable: true },
         { name: 'jam_selesai', align: 'left', label: 'jam Selesai', field:'jam_selesai', sortable: true },
         { name: 'pekan', align: 'left', label: 'Pekan Ke-', field:'pekan', sortable: true },
@@ -265,6 +265,8 @@ setup(){
     ]
     return{
       pagination: {
+          sortBy: 'hari',
+          descending: true,
           rowsPerPage: 15
          },
         columns,

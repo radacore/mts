@@ -283,6 +283,8 @@ setup(){
     ]
     return{
       pagination: {
+          sortBy: 'tgl_pakai',
+          descending: true,
           rowsPerPage: 15
          },
         columns,

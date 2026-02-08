@@ -9,6 +9,7 @@
           :columns="columns"
           :filter="filter"
           :loading="loading"
+          :pagination="pagination"
           separator="cell"
           row-key="name"
           flat
@@ -161,15 +162,20 @@ moment.locale("id");
 export default {
 setup(){
   const columns=[
-    { name: 'tgl', align: 'left', label: 'Tanggal Pinjam', sortable: true },
+    { name: 'tgl', align: 'left', label: 'Tanggal Pinjam', field: 'tgl', sortable: true },
     { name: 'peminjam', align: 'left', label: 'peminjam', field: row => row.user.name, sortable: true },
     { name: 'mulai', align: 'left', label: 'Jam Mulai', field:'mulai', sortable: true },
     { name: 'selesai', align: 'left', label: 'Jam Selesai', field:'selesai', sortable: true },
     { name: 'kegiatan', align: 'left', label: 'Kegiatan', field:'kegiatan', sortable: true },
-    { name: 'status', align: 'left', label: 'Status', sortable: true },
+    { name: 'status', align: 'left', label: 'Status', field: 'status', sortable: true },
     { name: 'aksi', align: 'left', label: 'Aksi', sortable: true },
   ]
   return{
+    pagination: {
+      sortBy: 'tgl',
+      descending: true,
+      rowsPerPage: 15
+    },
     columns,
     dialogInsert:ref(false),
     confirm:ref(false),

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
 use App\Models\inventaris;
+use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
+use App\Models\pinjam_lain;
 use App\Models\silde;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,21 +17,20 @@ class dashboardController extends Controller
 {
     public function statistik()
     {
-        $data=inventaris::get();
-        $inv=0;
-        foreach($data as $row){
-            $tota=$row->vol;
-            $inv +=$tota;
-        }
-        $kon=inventaris::latest()->get();
-        $kondisi=0;
-        foreach($kon as $lst){
-            $tot=$lst->konbaik;
-            $kondisi +=$tot;
-        }
+        $inv = (int) inventaris::sum('jml');
+        $kondisi = (int) inventaris::sum('konbaik');
+        $rusak = (int) inventaris::sum('konrusak');
+        $pinjamLabPending = (int) pinjam_lab::where('status', 'diajukan')->count();
+        $pinjamAlatPending = (int) pinjam_alat::where('status', 'diajukan')->count();
+        $pinjamLainPending = (int) pinjam_lain::where('status', 'diajukan')->count();
+
         return response()->json([
             'inv'=>$inv,
             'kondisi'=>$kondisi,
+            'rusak'=>$rusak,
+            'pinjam_lab_pending' => $pinjamLabPending,
+            'pinjam_alat_pending' => $pinjamAlatPending,
+            'pinjam_lain_pending' => $pinjamLainPending,
         ]);
     }
     public function jadwalLab()

@@ -246,6 +246,9 @@
                   <q-btn label="Pilih Modul" color="primary" dense @click="loadModulDariLaboran" />
                 </template>
               </q-input>
+              <div class="q-mt-sm">
+                <q-btn label="Upload Modul" color="green-7" outline dense icon="upload_file" @click="dialogUploadModul = true" />
+              </div>
               <div v-if="selectedModulId" class="text-caption text-grey q-mt-xs">
                 File: {{ selectedModulFileName }}
               </div>
@@ -327,6 +330,34 @@
         <q-card-actions align="right">
           <q-btn flat label="Batal" color="primary" v-close-popup />
           <q-btn flat label="Pilih" color="primary" :disable="!selectedModulId" @click="confirmPilihModul" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- DIALOG UPLOAD MODUL -->
+    <q-dialog v-model="dialogUploadModul" persistent>
+      <q-card style="width: 520px; max-width: 90vw;">
+        <q-card-section>
+          <div class="text-h6">Upload Modul LKPD</div>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-input v-model="uploadModulJudul" label="Judul Modul*" dense outlined class="q-mb-sm" />
+          <q-file
+            v-model="uploadModulFile"
+            label="Pilih File Modul*"
+            outlined
+            dense
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          >
+            <template v-slot:prepend>
+              <q-icon name="attach_file" />
+            </template>
+          </q-file>
+          <div class="text-caption text-grey q-mt-xs">Maks 20MB (PDF, DOCX, XLSX, PPTX)</div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat color="grey-8" label="Batal" @click="resetUploadModul" />
+          <q-btn color="green-7" label="Upload" :loading="uploadingModul" @click="uploadModulMandiri" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -464,6 +495,8 @@ export default {
       dialogTugas: ref(false),
       dialogAbsen: ref(false),
       dialogPilihModul: ref(false),
+      dialogUploadModul: ref(false),
+      uploadingModul: ref(false),
       moduls: ref([]),
       tugas: ref([]),
       absensis: ref([]),
@@ -486,6 +519,8 @@ export default {
       selectedModulFileName: ref(''),
       modulList: ref([]),
       modulFilter: ref(''),
+      uploadModulJudul: ref(''),
+      uploadModulFile: ref(null),
       // ✅ BARU: Link Tambahan
       link_tambahan: ref(''),
     };
@@ -527,6 +562,7 @@ export default {
       this.selectedModulFileName = '';
       this.selectedModulFileName = '';
       this.link_tambahan = '';
+      this.resetUploadModul();
       // Reset Tipe Submission
       this.tipe_esay = true;
       this.tipe_upload = true;
@@ -570,14 +606,60 @@ export default {
     },
 
     // Method Modul
+    async fetchModulList() {
+      const res = await axios.get('modul/lkpd');
+      this.modulList = res.data;
+      return res.data;
+    },
     async loadModulDariLaboran() {
       this.dialogPilihModul = true;
       try {
-        const res = await axios.get('modul/lkpd'); // ✅ tanpa this.url
-        this.modulList = res.data;
+        await this.fetchModulList();
       } catch (error) {
-        console.error('Error load modul:', error);
         this.$toast.error('Gagal memuat daftar modul');
+      }
+    },
+    resetUploadModul() {
+      this.uploadModulJudul = '';
+      this.uploadModulFile = null;
+      this.uploadingModul = false;
+      this.dialogUploadModul = false;
+    },
+    async uploadModulMandiri() {
+      if (!this.uploadModulJudul || !this.uploadModulJudul.toString().trim()) {
+        this.$toast.warning('Judul modul wajib diisi');
+        return;
+      }
+
+      if (!this.uploadModulFile) {
+        this.$toast.warning('File modul wajib dipilih');
+        return;
+      }
+
+      const form = new FormData();
+      form.append('judul', this.uploadModulJudul);
+      form.append('file', this.uploadModulFile);
+
+      this.uploadingModul = true;
+      try {
+        const res = await axios.post('modul/lkpd', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        this.$toast.success('Modul berhasil diupload');
+        await this.fetchModulList();
+
+        const uploaded = res.data || {};
+        this.selectedModulId = uploaded.id || null;
+        this.selectedModulJudul = uploaded.judul || this.uploadModulJudul;
+        this.selectedModulFileName = uploaded.file_name || (this.uploadModulFile && this.uploadModulFile.name) || '';
+
+        this.resetUploadModul();
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Gagal upload modul';
+        this.$toast.error(msg);
+      } finally {
+        this.uploadingModul = false;
       }
     },
     selectModul(modul) {

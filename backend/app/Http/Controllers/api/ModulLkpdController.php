@@ -19,9 +19,9 @@ class ModulLkpdController extends Controller
     {
         $user = Auth::user();
 
-        // Laboran/Admin: lihat modul mereka sendiri
+        // Laboran/Admin: lihat semua modul agar bisa dikelola
         if ($user->role_id == 2 || $user->role_id == 1) {
-            $moduls = ModulLkpd::where('uploaded_by', $user->id)
+            $moduls = ModulLkpd::with('uploader:id,name')
                 ->orderBy('created_at', 'desc')
                 ->get();
         } 
@@ -58,10 +58,10 @@ class ModulLkpdController extends Controller
     {
         $user = Auth::user();
 
-        // Hanya Laboran (role_id=2) yang boleh upload
-        if ($user->role_id !== 2) {
+        // Laboran (2) dan Guru (3) boleh upload
+        if (!in_array((int) $user->role_id, [2, 3], true)) {
             return response()->json([
-                'message' => 'Hanya Laboran yang diperbolehkan mengupload modul.'
+                'message' => 'Hanya Laboran dan Guru yang diperbolehkan mengupload modul.'
             ], 403);
         }
 
@@ -108,13 +108,18 @@ class ModulLkpdController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role_id !== 2) {
+        if (!in_array((int) $user->role_id, [2, 3], true)) {
             return response()->json([
-                'message' => 'Hanya Laboran yang diperbolehkan menghapus modul.'
+                'message' => 'Hanya Laboran dan Guru yang diperbolehkan menghapus modul.'
             ], 403);
         }
 
-        $modul = ModulLkpd::where('uploaded_by', $user->id)->findOrFail($id);
+        // Laboran/Admin dapat mengelola semua modul, Guru hanya modul miliknya
+        if ($user->role_id == 2 || $user->role_id == 1) {
+            $modul = ModulLkpd::findOrFail($id);
+        } else {
+            $modul = ModulLkpd::where('uploaded_by', $user->id)->findOrFail($id);
+        }
 
         // Hapus file dari storage
         if (Storage::disk('public')->exists($modul->file_path)) {

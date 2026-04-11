@@ -14,6 +14,8 @@ use App\Http\Controllers\api\labsiswaController;
 use App\Http\Controllers\api\bioguruController;
 use App\Http\Controllers\api\landingController;
 use App\Http\Controllers\api\ModulLkpdController;
+use App\Http\Controllers\api\informasiController;
+use App\Http\Controllers\api\notifikasiController;
 
 // MODUL LKPD
 Route::middleware('auth:api')->group(function () {
@@ -34,11 +36,15 @@ Route::get('pinjamlain', [peminjamanController::class, 'pinjamLainClient']);
 Route::get('landing/stats', [landingController::class, 'getStats']);
 Route::get('landing/slides', [landingController::class, 'getSlides']);
 Route::get('landing/settings', [landingController::class, 'getSiteSettings']);
+Route::get('informasi-terkini/aktif', [informasiController::class, 'aktif']);
 
 // AUTHENTIFIKASI
 Route::middleware('auth:api')->group(function () {
     Route::get('info', [authController::class, 'info']);
     Route::get('logout', [authController::class, 'logout']);
+    Route::get('notifikasi', [notifikasiController::class, 'index']);
+    Route::put('notifikasi/{id}/dibaca', [notifikasiController::class, 'dibaca']);
+    Route::put('notifikasi/dibaca-semua', [notifikasiController::class, 'dibacaSemua']);
 });
 
 //DASHBOARD
@@ -91,6 +97,12 @@ Route::middleware('auth:api')->group(function () {
     
     // Site Settings (Super Admin)
     Route::post('site-settings', [landingController::class, 'updateSiteSettings']);
+
+    // INFORMASI TERKINI (Admin & Laboran)
+    Route::get('informasi-terkini', [informasiController::class, 'index']);
+    Route::post('informasi-terkini', [informasiController::class, 'store']);
+    Route::get('informasi-terkini/{id}', [informasiController::class, 'edit']);
+    Route::delete('informasi-terkini/{id}', [informasiController::class, 'delete']);
 });
 
 // INVENTARIS
@@ -100,6 +112,10 @@ Route::middleware('auth:api')->group(function () {
     Route::get('inventaris/{id}', [invController::class, 'inventarisEdit']);
     Route::delete('inventaris/{id}', [invController::class, 'inventarisHapus']);
     Route::post('inventaris/foto', [invController::class, 'inventarisFoto']);
+    Route::get('inventaris/{id}/riwayat', [invController::class, 'riwayat']);
+    Route::post('inventaris/{id}/tambah-stok', [invController::class, 'tambahStok']);
+    Route::put('inventaris/{id}/riwayat/{riwayatId}', [invController::class, 'updateRiwayat']);
+    Route::delete('inventaris/{id}/riwayat/{riwayatId}', [invController::class, 'hapusRiwayat']);
 
 });
 

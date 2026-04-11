@@ -19,7 +19,18 @@
 
         <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8">
             <q-card-section>
-                <div class="row justify-start q-col-gutter-md">
+                <div v-if="!loading && classroom.length === 0" class="text-center q-py-xl">
+                  <q-icon name="o_school" size="48px" color="grey-5" />
+                  <div class="text-h6 q-mt-md">Selamat datang, {{ user?.user?.name || 'Siswa' }}</div>
+                  <div class="text-subtitle2 text-grey-7 q-mt-sm">
+                    Saat ini kamu belum ada kelas praktikum.
+                  </div>
+                  <div class="text-caption text-grey q-mt-xs">
+                    Silakan hubungi guru atau laboran untuk didaftarkan ke kelas.
+                  </div>
+                </div>
+
+                <div v-else class="row justify-start q-col-gutter-md">
                     <div v-for="row in classroom" :key="row.id" class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-4">
                         <q-card class="bayangan">
                             <q-card-section class="bg-primary text-white">
@@ -51,6 +62,7 @@ export default {
 setup(){
     return{
         classroom:ref([]),
+        loading:ref(false),
     }
 },
 computed:{
@@ -64,8 +76,11 @@ computed:{
 },
 methods:{
     async getClassroom(){
+        this.loading = true
         await axios.get("labsiswa").then((response)=>{
             this.classroom=response.data
+        }).finally(()=>{
+            this.loading = false
         })
     }
 },
@@ -84,4 +99,3 @@ this.getClassroom();
 .gradasi
   background: linear-gradient(to right, #355924, #73f261)
 </style>
-

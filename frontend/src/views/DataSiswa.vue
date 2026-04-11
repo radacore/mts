@@ -1,7 +1,7 @@
 <template>
   <q-page class="q-pa-sm">
     <div v-if="authenticated">
-        <q-card v-if="user.user.role_id==2">
+        <q-card v-if="user.user.role_id==1 || user.user.role_id==2">
             <q-card-section>
               <q-table
               title="Data Siswa"
@@ -55,6 +55,14 @@
                   color="red" 
                   @click="confirmMultiple=true" 
                 />
+                <q-btn
+                  label="Template XLSX"
+                  class="q-ml-md"
+                  icon="o_download"
+                  color="primary"
+                  :href="templateUrl"
+                  target="_blank"
+                />
                 <q-btn label="Import" class="q-ml-md" icon="o_upload" color="green-7" @click="dialogImport=true" />
               </template>
               <template v-slot:body-cell-kelas="props">
@@ -85,7 +93,7 @@
               <q-card-section class="q-pt-none">
                 <q-file v-model="file" label="pilih file excel" />
                 <div class="text-caption text-grey q-mt-sm">
-                  Format Excel: NIS | NAMA | KELAS_ID | EMAIL (dengan header)
+                  Format Excel (.xlsx): NIS | NAMA | KELAS_ID | EMAIL (dengan header)
                 </div>
               </q-card-section>
       
@@ -227,6 +235,7 @@ setup(){
             total_duplicates: 0,
             duplicates: []
         }),
+        templateUrl: ref('/template_import_siswa.xlsx'),
     }
 },
 computed:{

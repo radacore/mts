@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\data_katalog;
 use App\Models\jumlah_pinjam;
 use App\Models\jumlah_pinjam_alat;
+use App\Models\informasi_terkini;
 use App\Models\katalog;
+use App\Models\notifikasi_user;
 use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
 use App\Models\pinjam_lain;
@@ -40,6 +42,23 @@ class peminjamanController extends Controller
             'jam_selesai'=>'required',
             'pekan'=>'required',
         ]);
+
+        $isClosed = informasi_terkini::where('status', 'aktif')
+            ->where('tipe', 'penutupan_lab')
+            ->where(function ($q) {
+                $q->whereNull('mulai_at')->orWhere('mulai_at', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('selesai_at')->orWhere('selesai_at', '>=', now());
+            })
+            ->exists();
+
+        if ($isClosed) {
+            return response()->json([
+                'message' => 'Peminjaman lab ditutup sementara karena ada informasi kegiatan aktif.',
+            ], 422);
+        }
+
         $data=pinjam_lab::updateOrCreate(['id'=>$request->id],[
             'katalog_id'=>$request->topik_id,
             'kelas_id'=>$request->kelas_id,
@@ -78,21 +97,77 @@ class peminjamanController extends Controller
     }
     public function peminjamanLabProses($id,$data)
     {
+        $user = auth()->user();
+        if (!$user || !in_array((int) $user->role_id, [1, 2], true)) {
+            return response()->json([
+                'message' => 'Anda tidak berhak mengubah status peminjaman lab.',
+            ], 403);
+        }
+
+        if (!in_array($data, ['diajukan', 'disetujui', 'ditolak'], true)) {
+            return response()->json([
+                'message' => 'Status tidak valid.',
+            ], 422);
+        }
+
         if($id){
             $proses=pinjam_lab::find($id);
             $proses->update([
                 'status'=> $data
             ]);
+
+            if ($proses && $proses->user_id) {
+                notifikasi_user::create([
+                    'user_id' => $proses->user_id,
+                    'judul' => 'Update Status Peminjaman Lab',
+                    'pesan' => 'Pengajuan peminjaman lab Anda telah ' . $data . '.',
+                    'tipe' => 'pinjam_lab_status',
+                    'tautan' => '/pinjam-lab',
+                    'meta' => [
+                        'pinjam_lab_id' => $proses->id,
+                        'status' => $data,
+                    ],
+                    'dibaca' => false,
+                ]);
+            }
         }
         return response()->json($proses);
     }
     public function peminjamanAlatProses($id,$data)
     {
+        $user = auth()->user();
+        if (!$user || !in_array((int) $user->role_id, [1, 2], true)) {
+            return response()->json([
+                'message' => 'Anda tidak berhak mengubah status peminjaman alat.',
+            ], 403);
+        }
+
+        if (!in_array($data, ['diajukan', 'disetujui', 'ditolak', 'dikembalikan'], true)) {
+            return response()->json([
+                'message' => 'Status tidak valid.',
+            ], 422);
+        }
+
         if($id){
             $proses=pinjam_alat::find($id);
             $proses->update([
                 'status'=> $data
             ]);
+
+            if ($proses && $proses->user_id) {
+                notifikasi_user::create([
+                    'user_id' => $proses->user_id,
+                    'judul' => 'Update Status Peminjaman Alat',
+                    'pesan' => 'Pengajuan peminjaman alat Anda telah ' . $data . '.',
+                    'tipe' => 'pinjam_alat_status',
+                    'tautan' => '/pinjam-alat',
+                    'meta' => [
+                        'pinjam_alat_id' => $proses->id,
+                        'status' => $data,
+                    ],
+                    'dibaca' => false,
+                ]);
+            }
         }
         return response()->json($proses);
     }
@@ -332,11 +407,39 @@ class peminjamanController extends Controller
     }
     public function peminjamanLainProses($id, $data)
     {
+        $user = auth()->user();
+        if (!$user || !in_array((int) $user->role_id, [1, 2], true)) {
+            return response()->json([
+                'message' => 'Anda tidak berhak mengubah status peminjaman kegiatan lain.',
+            ], 403);
+        }
+
+        if (!in_array($data, ['diajukan', 'disetujui', 'ditolak'], true)) {
+            return response()->json([
+                'message' => 'Status tidak valid.',
+            ], 422);
+        }
+
         if($id){
             $proses=pinjam_lain::find($id);
             $proses->update([
                 'status'=> $data
             ]);
+
+            if ($proses && $proses->user_id) {
+                notifikasi_user::create([
+                    'user_id' => $proses->user_id,
+                    'judul' => 'Update Status Peminjaman Kegiatan Lain',
+                    'pesan' => 'Pengajuan kegiatan lain Anda telah ' . $data . '.',
+                    'tipe' => 'pinjam_lain_status',
+                    'tautan' => '/pinjam-lain',
+                    'meta' => [
+                        'pinjam_lain_id' => $proses->id,
+                        'status' => $data,
+                    ],
+                    'dibaca' => false,
+                ]);
+            }
         }
         return response()->json($proses);
     }

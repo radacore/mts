@@ -6,7 +6,7 @@
           <q-table
           title="Peminjaman Lain"
           :rows="filteredRows"
-          :columns="columns"
+          :columns="displayedColumns"
           :filter="filter"
           :loading="loading"
           :pagination="pagination"
@@ -47,20 +47,44 @@
       <template v-slot:body-cell-status="props">
         <q-td :props="props">
           <div class="row justify-around">
-          <q-chip v-if="props.row.status=='disetujui'" color="green-7" text-color="white" icon="approval_delegation" dense>
-              {{props.row.status}}
-          </q-chip>
-          <q-chip v-else-if="props.row.status=='ditolak'" color="red-7" text-color="white" icon="o_water_drop" dense>
-              {{props.row.status}}
-          </q-chip>
-          <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
-              {{props.row.status}}
-          </q-chip>
+            <q-chip v-if="props.row.status=='disetujui'" color="green-7" text-color="white" icon="approval_delegation" dense>
+                {{props.row.status}}
+            </q-chip>
+            <q-chip v-else-if="props.row.status=='ditolak'" color="red-7" text-color="white" icon="o_water_drop" dense>
+                {{props.row.status}}
+            </q-chip>
+            <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
+                {{props.row.status}}
+            </q-chip>
       </div>
         </q-td>
       </template>
-      <template v-slot:body-cell-aksi="props">
+      <template v-slot:body-cell-proses="props">
         <q-td :props="props">
+          <q-btn-dropdown
+            v-if="user.user.role_id==1 || user.user.role_id==2"
+            dense
+            unelevated
+            color="green-7"
+            label="Proses"
+            no-caps
+          >
+            <q-list dense>
+              <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'diajukan')">
+                <q-item-section>diajukan</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'disetujui')">
+                <q-item-section>disetujui</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'ditolak')">
+                <q-item-section>ditolak</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </q-td>
+      </template>
+      <template v-slot:body-cell-aksi="props">
+        <q-td :props="props" v-if="user.user.role_id!=2">
           <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
           <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
         </q-td>
@@ -168,6 +192,7 @@ setup(){
     { name: 'selesai', align: 'left', label: 'Jam Selesai', field:'selesai', sortable: true },
     { name: 'kegiatan', align: 'left', label: 'Kegiatan', field:'kegiatan', sortable: true },
     { name: 'status', align: 'left', label: 'Status', field: 'status', sortable: true },
+    { name: 'proses', align: 'left', label: 'Proses', sortable: false },
     { name: 'aksi', align: 'left', label: 'Aksi', sortable: true },
   ]
   return{
@@ -199,6 +224,15 @@ computed:{
       authenticated: "auth/authenticated",
       user: "auth/user",
     }),
+    displayedColumns() {
+      if (this.user.user.role_id === 2) {
+        return this.columns.filter(col => col.name !== 'aksi')
+      }
+      if (this.user.user.role_id === 3) {
+        return this.columns.filter(col => col.name !== 'proses')
+      }
+      return this.columns
+    },
     filteredRows() {
       if (this.statusFilter === 'Semua') {
         return this.rows;
@@ -267,11 +301,33 @@ methods:{
       this.getData()
       return response
     })
+  },
+  async ubahStatus(id, status){
+    await axios.put(`peminjaman/lain/${id}/${status}`).then(()=>{
+      this.$toast.success('Status berhasil diperbarui')
+      this.getData()
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal memperbarui status'
+      this.$toast.error(msg)
+    })
+  },
+  startAutoRefresh(){
+    if (this.user.user.role_id === 3) {
+      this._refreshTimer = setInterval(() => {
+        this.getData()
+      }, 15000)
+    }
   }
   
 },
 created(){
 this.getData()
+this.startAutoRefresh()
+},
+beforeUnmount() {
+  if (this._refreshTimer) {
+    clearInterval(this._refreshTimer)
+  }
 }
 }
 </script>

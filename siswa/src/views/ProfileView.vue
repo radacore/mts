@@ -151,6 +151,11 @@ methods:{
             
             this.$toast.success(`Profil berhasil diperbarui`)
             this.getProfile()
+
+            const tokenAktif = this.$store.state.auth.token
+            if (tokenAktif) {
+                this.$store.dispatch('auth/attempt', tokenAktif)
+            }
             
             this.updatedAt = new Date().toISOString(); 
             

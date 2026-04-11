@@ -1,0 +1,16 @@
+# CocoIndex Code (ccc)
+/.cocoindex_code/
+
+# Local index/cache
+/.cocoindex/
+
+# Local database dump
+/mts_db.sql
+/mts_db/
+
+# Local import templates/docs (do not push)
+/FORMAT_IMPORT_SISWA.md
+/template_import_siswa.csv
+/template_import_siswa.xlsx
+/template_import_siswa (1).csv
+/frontend/public/template_import_siswa.xlsx

@@ -23,11 +23,29 @@
             </q-inner-loading>
           </template>
            <template v-slot:top-right>
-            <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-              <template v-slot:append>
-                <q-icon name="search" />
-              </template>
-            </q-input>
+            <q-select
+              v-model="filterTahun"
+              :options="tahunOptions"
+              label="Filter Tahun"
+              clearable
+              dense
+              outlined
+              style="min-width: 140px"
+              class="q-mr-md"
+              @update:model-value="getData"
+            />
+            <q-toggle
+              v-model="rusakOnly"
+              label="Hanya Rusak"
+              color="red"
+              class="q-mr-md"
+              @update:model-value="getData"
+            />
+             <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+               <template v-slot:append>
+                 <q-icon name="search" />
+               </template>
+             </q-input>
             <q-btn label="Insert" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
           </template>
           <template v-slot:body-cell-spec="props">
@@ -45,10 +63,26 @@
           <template v-slot:body-cell-aksi="props">
             <q-td :props="props">
               <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
+              <q-btn @click="bukaRiwayat(props.row)" round icon="o_timeline" color="blue-8" size="xs" flat>
+                <q-tooltip>Riwayat Stok Tahunan</q-tooltip>
+              </q-btn>
               <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
               <FotoInv :id="props.row.id"/>
             </q-td>
           </template>
+          <template v-slot:body-cell-jenis_barang="props">
+            <q-td :props="props">
+              {{ labelJenisBarang(props.row.jenis_barang) }}
+            </q-td>
+          </template>
+          <template v-slot:body-cell-status_stok="props">
+            <q-td :props="props">
+              <q-badge :color="statusStok(props.row).color" text-color="white">
+                {{ statusStok(props.row).label }}
+              </q-badge>
+            </q-td>
+          </template>
+
            </q-table>
         </q-card-section>
        </q-card>
@@ -88,6 +122,31 @@
             <q-input outlined v-model="form.konbaik" label="Kodisi Baik" class="q-my-sm" color="green-3" dense style="max-width:250px" />
             <q-input outlined v-model="form.konrusak" label="Kodisi Rusak" class="q-my-sm" color="green-3" dense style="max-width:250px" />
             <q-input outlined v-model="form.jml" label="Jumlah*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
+            <q-select
+              outlined
+              v-model="form.jenis_barang"
+              :options="jenisBarangOptions"
+              emit-value
+              map-options
+              option-value="value"
+              option-label="label"
+              label="Jenis Barang"
+              class="q-my-sm"
+              color="green-3"
+              dense
+              style="max-width:250px"
+            />
+            <q-input
+              outlined
+              v-model.number="form.stok_minimum"
+              type="number"
+              min="0"
+              label="Stok Minimum"
+              class="q-my-sm"
+              color="green-3"
+              dense
+              style="max-width:250px"
+            />
             <q-input outlined v-model="form.lokasi" autogrow label="Lokasi*" class="q-my-sm" color="green-3" dense />
           </q-form>
         </q-card-section>
@@ -119,6 +178,110 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <q-dialog v-model="dialogRiwayat" persistent>
+      <q-card style="width: 900px; max-width: 95vw;">
+        <q-toolbar>
+          <q-toolbar-title class="text-blue-8">
+            Riwayat Stok - {{ riwayatHeader.nabar || '-' }}
+          </q-toolbar-title>
+          <q-btn flat round dense icon="close" v-close-popup @click="tutupRiwayat" />
+        </q-toolbar>
+        <q-separator />
+
+        <q-card-section>
+          <div class="row q-col-gutter-md q-mb-md">
+            <div class="col-12 col-md-3">
+              <q-input v-model="formTambahStok.tahun" label="Tahun" dense outlined />
+            </div>
+            <div class="col-12 col-md-3">
+              <q-input v-model.number="formTambahStok.qty" type="number" min="1" label="Qty" dense outlined />
+            </div>
+            <div class="col-12 col-md-2">
+              <q-input
+                v-if="editingRiwayatId && formTambahStok.jenis === 'initial'"
+                :model-value="labelJenis(formTambahStok.jenis)"
+                label="Jenis"
+                dense
+                outlined
+                readonly
+              />
+              <q-select
+                v-else
+                v-model="formTambahStok.jenis"
+                :options="jenisMutasiOptions"
+                emit-value
+                map-options
+                option-value="value"
+                option-label="label"
+                label="Jenis"
+                dense
+                outlined
+              />
+            </div>
+            <div class="col-12 col-md-4">
+              <q-input v-model="formTambahStok.keterangan" label="Keterangan" dense outlined />
+            </div>
+            <div class="col-12 col-md-12 flex justify-end q-gutter-sm">
+              <q-btn v-if="editingRiwayatId" label="Batal Edit" flat color="grey-8" @click="batalEditRiwayat" />
+              <q-btn :label="editingRiwayatId ? 'Update Riwayat' : 'Simpan Riwayat'" color="blue-8" @click="tambahStok" :loading="savingStok" unelevated />
+            </div>
+          </div>
+
+          <div class="text-subtitle2 q-mb-sm">Detail Riwayat</div>
+          <q-table
+            :rows="riwayatItems"
+            :columns="riwayatColumns"
+            row-key="id"
+            dense
+            flat
+            bordered
+            :pagination="{ rowsPerPage: 8 }"
+          >
+            <template v-slot:body-cell-jenis="props">
+              <q-td :props="props">
+                {{ labelJenis(props.row.jenis) }}
+              </q-td>
+            </template>
+            <template v-slot:body-cell-aksi_riwayat="props">
+              <q-td :props="props">
+                <q-btn flat round size="sm" color="blue-8" icon="o_edit" @click="mulaiEditRiwayat(props.row)" />
+                <q-btn
+                  flat
+                  round
+                  size="sm"
+                  color="red"
+                  icon="o_delete"
+                  :disable="props.row.jenis === 'initial'"
+                  @click="konfirmasiHapusRiwayat(props.row)"
+                />
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="confirmHapusRiwayat" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <q-item>
+            <q-item-section side>
+              <q-icon color="red" name="fas fa-exclamation-circle" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-subtitle2">Hapus data riwayat ini?</q-item-label>
+              <q-item-label caption lines="2">Aksi ini akan mengubah stok barang secara otomatis.</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn label="Batal" color="primary" flat @click="batalHapusRiwayat" />
+          <q-btn label="Hapus" color="red" unelevated @click="hapusRiwayat" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
     </div>
   </q-page>
 </template>
@@ -147,6 +310,8 @@ setup(){
       {name: "asal",label: "Asal",align: "left",field:"asal",sortable: true},
       {name: "thn_masuk",label: "Tahun Masuk",align: "left",field:"thn_masuk",sortable: true},
       {name: "thn_pakai",label: "Tahun Pakai",align: "left",field:"thn_pakai",sortable: true},
+      {name: "jenis_barang",label: "Jenis Barang",align: "left",field:"jenis_barang",sortable: true},
+      {name: "status_stok",label: "Status Stok",align: "left",field:"status_stok",sortable: false},
       {name: "jml",label: "Jumlah",align: "left",field:"jml",sortable: true},
       {name: "baik",label: "Baik",align: "left",field:"konbaik",sortable: true},
       {name: "rusak",label: "Rusak",align: "left",field:"konrusak",sortable: true},
@@ -154,16 +319,48 @@ setup(){
       {name: "foto",label: "Photo",align: "left",field:"foto",sortable: true},
       {name: "aksi",align: "left", label:"aksi"},
     ];
+
+    const riwayatColumns = [
+      { name: 'tahun', label: 'Tahun', align: 'left', field: 'tahun', sortable: true },
+      { name: 'jenis', label: 'Jenis', align: 'left', field: 'jenis', sortable: true },
+      { name: 'qty', label: 'Qty', align: 'left', field: 'qty', sortable: true },
+      { name: 'keterangan', label: 'Keterangan', align: 'left', field: 'keterangan', sortable: true },
+      { name: 'aksi_riwayat', label: 'Aksi', align: 'left', field: 'aksi_riwayat', sortable: false },
+    ]
+
+    const jenisBarangOptions = [
+      { label: 'Aset', value: 'aset' },
+      { label: 'Habis Pakai', value: 'habis_pakai' },
+    ]
+
+    const jenisMutasiOptions = [
+      { label: 'Penambahan', value: 'masuk' },
+      { label: 'Pemakaian', value: 'keluar' },
+    ]
+
     return{
       pagination: {
           rowsPerPage: 10
          },
         columns,
+        riwayatColumns,
+        jenisBarangOptions,
+        jenisMutasiOptions,
         rows:ref([]),
         filter:ref(null),
+        rusakOnly:ref(false),
+        filterTahun:ref(null),
+        tahunOptions:ref([]),
         dialogInsert:ref(false),
         confirm:ref(false),
+        dialogRiwayat:ref(false),
+        confirmHapusRiwayat:ref(false),
         loading:ref(false),
+        riwayatHeader:ref({}),
+        riwayatItems:ref([]),
+        savingStok:ref(false),
+        editingRiwayatId:ref(null),
+        riwayatTerpilihHapus:ref(null),
     }
 },
 data:()=>({
@@ -185,6 +382,15 @@ data:()=>({
         konrusak:"",
         lokasi:"",
         spec:"",
+        jenis_barang:"aset",
+        stok_minimum:null,
+    },
+    formTambahStok:{
+      inventaris_id:"",
+      tahun: String(new Date().getFullYear()),
+      qty: 1,
+      jenis: 'masuk',
+      keterangan: '',
     }
 }),
 computed:{
@@ -221,6 +427,8 @@ methods:{
         this.form.konrusak="";
         this.form.lokasi="";
         this.form.spec="";
+        this.form.jenis_barang="aset";
+        this.form.stok_minimum=null;
     },
     konfirmasi($id){
       this.form.id=$id
@@ -243,7 +451,12 @@ methods:{
     },
     async getData(){
       this.loading=true
-      await axios.get("inventaris").then((response)=>{
+      const query = {}
+      if (this.rusakOnly) query.rusak_only = 1
+      if (this.filterTahun) query.tahun = this.filterTahun
+      const params = { params: query }
+
+      await axios.get("inventaris", params).then((response)=>{
         this.rows=response.data
       }).finally(()=>{
         this.loading=false
@@ -269,6 +482,8 @@ methods:{
         this.form.konrusak=response.data.konrusak;
         this.form.lokasi=response.data.lokasi;
         this.form.spec=response.data.spec;
+        this.form.jenis_barang=response.data.jenis_barang || 'aset';
+        this.form.stok_minimum=response.data.stok_minimum;
       })
     },
     async hapus(){
@@ -278,9 +493,129 @@ methods:{
         this.getData()
         return response
       })
+    },
+    async bukaRiwayat(row){
+      this.dialogRiwayat = true
+      this.riwayatHeader = row
+      this.formTambahStok.inventaris_id = row.id
+      await this.getRiwayat(row.id)
+    },
+    tutupRiwayat(){
+      this.riwayatHeader = {}
+      this.riwayatItems = []
+      this.editingRiwayatId = null
+      this.confirmHapusRiwayat = false
+      this.riwayatTerpilihHapus = null
+      this.formTambahStok.inventaris_id = ""
+      this.formTambahStok.tahun = String(new Date().getFullYear())
+      this.formTambahStok.qty = 1
+      this.formTambahStok.jenis = 'masuk'
+      this.formTambahStok.keterangan = ''
+    },
+    async getRiwayat(id){
+      await axios.get(`inventaris/${id}/riwayat`).then((response)=>{
+        this.riwayatItems = response.data.items || []
+      })
+    },
+    async tambahStok(){
+      if (!this.formTambahStok.inventaris_id) return
+
+      this.savingStok = true
+      const payload = {
+        tahun: this.formTambahStok.tahun,
+        qty: this.formTambahStok.qty,
+        jenis: this.formTambahStok.jenis,
+        keterangan: this.formTambahStok.keterangan,
+      }
+
+      const request = this.editingRiwayatId
+        ? axios.put(`inventaris/${this.formTambahStok.inventaris_id}/riwayat/${this.editingRiwayatId}`, payload)
+        : axios.post(`inventaris/${this.formTambahStok.inventaris_id}/tambah-stok`, payload)
+
+      await request.then((response)=>{
+        this.$toast.success(response.data.message || 'Riwayat stok berhasil disimpan')
+        this.getData()
+        this.getRiwayat(this.formTambahStok.inventaris_id)
+        this.batalEditRiwayat()
+      }).catch(()=>{
+        this.$toast.error('Gagal menyimpan riwayat')
+      }).finally(()=>{
+        this.savingStok = false
+      })
+    },
+    mulaiEditRiwayat(item){
+      this.editingRiwayatId = item.id
+      this.formTambahStok.tahun = String(item.tahun)
+      this.formTambahStok.qty = Number(item.qty)
+      this.formTambahStok.jenis = item.jenis
+      this.formTambahStok.keterangan = item.keterangan || ''
+    },
+    batalEditRiwayat(){
+      this.editingRiwayatId = null
+      this.formTambahStok.tahun = String(new Date().getFullYear())
+      this.formTambahStok.qty = 1
+      this.formTambahStok.jenis = 'masuk'
+      this.formTambahStok.keterangan = ''
+    },
+    konfirmasiHapusRiwayat(item){
+      if (item.jenis === 'initial') {
+        this.$toast.error('Data awal tidak boleh dihapus')
+        return
+      }
+
+      this.riwayatTerpilihHapus = item
+      this.confirmHapusRiwayat = true
+    },
+    batalHapusRiwayat(){
+      this.confirmHapusRiwayat = false
+      this.riwayatTerpilihHapus = null
+    },
+    async hapusRiwayat(){
+      if (!this.riwayatTerpilihHapus) return
+
+      await axios.delete(`inventaris/${this.formTambahStok.inventaris_id}/riwayat/${this.riwayatTerpilihHapus.id}`)
+        .then((response)=>{
+          this.$toast.success(response.data.message || 'Riwayat berhasil dihapus')
+          this.batalHapusRiwayat()
+          this.getData()
+          this.getRiwayat(this.formTambahStok.inventaris_id)
+        }).catch(()=>{
+          this.$toast.error('Gagal menghapus riwayat')
+        })
+    },
+    statusStok(row){
+      if ((row.jenis_barang || 'aset') !== 'habis_pakai') {
+        return { label: 'Aset', color: 'blue-grey-6' }
+      }
+
+      const jml = Number(row.jml || 0)
+      const min = Number(row.stok_minimum || 0)
+
+      if (jml <= 0) return { label: 'Habis', color: 'red' }
+      if (jml <= min) return { label: 'Menipis', color: 'orange-8' }
+      return { label: 'Aman', color: 'green-7' }
+    },
+    labelJenisBarang(jenis){
+      return (jenis || 'aset') === 'habis_pakai' ? 'Habis Pakai' : 'Aset'
+    },
+    labelJenis(jenis){
+      if (jenis === 'initial') return 'Data Awal'
+      if (jenis === 'masuk') return 'Penambahan'
+      if (jenis === 'keluar') return 'Pemakaian'
+      return jenis
+    },
+    setTahunOptions(){
+      const current = new Date().getFullYear()
+      const start = 2000
+      const options = []
+      for (let y = current; y >= start; y--) {
+        options.push(String(y))
+      }
+      this.tahunOptions = options
     }
 },
 created(){
+  this.setTahunOptions()
   this.getData();
 }
 }
@@ -352,5 +687,3 @@ created(){
       white-space: pre-wrap !important
 
 </style>
-
-

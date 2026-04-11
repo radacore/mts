@@ -54,6 +54,12 @@
               </q-td>
             </template>
 
+            <template v-slot:body-cell-uploader="props">
+              <q-td :props="props">
+                {{ props.row.uploader_name || '-' }}
+              </q-td>
+            </template>
+
             <template v-slot:body-cell-download="props">
               <q-td :props="props">
                 <a
@@ -174,6 +180,7 @@ export default {
     const columns = [
       { name: 'file', align: 'left', label: 'FILE', field: 'file_name', sortable: true },
       { name: 'ket', align: 'left', label: 'Keterangan Modul/LKPD', field: 'judul', sortable: true },
+      { name: 'uploader', align: 'left', label: 'Uploader', field: 'uploader_name', sortable: true },
       { name: 'download', align: 'center', label: 'Download', sortable: false },
       { name: 'aksi', align: 'center', label: 'Aksi', sortable: false },
     ];

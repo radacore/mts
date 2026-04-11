@@ -11,7 +11,7 @@
         <div class="col-12 col-md-6 q-pa-md z-top animate__animated animate__fadeInLeft">
           <div class="glass-morph q-pa-lg rounded-xl">
              <div class="row items-center q-mb-md">
-                <div class="text-subtitle1 text-green-8 text-weight-bold tracking-widest">LABORATORIUM DIGITAL</div>
+                <div class="hero-lab-title text-green-8">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
              </div>
              
             <h1 class="text-h2 text-weight-bolder text-grey-9 q-mb-md leading-tight">
@@ -94,7 +94,7 @@
         
         <div class="row q-col-gutter-lg">
           <div class="col-12 col-sm-6 col-md-3" v-for="(feature, idx) in features" :key="idx">
-            <q-card class="feature-card text-center q-pa-lg full-height no-shadow hover-lift bg-white">
+            <q-card class="feature-card text-center q-pa-lg full-height no-shadow bg-white">
               <div class="icon-box q-mx-auto q-mb-lg bg-green-1 text-green-7 shadow-3">
                  <q-icon :name="feature.icon" size="32px" />
               </div>
@@ -136,11 +136,62 @@
             </div>
           </div>
         </div>
+
+      </div>
+    </section>
+
+    <!-- ANALITIK TAHUNAN SECTION -->
+    <section class="q-py-xl bg-analytics-soft">
+      <div class="container q-pa-md">
+        <div class="text-center q-mb-xl" data-aos="fade-up">
+          <div class="text-overline text-green-7 q-mb-sm">ANALITIK TAHUNAN</div>
+          <h2 class="text-h4 text-weight-bold text-grey-9 q-mt-none">Ringkasan Aktivitas Lab {{ stats.tahun_aktif || new Date().getFullYear() }}</h2>
+          <p class="text-grey-7 text-subtitle1" style="max-width: 700px; margin: 0 auto;">
+            Rekap peminjaman bulanan dan ringkasan inventaris alat untuk memudahkan pemantauan operasional laboratorium.
+          </p>
+        </div>
+
+        <div class="row q-col-gutter-lg">
+          <div class="col-12 col-md-7">
+            <div class="analytics-card q-pa-lg bg-white shadow-2">
+              <div class="text-h6 text-weight-bold text-green-9 q-mb-md">
+                Peminjaman Tahun {{ stats.tahun_aktif || new Date().getFullYear() }}
+              </div>
+              <div class="row q-col-gutter-sm">
+                <div class="col-4 col-sm-3" v-for="item in peminjamanBulanDisplay" :key="item.bulan">
+                  <div class="month-chip-solid q-pa-sm text-center">
+                    <div class="text-caption text-grey-7">{{ item.label }}</div>
+                    <div class="text-subtitle2 text-green-9 text-weight-bold">{{ item.total }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-5">
+            <div class="analytics-card q-pa-lg bg-white shadow-2 full-height">
+              <div class="text-h6 text-weight-bold text-green-9 q-mb-md">Jumlah Alat</div>
+              <div class="row q-col-gutter-md">
+                <div class="col-6">
+                  <div class="text-caption text-grey-7">Jenis Alat</div>
+                  <div class="text-h4 text-weight-bolder text-green-9">{{ stats.jumlah_jenis_alat || 0 }}</div>
+                </div>
+                <div class="col-6">
+                  <div class="text-caption text-grey-7">Total Unit</div>
+                  <div class="text-h4 text-weight-bolder text-green-9">{{ stats.total_unit_alat || 0 }}</div>
+                </div>
+              </div>
+              <div class="text-caption text-grey-7 q-mt-md">
+                Menghitung total jenis alat dan keseluruhan unit inventaris.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- MAPS SECTION -->
-    <section class="q-py-xl" v-if="siteSettings.maps_embed_url">
+    <section class="q-py-xl bg-location-soft" v-if="siteSettings.maps_embed_url">
       <div class="container q-pa-md">
          <div class="row items-center q-col-gutter-xl">
             <div class="col-12 col-md-5">
@@ -207,7 +258,16 @@ export default {
     return {
       slide: ref(0),
       slides: ref([]),
-      stats: ref({ guru: 0, siswa: 0, katalog: 0, classroom: 0 }),
+      stats: ref({
+        guru: 0,
+        siswa: 0,
+        katalog: 0,
+        classroom: 0,
+        tahun_aktif: new Date().getFullYear(),
+        peminjaman_per_bulan: [],
+        jumlah_jenis_alat: 0,
+        total_unit_alat: 0,
+      }),
       siteSettings: ref({
         maps_embed_url: '',
         school_name: '',
@@ -233,6 +293,20 @@ export default {
         { label: 'Katalog Alat', value: this.stats.katalog, icon: 'biotech' },
         { label: 'Kelas Praktikum', value: this.stats.classroom, icon: 'class' },
       ];
+    },
+    peminjamanBulanDisplay() {
+      const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const source = Array.isArray(this.stats.peminjaman_per_bulan) ? this.stats.peminjaman_per_bulan : [];
+
+      return labels.map((label, idx) => {
+        const bulan = idx + 1;
+        const found = source.find((item) => Number(item.bulan) === bulan);
+        return {
+          bulan,
+          label,
+          total: found ? Number(found.total || 0) : 0,
+        };
+      });
     },
   },
   methods: {
@@ -352,12 +426,6 @@ export default {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hover-lift:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-  border-color: #4caf50;
-}
-
 .icon-box {
   width: 70px;
   height: 70px;
@@ -367,15 +435,39 @@ export default {
   justify-content: center;
   transition: transform 0.3s ease;
 }
-.feature-card:hover .icon-box {
-   transform: scale(1.1) rotate(5deg);
-   background: #4caf50;
-   color: white !important;
+
+.hero-lab-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1023px) {
+  .hero-lab-title {
+    font-size: 22px;
+    letter-spacing: 0.06em;
+  }
+}
+
+@media (max-width: 599px) {
+  .hero-lab-title {
+    font-size: 18px;
+    letter-spacing: 0.04em;
+  }
 }
 
 // STATS
 .bg-stats-gradient {
   background: linear-gradient(135deg, #1b5e20 0%, #004d40 100%); /* Green-9 to Teal-9 */
+}
+.bg-analytics-soft {
+  background: linear-gradient(180deg, #f7fff8 0%, #ecf8ef 100%);
+}
+
+.bg-location-soft {
+  background: linear-gradient(180deg, #e8f5e9 0%, #dff3e3 100%);
 }
 .circle-deco {
    position: absolute;
@@ -390,6 +482,29 @@ export default {
    border: 1px solid rgba(255,255,255,0.1);
    border-radius: 24px; /* Rounded XL */
 }
+
+.stat-detail-card {
+   border: 1px solid rgba(255,255,255,0.14);
+   border-radius: 24px;
+}
+
+.analytics-card {
+   border-radius: 18px;
+   border: 1px solid #e2f0e5;
+}
+
+.month-chip {
+   border-radius: 12px;
+   background: rgba(255,255,255,0.12);
+   border: 1px solid rgba(255,255,255,0.12);
+}
+
+.month-chip-solid {
+   border-radius: 12px;
+   background: #f5faf6;
+   border: 1px solid #e0eee3;
+}
+
 .glass-effect {
    background: rgba(255,255,255,0.1);
    backdrop-filter: blur(10px);

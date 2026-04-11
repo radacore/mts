@@ -53,6 +53,43 @@
     
     <div v-intersection="onIntersection"></div>
     <q-page-container class="bg-grey-2">
+      <div v-if="authenticated && informasiAktif.length && $route.name === 'ruang-praktikum'" class="row justify-center q-mt-sm">
+      <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8 info-rolling-card" flat bordered>
+        <q-carousel
+          v-model="infoSlide"
+          :autoplay="7000"
+          swipeable
+          animated
+          infinite
+          height="128px"
+          control-color="green-7"
+          class="bg-transparent"
+        >
+          <q-carousel-slide
+            v-for="item in informasiAktif"
+            :key="item.id"
+            :name="item.id"
+            class="q-pa-md"
+          >
+            <div class="row no-wrap items-start">
+              <q-avatar :color="toneInfo(item.tipe).bg" text-color="white" size="34px" class="q-mr-sm">
+                <q-icon :name="toneInfo(item.tipe).icon" size="18px" />
+              </q-avatar>
+              <div class="full-width">
+                <div class="row items-center justify-between">
+                  <div class="text-subtitle2 text-weight-bold">{{ item.judul }}</div>
+                  <q-badge :color="toneInfo(item.tipe).bg" text-color="white">{{ labelTipe(item.tipe) }}</q-badge>
+                </div>
+                <div class="text-caption q-mt-xs">{{ item.isi }}</div>
+                <div class="text-caption text-grey-7 q-mt-xs" v-if="item.mulai_at || item.selesai_at">
+                  Berlaku: {{ formatPeriode(item) }}
+                </div>
+              </div>
+            </div>
+          </q-carousel-slide>
+        </q-carousel>
+      </q-card>
+      </div>
       <router-view v-slot="{ Component, route }">
         <transition name="fade" mode="out-in">
           <component :is="Component" :key="route.fullPath" />
@@ -64,6 +101,7 @@
 
 <script>
 import { computed, ref } from 'vue'
+import axios from 'axios';
 import { mapGetters,mapState,mapActions } from 'vuex';
 
 export default {
@@ -78,6 +116,8 @@ export default {
       leftDrawerOpen: ref(false),
       username: ref(""),
       password: ref(""),
+      informasiAktif: ref([]),
+      infoSlide: ref(null),
       visible,
       visibleClass: computed(
         () => `${visible.value ? 'bg-transparent' : 'bg-white'}`
@@ -134,6 +174,45 @@ export default {
         }, 500);
       });
     },
+    async getInformasiAktif() {
+      if (!this.authenticated) {
+        this.informasiAktif = []
+        return
+      }
+
+      await axios.get('informasi-terkini/aktif').then((response) => {
+        this.informasiAktif = response.data || []
+        this.infoSlide = this.informasiAktif.length ? this.informasiAktif[0].id : null
+      }).catch(() => {
+        this.informasiAktif = []
+        this.infoSlide = null
+      })
+    },
+    labelTipe(tipe) {
+      if (tipe === 'penutupan_lab') return 'PENUTUPAN LAB'
+      if (tipe === 'peringatan') return 'PERINGATAN'
+      return 'INFO'
+    },
+    toneInfo(tipe) {
+      if (tipe === 'penutupan_lab') return { bg: 'red-8', icon: 'o_campaign' }
+      if (tipe === 'peringatan') return { bg: 'orange-8', icon: 'o_warning' }
+      return { bg: 'green-7', icon: 'o_info' }
+    },
+    formatPeriode(item) {
+      const fmt = (value) => {
+        if (!value) return '-'
+        const date = new Date(String(value).replace(' ', 'T'))
+        if (isNaN(date.getTime())) return '-'
+        const d = String(date.getDate()).padStart(2, '0')
+        const m = String(date.getMonth() + 1).padStart(2, '0')
+        const y = date.getFullYear()
+        const h = String(date.getHours()).padStart(2, '0')
+        const i = String(date.getMinutes()).padStart(2, '0')
+        return `${d}-${m}-${y} ${h}:${i}`
+      }
+
+      return `${fmt(item.mulai_at)} s/d ${fmt(item.selesai_at)}`
+    },
   },
   created(){
     // Helper to get cookie
@@ -147,14 +226,19 @@ export default {
     
     if (token && !this.authenticated) {
        this.attempt(token).then(() => {
-           // Redirect to appropriate page
-           this.$router.replace({ name: 'ruang-praktikum' });
+            // Redirect to appropriate page
+            this.$router.replace({ name: 'ruang-praktikum' });
+            this.getInformasiAktif()
        });
     }
+    this.getInformasiAktif()
   },
 watch:{
   visible(){
     console.log(this.visible)
+  },
+  authenticated(){
+    this.getInformasiAktif()
   }
 }
 }
@@ -176,5 +260,8 @@ page
   background-color: #E8F5E9
   color: #1B5E20
 
-</style>
+.info-rolling-card
+  border: 1px solid #c8e6c9
+  background: linear-gradient(180deg, #f5fff6 0%, #ffffff 100%)
 
+</style>

@@ -316,6 +316,88 @@ class userController extends Controller
         $data = $query->get();
         return response()->json($data);
     }
+
+    public function importSiswaUpdateKelas(Request $request, $id)
+    {
+        if (!in_array(Auth()->user()->role_id, [1, 2])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'kelas_id' => 'required|exists:kelas,id'
+        ]);
+
+        $siswa = data_siswa::find($id);
+        if (!$siswa) {
+            return response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        }
+
+        DB::transaction(function () use ($siswa, $request) {
+            $siswa->update([
+                'kelas_id' => $request->kelas_id
+            ]);
+
+            $user = User::where('email', $siswa->email)
+                ->orWhere('username', $siswa->nis)
+                ->first();
+
+            if ($user && $user->role_id == 4) {
+                kelas_siswa::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['kelas_id' => $request->kelas_id]
+                );
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kelas siswa berhasil diperbarui'
+        ]);
+    }
+
+    public function importSiswaUpdateKelasBulk(Request $request)
+    {
+        if (!in_array(Auth()->user()->role_id, [1, 2])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|integer|exists:data_siswas,id',
+            'kelas_id' => 'required|exists:kelas,id'
+        ]);
+
+        $updated = 0;
+
+        DB::transaction(function () use ($request, &$updated) {
+            $siswas = data_siswa::whereIn('id', $request->ids)->get();
+
+            foreach ($siswas as $siswa) {
+                $siswa->update([
+                    'kelas_id' => $request->kelas_id
+                ]);
+
+                $user = User::where('email', $siswa->email)
+                    ->orWhere('username', $siswa->nis)
+                    ->first();
+
+                if ($user && $user->role_id == 4) {
+                    kelas_siswa::updateOrCreate(
+                        ['user_id' => $user->id],
+                        ['kelas_id' => $request->kelas_id]
+                    );
+                }
+
+                $updated++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'message' => 'Kelas siswa berhasil diperbarui'
+        ]);
+    }
     
     public function cekUser($email)
     {
@@ -446,4 +528,3 @@ class userController extends Controller
         ]);
     }
 }
-

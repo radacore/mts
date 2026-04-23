@@ -4,6 +4,7 @@
       title="Peminjaman Kegiatan Lain"
       :rows="rows"
       :columns="columns"
+      :pagination="pagination"
       :loading="loading"
       row-key="name"
       dense
@@ -39,6 +40,7 @@ setup(){
     ]
     const rows=ref([])
     const loading=ref(false)
+    const pagination = ref({ rowsPerPage: 15 })
     const dateTime=(value)=>{
         return moment(value).format('ll');
     }
@@ -63,6 +65,7 @@ setup(){
         columns,
         rows,
         loading,
+        pagination,
         dateTime,
         day,
     }

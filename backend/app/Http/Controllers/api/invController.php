@@ -106,6 +106,15 @@ class invController extends Controller
             $query->where('konrusak', '>', 0);
         }
 
+        $stokStatus = $request->query('stok_status');
+        if ($stokStatus === 'habis') {
+            $query->where('jml', '<=', 0);
+        } elseif ($stokStatus === 'menipis') {
+            $defaultStokMinimum = 5;
+            $query->where('jml', '>', 0)
+                ->whereRaw('jml <= COALESCE(stok_minimum, ?)', [$defaultStokMinimum]);
+        }
+
         $data = $query->latest()->get();
         return response()->json($data);
     }

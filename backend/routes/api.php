@@ -77,6 +77,8 @@ Route::middleware('auth:api')->group(function () {
     Route::delete('role/{id}', [userController::class, 'roleHapus']);
     Route::post('importSiswa', [userController::class, 'importSiswa']);
     Route::get('importSiswa', [userController::class, 'importSiswaGet']);
+    Route::put('importSiswa/bulk/kelas', [userController::class, 'importSiswaUpdateKelasBulk']);
+    Route::put('importSiswa/{id}/kelas', [userController::class, 'importSiswaUpdateKelas']);
     Route::delete('importSiswa/{id}', [userController::class, 'importSiswaHapus']);
     Route::post('importSiswa/multiple-delete', [userController::class, 'importSiswaMultipleHapus']);
     Route::get('cekUser/{email}', [userController::class, 'cekUser']);
@@ -164,6 +166,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::get('pinjamLain', [peminjamanController::class, 'pinjamLain']);
     Route::post('pinjamLain', [peminjamanController::class, 'pinjamLainPost']);
+    Route::get('pinjamLain/copy/{id}', [peminjamanController::class, 'pinjamLainCopy']);
     Route::get('pinjamLain/{id}', [peminjamanController::class, 'pinjamLainEdit']);
     Route::delete('pinjamLain/{id}', [peminjamanController::class, 'pinjamLainHapus']);
 

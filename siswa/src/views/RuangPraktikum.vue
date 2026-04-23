@@ -17,7 +17,7 @@
           </q-card-section>
         </q-card>
 
-        <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8">
+        <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8 classroom-panel" flat>
             <q-card-section>
                 <div v-if="!loading && classroom.length === 0" class="text-center q-py-xl">
                   <q-icon name="o_school" size="48px" color="grey-5" />
@@ -32,19 +32,40 @@
 
                 <div v-else class="row justify-start q-col-gutter-md">
                     <div v-for="row in classroom" :key="row.id" class="col-12 col-sm-6 col-md-4 col-lg-4 col-xl-4">
-                        <q-card class="bayangan">
-                            <q-card-section class="bg-primary text-white">
-                                <div class="text-h6">{{row.katalog.topik}}</div>
-                                <div class="text-subtitle2">{{row.kelas.kelas}}</div>
-                              </q-card-section>
-                              <q-separator/>
-                            <q-card-section>
-                             <span class="text-caption">By {{row.user.name}}</span>
-                            </q-card-section>
-                            <q-card-actions align="right">
-                                <q-btn flat color="primary" :to="{ name: 'labroom', params: { class_id: row.id }}">Masuk Lab</q-btn>
-                              </q-card-actions>
-                          </q-card>
+                        <q-card class="bayangan classroom-card" flat>
+                          <q-card-section class="classroom-card__head text-white">
+                            <div class="row items-center justify-between no-wrap">
+                              <q-icon name="o_science" size="26px" class="q-mr-sm" />
+                              <q-chip dense color="white" text-color="green-9" icon="o_groups">
+                                {{ row.kelas.kelas }}
+                              </q-chip>
+                            </div>
+                            <div class="text-subtitle1 text-weight-bold q-mt-sm ellipsis-2-lines">
+                              {{ row.katalog.topik }}
+                            </div>
+                          </q-card-section>
+
+                          <q-card-section class="q-pt-md">
+                            <div class="row items-center no-wrap">
+                              <q-avatar color="green-1" text-color="green-8" icon="o_person" size="34px" />
+                              <div class="q-ml-sm">
+                                <div class="text-caption text-grey-6">Pengajar</div>
+                                <div class="text-body2 text-weight-medium text-grey-9">{{ row.user.name }}</div>
+                              </div>
+                            </div>
+                          </q-card-section>
+
+                          <q-card-actions align="right" class="q-px-md q-pb-md">
+                            <q-btn
+                              unelevated
+                              color="green-7"
+                              icon="o_login"
+                              :to="{ name: 'labroom', params: { class_id: row.id }}"
+                              label="Masuk Lab"
+                              no-caps
+                            />
+                          </q-card-actions>
+                        </q-card>
                     </div>
                 </div>
             </q-card-section>
@@ -95,6 +116,18 @@ this.getClassroom();
   transition: transform 0.3s ease
   &:hover
     transform: translateY(-5px)
+
+.classroom-panel
+  background: linear-gradient(180deg, #f8fff8 0%, #ffffff 100%)
+  border: 1px solid #d7efdb
+
+.classroom-card
+  border-radius: 16px
+  border: 1px solid #dfe9df
+  overflow: hidden
+
+.classroom-card__head
+  background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%)
 
 .gradasi
   background: linear-gradient(to right, #355924, #73f261)

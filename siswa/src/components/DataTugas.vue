@@ -6,61 +6,98 @@
     <q-separator class="q-my-sm"/>
     <div v-if="status==1">
       <div v-for="es in dataEsay" :key="es.id">
-        Jawaban Anda:
-        <p v-html="es.esay"></p>
-        <q-avatar v-if="es.nilai" color="green-7" size="25px" class="q-mr-sm q-mb-sm text-white">
-          {{es.nilai}}
-        </q-avatar>
-        <q-icon name="o_edit" size="xs" color="green-7" @click="editEsay(es.id)"/> | 
-        <q-icon name="o_delete" size="xs" color="red" @click="hapusEsay(es.id)"/>
+        <div class="submission-row">
+          <div class="submission-main">
+            <div class="text-caption text-grey-7">Jawaban Anda:</div>
+            <p class="q-mt-xs q-mb-none" v-html="es.esay"></p>
+          </div>
+          <div class="submission-actions">
+            <q-avatar v-if="es.nilai" color="green-7" size="25px" class="q-mb-xs text-white">
+              {{es.nilai}}
+            </q-avatar>
+            <q-btn v-if="canModify(es)" dense flat round icon="more_vert" color="grey-7">
+              <q-tooltip>Hapus kiriman (jika belum dinilai)</q-tooltip>
+              <q-menu auto-close>
+                <q-list style="min-width: 120px">
+                  <q-item clickable @click="hapusEsay(es.id)">
+                    <q-item-section class="text-red">Hapus</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <q-chip v-else dense color="grey-3" text-color="grey-8" icon="o_lock" size="sm">Sudah dinilai</q-chip>
+          </div>
+        </div>
         <q-separator/>
       </div>
-      <q-editor v-model="teks" min-height="5rem" />
-      <q-btn :disable="!teks" label="serahkan" rounded class="q-mt-sm" color="green-7" @click="postEsay"/>
+      <div v-if="dataEsay.length === 0">
+        <q-editor v-model="teks" min-height="5rem" />
+        <q-btn :disable="!teks" label="serahkan" rounded class="q-mt-sm" color="green-7" @click="postEsay"/>
+      </div>
+      <q-banner v-else rounded class="bg-grey-2 text-grey-8 q-mt-sm">
+        Anda sudah mengirim jawaban essay. Hapus data lama (jika belum dinilai) untuk kirim ulang.
+      </q-banner>
     </div>
     <div v-if="status==2">
       <!-- ✅ Tampilkan file yang sudah diupload dengan banner format -->
       <div v-for="up in dataFile" :key="up.id" class="q-mb-md">
-        <a :href="getDownloadUrl(up.file)" target="_blank">
-          <q-banner rounded class="bg-grey-3 q-mb-md">
-            <template v-slot:avatar>
-              <q-icon
-                :name="getFileIcon(getFileExtension(up.file_name || up.file))"
-                :color="getIconColor(getFileExtension(up.file_name || up.file))"
-                size="lg"
-              />
-            </template>
-            <div>
-              <div class="text-weight-bold">{{ up.file_name || getFileName(up.file) }}</div>
-              <div class="text-caption text-grey-7">{{ formatFileSize(up.file_size) }}</div>
-            </div>
-          </q-banner>
-        </a>
-        <!-- Tampilkan nilai jika ada -->
-        <div v-if="up.nilai" class="q-pl-md">
-          <q-avatar color="green-7" size="30px" text-color="white" class="q-mr-sm">
-            {{ up.nilai }}
-          </q-avatar>
-          <span class="text-caption">Nilai dari guru</span>
+        <div class="submission-row">
+          <div class="submission-main">
+            <a :href="getDownloadUrl(up.file)" target="_blank">
+              <q-banner rounded class="bg-grey-3 q-mb-sm">
+                <template v-slot:avatar>
+                  <q-icon
+                    :name="getFileIcon(getFileExtension(up.file_name || up.file))"
+                    :color="getIconColor(getFileExtension(up.file_name || up.file))"
+                    size="lg"
+                  />
+                </template>
+                <div>
+                  <div class="text-weight-bold">{{ up.file_name || getFileName(up.file) }}</div>
+                  <div class="text-caption text-grey-7">{{ formatFileSize(up.file_size) }}</div>
+                </div>
+              </q-banner>
+            </a>
+            <div v-if="up.nilai" class="text-caption text-grey-7">Sudah dinilai guru</div>
+          </div>
+          <div class="submission-actions">
+            <q-avatar v-if="up.nilai" color="green-7" size="30px" text-color="white" class="q-mb-xs">
+              {{ up.nilai }}
+            </q-avatar>
+            <q-btn v-if="canModify(up)" dense flat round icon="more_vert" color="grey-7">
+              <q-tooltip>Hapus kiriman (jika belum dinilai)</q-tooltip>
+              <q-menu auto-close>
+                <q-list style="min-width: 120px">
+                  <q-item clickable @click="hapusUpload(up.id)">
+                    <q-item-section class="text-red">Hapus</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <q-chip v-else dense color="grey-3" text-color="grey-8" icon="o_lock" size="sm">Sudah dinilai</q-chip>
+          </div>
         </div>
-        <!-- Tombol hapus -->
-        <q-btn flat icon="delete" color="red" size="sm" @click="hapusUpload(up.id)" class="q-mt-sm"/>
       </div>
 
       <!-- ✅ Form upload file baru -->
-      <q-file filled bottom-slots v-model="file" label="Pilih File" counter>
-        <template v-slot:prepend>
-          <q-icon name="cloud_upload" @click.stop.prevent />
-        </template>
-        <template v-slot:append>
-          <q-icon name="close" @click.stop.prevent="file = null" class="cursor-pointer" />
-        </template>
+      <div v-if="dataFile.length === 0">
+        <q-file filled bottom-slots v-model="file" label="Pilih File" counter>
+          <template v-slot:prepend>
+            <q-icon name="cloud_upload" @click.stop.prevent />
+          </template>
+          <template v-slot:append>
+            <q-icon name="close" @click.stop.prevent="file = null" class="cursor-pointer" />
+          </template>
 
-        <template v-slot:hint>
-          Format: jpg, jpeg, png, pdf, doc, docx, xls, xlsx, ppt, pptx
-        </template>
-      </q-file>
-      <q-btn label="upload tugas" rounded class="q-mt-sm" color="green-7" @click="postUpload" :disable="!file"/>
+          <template v-slot:hint>
+            Format: jpg, jpeg, png, pdf, doc, docx, xls, xlsx, ppt, pptx
+          </template>
+        </q-file>
+        <q-btn label="upload tugas" rounded class="q-mt-sm" color="green-7" @click="postUpload" :disable="!file"/>
+      </div>
+      <q-banner v-else rounded class="bg-grey-2 text-grey-8 q-mt-sm">
+        Anda sudah mengirim upload tugas. Hapus data lama (jika belum dinilai) untuk kirim ulang.
+      </q-banner>
     </div>
     <div v-if="status==3">
       <div>
@@ -75,20 +112,33 @@
               </a>
             </q-item-section>
             <q-item-section side top>
-             <div class="row justify-start">
-              <q-avatar v-if="li.nilai" color="green-7" size="sm" text-color="white">
-                {{li.nilai}}
-              </q-avatar>
-              <q-icon name="delete" size="xs" color="red" @click="hapusLink(li.id)"/>
-             </div>
+             <div class="row justify-start items-center">
+               <q-avatar v-if="li.nilai" color="green-7" size="sm" text-color="white">
+                 {{li.nilai}}
+               </q-avatar>
+               <q-btn v-if="canModify(li)" dense flat round icon="more_vert" color="grey-7">
+                 <q-tooltip>Hapus kiriman (jika belum dinilai)</q-tooltip>
+                 <q-menu auto-close>
+                   <q-list style="min-width: 120px">
+                     <q-item clickable @click="hapusLink(li.id)">
+                       <q-item-section class="text-red">Hapus</q-item-section>
+                     </q-item>
+                   </q-list>
+                 </q-menu>
+               </q-btn>
+               <q-chip v-else dense color="grey-3" text-color="grey-8" icon="o_lock" size="sm">Terkunci</q-chip>
+              </div>
             </q-item-section>
           </q-item>
         </q-list>
       </div>
-      <div>
+      <div v-if="dataLink.length === 0">
         <q-input outlined v-model="tautan" label="Link Tugas" class="q-my-sm" />
         <q-btn label="tautkan" color="green-7" rounded @click="saveLink"/>
       </div>
+      <q-banner v-else rounded class="bg-grey-2 text-grey-8 q-mt-sm">
+        Anda sudah mengirim link tugas. Hapus data lama (jika belum dinilai) untuk kirim ulang.
+      </q-banner>
     </div>
   </div>
 </template>
@@ -115,6 +165,12 @@ computed:{
 ...mapState("kontrol",["url"])
 },
 methods:{
+  canModify(row) {
+    return !this.hasNilai(row?.nilai);
+  },
+  hasNilai(nilai) {
+    return nilai !== null && nilai !== undefined && nilai !== '';
+  },
   esay(){
     this.status=1
   },
@@ -138,7 +194,11 @@ methods:{
     this.teks=""
     this.id=""
     this.getEsay()
+    this.$toast.success('Jawaban essay berhasil dikirim')
     return response
+  }).catch((error)=>{
+    const msg = error.response?.data?.message || 'Gagal mengirim jawaban essay'
+    this.$toast.error(msg)
   })
   },
   async editEsay($id){
@@ -150,7 +210,11 @@ methods:{
   async hapusEsay($id){
     await axios.delete("tugasSiswa/esay/hapus/"+$id).then((response)=>{
       this.getEsay()
+      this.$toast.success('Jawaban essay berhasil dihapus')
       return response
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal menghapus jawaban essay'
+      this.$toast.error(msg)
     })
   },
   async postUpload(){
@@ -160,7 +224,11 @@ methods:{
     await axios.post("tugasSiswa/upload",form).then((response)=>{
       this.file=null
       this.getUpload()
+      this.$toast.success('Upload tugas berhasil dikirim')
       return response
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal upload tugas'
+      this.$toast.error(msg)
     })
   },
   async getUpload(){
@@ -171,13 +239,21 @@ methods:{
   async hapusUpload($id){
     await axios.delete("tugasSiswa/upload/hapus/"+$id).then((response)=>{
       this.getUpload()
+      this.$toast.success('Upload tugas berhasil dihapus')
       return response
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal menghapus upload tugas'
+      this.$toast.error(msg)
     })
   },
   async hapusLink($id){
     await axios.delete("tugasSiswa/tautan/hapus/"+$id).then((response)=>{
       this.getLinks()
+      this.$toast.success('Tautan tugas berhasil dihapus')
       return response
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal menghapus tautan tugas'
+      this.$toast.error(msg)
     })
   },
   async getLinks(){
@@ -193,7 +269,11 @@ methods:{
     await axios.post("tugasSiswa/tautan", form).then((response)=>{
       this.tautan=""
       this.getLinks();
+      this.$toast.success('Tautan tugas berhasil dikirim')
       return response
+    }).catch((error)=>{
+      const msg = error.response?.data?.message || 'Gagal mengirim tautan tugas'
+      this.$toast.error(msg)
     })
   },
   // ✅ Helper untuk format ukuran file
@@ -258,7 +338,7 @@ methods:{
     if (val === undefined || val === null) return true;
 
     // Handle number/string '0' -> False
-    if (val == 0) return false;
+    if (Number(val) === 0) return false;
 
     return true;
   }
@@ -271,9 +351,24 @@ created(){
 }
 }
 </script>
-<style lang="sass">
+<style scoped lang="sass">
 .q-card .bayangan
   box-shadow: 0 10px 30px rgba(146, 153, 184, 0.15) !important
 
-</style>
+.submission-row
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  gap: 10px
 
+.submission-main
+  flex: 1
+  min-width: 0
+
+.submission-actions
+  display: flex
+  flex-direction: column
+  align-items: flex-end
+  gap: 6px
+
+</style>

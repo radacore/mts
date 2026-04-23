@@ -123,7 +123,7 @@
 
         <div class="row q-col-gutter-lg text-center items-center justify-center">
           <div class="col-6 col-sm-3 col-md-3" v-for="stat in statsDisplay" :key="stat.label">
-            <div class="stat-card q-pa-lg glass-effect cursor-pointer relative-position overflow-hidden">
+            <div class="stat-card q-pa-lg glass-effect relative-position overflow-hidden">
               <div class="absolute-full gradient-overlay"></div>
               
               <div class="relative-position z-top column items-center">
@@ -152,7 +152,7 @@
         </div>
 
         <div class="row q-col-gutter-lg">
-          <div class="col-12 col-md-7">
+          <div class="col-12">
             <div class="analytics-card q-pa-lg bg-white shadow-2">
               <div class="text-h6 text-weight-bold text-green-9 q-mb-md">
                 Peminjaman Tahun {{ stats.tahun_aktif || new Date().getFullYear() }}
@@ -164,25 +164,6 @@
                     <div class="text-subtitle2 text-green-9 text-weight-bold">{{ item.total }}</div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-5">
-            <div class="analytics-card q-pa-lg bg-white shadow-2 full-height">
-              <div class="text-h6 text-weight-bold text-green-9 q-mb-md">Jumlah Alat</div>
-              <div class="row q-col-gutter-md">
-                <div class="col-6">
-                  <div class="text-caption text-grey-7">Jenis Alat</div>
-                  <div class="text-h4 text-weight-bolder text-green-9">{{ stats.jumlah_jenis_alat || 0 }}</div>
-                </div>
-                <div class="col-6">
-                  <div class="text-caption text-grey-7">Total Unit</div>
-                  <div class="text-h4 text-weight-bolder text-green-9">{{ stats.total_unit_alat || 0 }}</div>
-                </div>
-              </div>
-              <div class="text-caption text-grey-7 q-mt-md">
-                Menghitung total jenis alat dan keseluruhan unit inventaris.
               </div>
             </div>
           </div>
@@ -515,14 +496,6 @@ export default {
    transition: opacity 0.4s ease;
 }
 
-.stat-card:hover {
-   transform: translateY(-10px) scale(1.02);
-   border-color: rgba(255,255,255,0.4);
-   box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-}
-.stat-card:hover .gradient-overlay {
-   opacity: 1;
-}
 
 .icon-ring {
    width: 60px;
@@ -531,11 +504,6 @@ export default {
    border-radius: 50%;
    transition: all 0.4s ease;
    box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
-}
-.stat-card:hover .icon-ring {
-   transform: scale(1.1) rotate(5deg);
-   background: rgba(255,255,255,0.25);
-   box-shadow: 0 0 20px rgba(255,255,255,0.3);
 }
 .icon-anim {
    transition: transform 0.4s ease;

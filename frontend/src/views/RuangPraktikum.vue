@@ -8,47 +8,38 @@
             <q-breadcrumbs-el label="Praktikum" icon="cast_for_education" to="/praktikum" />
             <q-breadcrumbs-el label="Ruang Praktikum" icon="science" />
           </q-breadcrumbs>
-          <q-btn label="buat" icon="add" color="green-7" class="q-mt-md" rounded>
-            <q-menu transition-show="scale" transition-hide="scale" auto-close>
-              <q-list style="min-width: 300px">
-                <q-item clickable @click="dialogInsert = true">
-                  <q-item-section avatar>
-                    <q-avatar icon="o_assignment_add" />
-                  </q-item-section>
-                  <q-item-section>Materi Ajar</q-item-section>
-                </q-item>
-                <q-item clickable @click="dialogTugas = true">
-                  <q-item-section avatar>
-                    <q-avatar icon="o_assignment_add" />
-                  </q-item-section>
-                  <q-item-section>Tugas</q-item-section>
-                </q-item>
-                <q-separator />
-                <q-item clickable @click="dialogAbsen = true">
-                  <q-item-section avatar>
-                    <q-avatar icon="o_front_hand" />
-                  </q-item-section>
-                  <q-item-section>Absensi</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </q-btn>
+
+          <q-banner class="bg-green-1 text-green-10 q-mt-md" rounded>
+            <div class="row items-center justify-between q-col-gutter-md">
+              <div class="col-12 col-md-7">
+                <div class="text-subtitle1 text-weight-bold">{{ ruangPraktikum }}</div>
+                <div class="text-caption">Kelas: {{ kelasPraktikum || '-' }} | Guru: {{ guruPengampu || user.user.name }}</div>
+              </div>
+              <div class="col-12 col-md-5 text-right q-gutter-sm">
+                <q-btn label="Materi" icon="o_menu_book" color="green-7" unelevated no-caps @click="dialogInsert = true" />
+                <q-btn label="Tugas" icon="o_assignment" color="orange-8" unelevated no-caps @click="dialogTugas = true" />
+                <q-btn label="Absensi" icon="o_how_to_reg" color="blue-7" unelevated no-caps @click="dialogAbsen = true" />
+              </div>
+            </div>
+          </q-banner>
         </q-card-section>
         <q-card-section>
           <!-- MODUL AJAR -->
           <q-list v-if="moduls.length" padding dense>
-            <q-item>
-              <q-item-section>
-                <q-item-label overline>{{ ruangPraktikum }}</q-item-label>
-                <q-item-label class="text-h6">Modul Ajar</q-item-label>
-              </q-item-section>
-              <q-item-section side top>
-                <q-item-label caption>{{ user.user.name }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-separator size="2px" color="green-7" />
-            <div v-for="row in moduls" :key="row.id">
-              <q-expansion-item header-class="text-green-7" switch-toggle-side dense>
+            <div class="section-head q-mb-sm">
+              <div class="row items-center justify-between">
+                <div class="row items-center no-wrap">
+                  <q-avatar color="green-7" text-color="white" icon="o_menu_book" />
+                  <div class="q-ml-sm">
+                    <div class="text-subtitle1 text-weight-bold">Modul Ajar</div>
+                    <div class="text-caption text-grey-7">Materi pembelajaran untuk kelas {{ kelasPraktikum || '-' }}</div>
+                  </div>
+                </div>
+                <q-chip dense color="green-1" text-color="green-9" icon="o_inventory_2">{{ moduls.length }} Materi</q-chip>
+              </div>
+            </div>
+            <div v-for="row in moduls" :key="row.id" class="q-mb-sm">
+              <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side dense>
                 <template v-slot:header>
                   <q-item-section avatar>
                     <q-avatar icon="far fa-clipboard" color="green-7" text-color="white" />
@@ -107,24 +98,25 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-              <q-separator />
             </div>
           </q-list>
 
-         <!-- TUGAS & ABSENSI — TIDAK DIUBAH -->
+          <!-- TUGAS & ABSENSI — TIDAK DIUBAH -->
           <q-list v-if="tugas.length" padding class="q-my-sm">
-            <q-item>
-              <q-item-section>
-                <q-item-label overline>{{ ruangPraktikum }}</q-item-label>
-                <q-item-label class="text-h6">Penugasan</q-item-label>
-              </q-item-section>
-              <q-item-section side top>
-                <q-item-label caption>{{ user.user.name }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-separator size="2px" color="green-7" />
-            <div v-for="tgs in tugas" :key="tgs.id">
-              <q-expansion-item header-class="text-green-7" switch-toggle-side>
+            <div class="section-head q-mb-sm">
+              <div class="row items-center justify-between">
+                <div class="row items-center no-wrap">
+                  <q-avatar color="orange-8" text-color="white" icon="o_assignment" />
+                  <div class="q-ml-sm">
+                    <div class="text-subtitle1 text-weight-bold">Penugasan</div>
+                    <div class="text-caption text-grey-7">Daftar tugas aktif untuk siswa di kelas ini</div>
+                  </div>
+                </div>
+                <q-chip dense color="orange-1" text-color="orange-9" icon="o_checklist">{{ tugas.length }} Tugas</q-chip>
+              </div>
+            </div>
+            <div v-for="tgs in tugas" :key="tgs.id" class="q-mb-sm">
+              <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side>
                 <template v-slot:header>
                   <q-item-section avatar>
                     <q-avatar icon="far fa-clipboard" color="green-7" text-color="white" />
@@ -158,23 +150,24 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-              <q-separator />
             </div>
           </q-list>
 
           <q-list v-if="absensis.length" padding>
-            <q-item>
-              <q-item-section>
-                <q-item-label overline>{{ ruangPraktikum }}</q-item-label>
-                <q-item-label class="text-h6">Absensi</q-item-label>
-              </q-item-section>
-              <q-item-section side top>
-                <q-item-label caption>{{ user.user.name }}</q-item-label>
-              </q-item-section>
-            </q-item>
-            <q-separator size="2px" color="green-7" />
-            <div v-for="abs in absensis" :key="abs.id">
-              <q-expansion-item header-class="text-green-7" switch-toggle-side>
+            <div class="section-head q-mb-sm">
+              <div class="row items-center justify-between">
+                <div class="row items-center no-wrap">
+                  <q-avatar color="blue-7" text-color="white" icon="o_how_to_reg" />
+                  <div class="q-ml-sm">
+                    <div class="text-subtitle1 text-weight-bold">Absensi</div>
+                    <div class="text-caption text-grey-7">Kontrol sesi kehadiran dan status buka/tutup</div>
+                  </div>
+                </div>
+                <q-chip dense color="blue-1" text-color="blue-9" icon="o_event_available">{{ absensis.length }} Sesi</q-chip>
+              </div>
+            </div>
+            <div v-for="abs in absensis" :key="abs.id" class="q-mb-sm">
+              <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side>
                 <template v-slot:header>
                   <q-item-section avatar>
                     <q-avatar icon="far fa-clipboard" color="green-7" text-color="white" />
@@ -187,13 +180,12 @@
                   </q-item-section>
                   <q-item-section side>
                     <div class="row items-center">
-                      <q-btn v-if="abs.status == 'close'" rounded :label="abs.status" color="grey" />
-                      <q-btn v-else rounded :label="abs.status" color="green-7" text-color="white" />
+                      <q-btn rounded :label="statusAbsensiLabel(abs.status)" :color="statusAbsensiColor(abs.status)" text-color="white" />
                       <q-btn icon="more_vert" flat round class="q-ml-sm">
                         <q-menu auto-close>
                           <q-list style="min-width: 100px">
                             <q-item clickable @click="setStatus(abs.id)">
-                              <q-item-section>Ubah Status</q-item-section>
+                              <q-item-section>{{ isAbsensiClosed(abs.status) ? 'Buka Absensi' : 'Tutup Absensi' }}</q-item-section>
                             </q-item>
                             <q-item clickable @click="hapusAbsen(abs.id)">
                               <q-item-section>Hapus</q-item-section>
@@ -212,7 +204,6 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-              <q-separator />
             </div>
           </q-list>
         </q-card-section>
@@ -501,6 +492,8 @@ export default {
       tugas: ref([]),
       absensis: ref([]),
       ruangPraktikum: ref(''),
+      kelasPraktikum: ref(''),
+      guruPengampu: ref(''),
       id: ref(''),
       judul: ref(''),
       des: ref(''),
@@ -573,8 +566,12 @@ export default {
       try {
         const res = await axios.get(`classroom/cek/${this.class_id}`);
         this.ruangPraktikum = res.data.katalog.topik;
+        this.kelasPraktikum = res.data.kelas?.kelas || '';
+        this.guruPengampu = res.data.user?.name || this.user.user.name;
       } catch (e) {
         this.ruangPraktikum = 'Ruang Praktikum';
+        this.kelasPraktikum = '';
+        this.guruPengampu = this.user.user.name;
       }
     },
     async getMateri() {
@@ -758,6 +755,17 @@ export default {
       // ✅ Sesuaikan dengan baseURL Anda
       return `${this.url}${filePath}`;
     },
+    isAbsensiClosed(status) {
+      if (status === null || status === undefined) return false;
+      const normalized = String(status).toLowerCase().trim();
+      return ['0', 'close', 'closed', 'false'].includes(normalized);
+    },
+    statusAbsensiLabel(status) {
+      return this.isAbsensiClosed(status) ? 'Close' : 'Open';
+    },
+    statusAbsensiColor(status) {
+      return this.isAbsensiClosed(status) ? 'grey-7' : 'green-7';
+    },
 
     // Method lain — semua pakai this.$toast
     async post() {
@@ -854,3 +862,17 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="sass">
+.section-head
+  background: linear-gradient(180deg, #f4fbf5 0%, #ffffff 100%)
+  border: 1px solid #d8e8da
+  border-radius: 12px
+  padding: 10px 12px
+
+.section-item
+  border: 1px solid #dfe9e1
+  border-radius: 12px
+  background: #ffffff
+  overflow: hidden
+</style>

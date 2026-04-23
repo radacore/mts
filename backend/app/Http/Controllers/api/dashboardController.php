@@ -17,9 +17,12 @@ class dashboardController extends Controller
 {
     public function statistik()
     {
+        $batasStokMenipis = 5;
         $inv = (int) inventaris::sum('jml');
         $kondisi = (int) inventaris::sum('konbaik');
         $rusak = (int) inventaris::sum('konrusak');
+        $stokHabis = (int) inventaris::where('jml', '<=', 0)->count();
+        $stokMenipis = (int) inventaris::where('jml', '>', 0)->where('jml', '<=', $batasStokMenipis)->count();
         $pinjamLabPending = (int) pinjam_lab::where('status', 'diajukan')->count();
         $pinjamAlatPending = (int) pinjam_alat::where('status', 'diajukan')->count();
         $pinjamLainPending = (int) pinjam_lain::where('status', 'diajukan')->count();
@@ -28,6 +31,10 @@ class dashboardController extends Controller
             'inv'=>$inv,
             'kondisi'=>$kondisi,
             'rusak'=>$rusak,
+            'stok_menipis' => $stokMenipis,
+            'stok_habis' => $stokHabis,
+            'stok_kritis' => $stokMenipis + $stokHabis,
+            'batas_stok_menipis' => $batasStokMenipis,
             'pinjam_lab_pending' => $pinjamLabPending,
             'pinjam_alat_pending' => $pinjamAlatPending,
             'pinjam_lain_pending' => $pinjamLainPending,

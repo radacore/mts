@@ -34,6 +34,21 @@
               class="q-mr-md"
               @update:model-value="getData"
             />
+            <q-select
+              v-model="filterStokStatus"
+              :options="stokStatusOptions"
+              label="Filter Stok"
+              emit-value
+              map-options
+              option-value="value"
+              option-label="label"
+              clearable
+              dense
+              outlined
+              style="min-width: 160px"
+              class="q-mr-md"
+              @update:model-value="getData"
+            />
             <q-toggle
               v-model="rusakOnly"
               label="Hanya Rusak"
@@ -51,6 +66,18 @@
           <template v-slot:body-cell-spec="props">
             <q-td :props="props">
               <p v-html="props.row.spec"/>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-albah="props">
+            <q-td :props="props">
+              <div class="column">
+                <div>{{ props.row.nabar }}</div>
+                <div class="q-mt-xs q-gutter-xs" v-if="isNeedActionStock(props.row)">
+                  <q-badge :color="statusStok(props.row).color" text-color="white">
+                    {{ statusStok(props.row).label }}
+                  </q-badge>
+                </div>
+              </div>
             </q-td>
           </template>
           <template v-slot:body-cell-foto="props">
@@ -75,14 +102,6 @@
               {{ labelJenisBarang(props.row.jenis_barang) }}
             </q-td>
           </template>
-          <template v-slot:body-cell-status_stok="props">
-            <q-td :props="props">
-              <q-badge :color="statusStok(props.row).color" text-color="white">
-                {{ statusStok(props.row).label }}
-              </q-badge>
-            </q-td>
-          </template>
-
            </q-table>
         </q-card-section>
        </q-card>
@@ -311,7 +330,6 @@ setup(){
       {name: "thn_masuk",label: "Tahun Masuk",align: "left",field:"thn_masuk",sortable: true},
       {name: "thn_pakai",label: "Tahun Pakai",align: "left",field:"thn_pakai",sortable: true},
       {name: "jenis_barang",label: "Jenis Barang",align: "left",field:"jenis_barang",sortable: true},
-      {name: "status_stok",label: "Status Stok",align: "left",field:"status_stok",sortable: false},
       {name: "jml",label: "Jumlah",align: "left",field:"jml",sortable: true},
       {name: "baik",label: "Baik",align: "left",field:"konbaik",sortable: true},
       {name: "rusak",label: "Rusak",align: "left",field:"konrusak",sortable: true},
@@ -338,6 +356,11 @@ setup(){
       { label: 'Pemakaian', value: 'keluar' },
     ]
 
+    const stokStatusOptions = [
+      { label: 'Menipis', value: 'menipis' },
+      { label: 'Habis', value: 'habis' },
+    ]
+
     return{
       pagination: {
           rowsPerPage: 10
@@ -346,10 +369,12 @@ setup(){
         riwayatColumns,
         jenisBarangOptions,
         jenisMutasiOptions,
+        stokStatusOptions,
         rows:ref([]),
         filter:ref(null),
         rusakOnly:ref(false),
         filterTahun:ref(null),
+        filterStokStatus:ref(null),
         tahunOptions:ref([]),
         dialogInsert:ref(false),
         confirm:ref(false),
@@ -454,6 +479,7 @@ methods:{
       const query = {}
       if (this.rusakOnly) query.rusak_only = 1
       if (this.filterTahun) query.tahun = this.filterTahun
+      if (this.filterStokStatus) query.stok_status = this.filterStokStatus
       const params = { params: query }
 
       await axios.get("inventaris", params).then((response)=>{
@@ -584,16 +610,19 @@ methods:{
         })
     },
     statusStok(row){
-      if ((row.jenis_barang || 'aset') !== 'habis_pakai') {
-        return { label: 'Aset', color: 'blue-grey-6' }
-      }
-
       const jml = Number(row.jml || 0)
-      const min = Number(row.stok_minimum || 0)
+      const minRaw = row.stok_minimum
+      const min = minRaw === null || minRaw === undefined || minRaw === ''
+        ? 5
+        : Number(minRaw)
 
       if (jml <= 0) return { label: 'Habis', color: 'red' }
       if (jml <= min) return { label: 'Menipis', color: 'orange-8' }
       return { label: 'Aman', color: 'green-7' }
+    },
+    isNeedActionStock(row){
+      const label = this.statusStok(row).label
+      return label === 'Habis' || label === 'Menipis'
     },
     labelJenisBarang(jenis){
       return (jenis || 'aset') === 'habis_pakai' ? 'Habis Pakai' : 'Aset'

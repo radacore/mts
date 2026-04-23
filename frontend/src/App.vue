@@ -1,6 +1,21 @@
 <template>
   <q-layout view="hHh LpR fFf">
     <q-header class="bg-white text-green-7 shadow z-max">
+      <div v-if="isLandingTickerVisible" class="landing-ticker-bar">
+        <div class="landing-ticker-label">Informasi Terkini</div>
+        <div class="landing-ticker-track">
+          <div class="landing-ticker-content">
+            <span class="ticker-item" v-for="item in informasiAktif" :key="`ticker-${item.id}`">
+              <q-badge :color="toneInfo(item.tipe).bg" text-color="white" class="q-mr-sm">
+                {{ labelTipe(item.tipe) }}
+              </q-badge>
+              <span>{{ tickerMainText(item) }}</span>
+              <span v-if="formatPeriodeTicker(item)" class="q-ml-xs text-grey-8">({{ formatPeriodeTicker(item) }})</span>
+              <span class="q-mx-md text-green-9">•</span>
+            </span>
+          </div>
+        </div>
+      </div>
       <q-toolbar>
         <q-btn
           v-if="authenticated && !isLandingStaffHome"
@@ -18,7 +33,6 @@
         </q-toolbar-title>
 
         <q-space/>
-        <q-icon v-if="authenticated" name="o_mail" size="sm" class="q-mx-sm"/>
         <q-btn v-if="authenticated" flat round dense icon="o_notifications" class="q-mx-sm">
           <q-badge v-if="notifUnread>0" color="red" floating>{{ notifUnread }}</q-badge>
           <q-menu content-class="notif-menu-layer" transition-show="jump-down" transition-hide="jump-up" style="min-width:340px;max-width:90vw;">
@@ -319,11 +333,11 @@
               </q-avatar>
               <div class="full-width">
                 <div class="row items-center justify-between">
-                  <div class="text-subtitle2 text-weight-bold">{{ item.judul }}</div>
+                  <div class="text-subtitle2 text-weight-bold info-rolling-title">{{ item.judul }}</div>
                   <q-badge :color="toneInfo(item.tipe).bg" text-color="white">{{ labelTipe(item.tipe) }}</q-badge>
                 </div>
-                <div class="text-caption q-mt-xs">{{ item.isi }}</div>
-                <div class="text-caption text-grey-7 q-mt-xs" v-if="item.mulai_at || item.selesai_at">
+                <div class="text-caption q-mt-xs info-rolling-body">{{ item.isi }}</div>
+                <div class="text-caption text-grey-7 q-mt-xs info-rolling-meta" v-if="item.mulai_at || item.selesai_at">
                   Berlaku: {{ formatPeriode(item) }}
                 </div>
               </div>
@@ -379,6 +393,9 @@ export default {
       const roleId = this.user && this.user.user ? this.user.user.role_id : null
       return this.authenticated && this.$route.path === '/' && [1, 2, 3].includes(roleId)
     },
+    isLandingTickerVisible() {
+      return this.$route.path === '/' && this.informasiAktif.length > 0
+    },
   },
   methods:{
     ...mapActions({
@@ -396,11 +413,6 @@ export default {
       });
     },
     async getInformasiAktif() {
-      if (!this.authenticated) {
-        this.informasiAktif = []
-        return
-      }
-
       await axios.get('informasi-terkini/aktif').then((response) => {
         this.informasiAktif = response.data || []
         this.infoSlide = this.informasiAktif.length ? this.informasiAktif[0].id : null
@@ -480,6 +492,27 @@ export default {
 
       return `${fmt(item.mulai_at)} s/d ${fmt(item.selesai_at)}`
     },
+    tickerMainText(item) {
+      const judul = (item.judul || '').trim()
+      const isi = (item.isi || '').trim()
+      if (judul && isi) return `${judul}: ${isi}`
+      return judul || isi || '-'
+    },
+    formatTanggalTicker(value) {
+      if (!value) return ''
+      const date = new Date(String(value).replace(' ', 'T'))
+      if (isNaN(date.getTime())) return ''
+      const d = String(date.getDate()).padStart(2, '0')
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const y = date.getFullYear()
+      return `${d}-${m}-${y}`
+    },
+    formatPeriodeTicker(item) {
+      const mulai = this.formatTanggalTicker(item.mulai_at)
+      const selesai = this.formatTanggalTicker(item.selesai_at)
+      if (mulai && selesai) return `${mulai} s/d ${selesai}`
+      return mulai || selesai || ''
+    },
   },
   created(){
     this.getInformasiAktif()
@@ -522,6 +555,58 @@ page
 .info-rolling-card
   border: 1px solid #c8e6c9
   background: linear-gradient(180deg, #f5fff6 0%, #ffffff 100%)
+
+.info-rolling-title
+  font-size: 1.02rem
+
+.info-rolling-body
+  font-size: 0.92rem
+  line-height: 1.35
+
+.info-rolling-meta
+  font-size: 0.84rem
+
+.landing-ticker-bar
+  display: flex
+  align-items: center
+  border-bottom: 1px solid #e0efe3
+  background: linear-gradient(90deg, #f5fff6 0%, #edf9ef 100%)
+  padding: 0 8px
+
+.landing-ticker-label
+  flex: 0 0 auto
+  color: #ffffff
+  background: #2e7d32
+  font-size: 0.78rem
+  font-weight: 700
+  text-transform: uppercase
+  letter-spacing: 0.03em
+  margin-right: 10px
+  padding: 7px 12px
+
+.landing-ticker-track
+  flex: 1
+  overflow: hidden
+  white-space: nowrap
+  min-width: 0
+
+.landing-ticker-content
+  display: inline-block
+  padding: 6px 0
+  color: #1b5e20
+  font-size: 0.86rem
+  padding-left: 100%
+  animation: ticker-right-to-left 26s linear infinite
+
+.ticker-item
+  display: inline-flex
+  align-items: center
+
+@keyframes ticker-right-to-left
+  0%
+    transform: translateX(0)
+  100%
+    transform: translateX(-100%)
 
 :deep(.notif-menu-layer)
   z-index: 100000 !important

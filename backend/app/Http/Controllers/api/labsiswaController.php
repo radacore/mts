@@ -45,6 +45,10 @@ class labsiswaController extends Controller
             return response()->json(['message' => 'Absensi tidak ditemukan'], 404);
         }
 
+        if ($this->isAbsenClosed($absen->status)) {
+            return response()->json(['message' => 'Absensi sedang ditutup oleh guru'], 400);
+        }
+
         $jam = Carbon::now()->format('H:i:s');
         if ($jam < $absen->jam_buka || $jam > $absen->jam_tutup) {
             return response()->json(['message' => 'Waktu absensi telah habis atau belum dimulai'], 400);
@@ -99,9 +103,22 @@ class labsiswaController extends Controller
     public function tugasEsayPost(Request $request)
     {
         $request->validate([
+            'penugasan_id' => 'required|exists:penugasans,id',
             'teks'=>'required'
         ]);
-        $data=data_tugas::updateOrCreate(['id'=>$request->id],[
+
+        $existing = data_tugas::where('penugasan_id', $request->penugasan_id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('esay')
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'message' => 'Jawaban essay sudah dikirim. Hapus dulu data lama jika ingin kirim ulang.'
+            ], 409);
+        }
+
+        $data=data_tugas::create([
             'penugasan_id'=>$request->penugasan_id,
             'esay'=>$request->teks,
             'user_id'=>Auth()->User()->id
@@ -119,10 +136,20 @@ class labsiswaController extends Controller
     }
     public function tugasEsayHapus($id)
     {
-        if($id){
-            $hapus=data_tugas::find($id);
-            $hapus->delete();
+        $hapus = data_tugas::where('id', $id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('esay')
+            ->first();
+
+        if (!$hapus) {
+            return response()->json(['message' => 'Data jawaban tidak ditemukan'], 404);
         }
+
+        if ($this->isNilaiLocked($hapus->nilai)) {
+            return response()->json(['message' => 'Jawaban tidak bisa dihapus karena sudah dinilai guru'], 403);
+        }
+
+        $hapus->delete();
         return response()->json($hapus);
     }
     public function tugasUpload($id)
@@ -133,8 +160,20 @@ class labsiswaController extends Controller
     public function tugasUploadPost(Request $request)
     {
         $request->validate([
+            'penugasan_id' => 'required|exists:penugasans,id',
             'file'=>'required|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,ppt,pptx'
         ]);
+
+        $existing = data_tugas::where('penugasan_id', $request->penugasan_id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('file')
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'message' => 'Upload tugas sudah ada. Hapus dulu data lama jika ingin kirim ulang.'
+            ], 409);
+        }
         
         // ✅ Simpan file dengan nama asli (tidak digenerate random)
         $file = $request->file('file');
@@ -155,14 +194,24 @@ class labsiswaController extends Controller
     }
     public function tugasUploadHapus($id)
     {
-        $cek=data_tugas::where('id', $id)->first();
-        if($id){
-            $hapus=data_tugas::find($id);
-            if(!empty($cek->file)){
-                File::delete('storage/'.$cek->file);
-            }
-            $hapus->delete();
+        $hapus = data_tugas::where('id', $id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('file')
+            ->first();
+
+        if (!$hapus) {
+            return response()->json(['message' => 'Data upload tidak ditemukan'], 404);
         }
+
+        if ($this->isNilaiLocked($hapus->nilai)) {
+            return response()->json(['message' => 'Upload tidak bisa dihapus karena sudah dinilai guru'], 403);
+        }
+
+        if(!empty($hapus->file)){
+            File::delete('storage/'.$hapus->file);
+        }
+        $hapus->delete();
+
         return response()->json($hapus);
     }
     public function tugasTautan($id)
@@ -173,8 +222,21 @@ class labsiswaController extends Controller
     public function tugasTautanPost(Request $request)
     {
         $request->validate([
+            'penugasan_id' => 'required|exists:penugasans,id',
             'tautan'=>'required'
         ]);
+
+        $existing = data_tugas::where('penugasan_id', $request->penugasan_id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('tautan')
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'message' => 'Tautan tugas sudah dikirim. Hapus dulu data lama jika ingin kirim ulang.'
+            ], 409);
+        }
+
         $data=data_tugas::create([
             'penugasan_id'=>$request->penugasan_id,
             'tautan'=>$request->tautan,
@@ -184,10 +246,33 @@ class labsiswaController extends Controller
     }
     public function tugasTautanHapus($id)
     {
-        if($id){
-            $hapus=data_tugas::find($id);
-            $hapus->delete();
+        $hapus = data_tugas::where('id', $id)
+            ->where('user_id', Auth()->User()->id)
+            ->whereNotNull('tautan')
+            ->first();
+
+        if (!$hapus) {
+            return response()->json(['message' => 'Data tautan tidak ditemukan'], 404);
         }
+
+        if ($this->isNilaiLocked($hapus->nilai)) {
+            return response()->json(['message' => 'Tautan tidak bisa dihapus karena sudah dinilai guru'], 403);
+        }
+
+        $hapus->delete();
         return response()->json($hapus);
+    }
+
+    private function isAbsenClosed($status)
+    {
+        if (is_null($status)) return false;
+
+        $normalized = strtolower(trim((string) $status));
+        return in_array($normalized, ['0', 'close', 'closed', 'false'], true);
+    }
+
+    private function isNilaiLocked($nilai)
+    {
+        return !is_null($nilai) && $nilai !== '';
     }
 }

@@ -47,14 +47,22 @@
                     <q-icon name="search" />
                   </template>
                 </q-input>
-                <q-btn 
-                  v-if="selected.length > 0" 
-                  :label="`Hapus (${selected.length})`" 
-                  class="q-ml-md" 
-                  icon="o_delete" 
-                  color="red" 
-                  @click="confirmMultiple=true" 
-                />
+                 <q-btn 
+                   v-if="selected.length > 0" 
+                   :label="`Hapus (${selected.length})`" 
+                   class="q-ml-md" 
+                   icon="o_delete" 
+                   color="red" 
+                   @click="confirmMultiple=true" 
+                 />
+                 <q-btn
+                   v-if="selected.length > 0"
+                   :label="`Pindah Kelas (${selected.length})`"
+                   class="q-ml-sm"
+                   icon="o_swap_horiz"
+                   color="green-7"
+                   @click="openBulkGantiKelas"
+                 />
                 <q-btn
                   label="Template XLSX"
                   class="q-ml-md"
@@ -77,6 +85,17 @@
               </template>    
               <template v-slot:body-cell-aksi="props">
                 <q-td :props="props">
+                    <q-btn
+                      round
+                      color="green-7"
+                      unelevated
+                      icon="o_edit"
+                      size="sm"
+                      class="q-mr-xs"
+                      @click="openGantiKelas(props.row)"
+                    >
+                      <q-tooltip>Ganti kelas</q-tooltip>
+                    </q-btn>
                     <q-btn round color="red" unelevated icon="delete" size="sm" @click="konfirmasi(props.row.id)"/>
                 </q-td>
               </template>    
@@ -183,6 +202,82 @@
           </q-card-actions>
         </q-card>
       </q-dialog>   
+
+      <!-- GANTI KELAS SINGLE -->
+      <q-dialog v-model="dialogGantiKelas" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section class="bg-green-7 text-white">
+            <div class="text-h6">Ganti Kelas Siswa</div>
+          </q-card-section>
+
+          <q-card-section>
+            <div class="text-caption text-grey-7 q-mb-sm">
+              {{ kelasTargetNama }}
+            </div>
+            <q-select
+              v-model="kelasBaru"
+              :options="kelasOptions"
+              label="Pilih kelas baru"
+              option-value="id"
+              option-label="kelas"
+              emit-value
+              map-options
+              outlined
+              dense
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Batal" @click="closeDialogKelas" />
+            <q-btn
+              flat
+              label="Simpan"
+              color="green-7"
+              :disable="!kelasBaru"
+              :loading="updatingKelas"
+              @click="submitGantiKelas"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+
+      <!-- GANTI KELAS BULK -->
+      <q-dialog v-model="dialogBulkKelas" persistent>
+        <q-card style="min-width: 360px">
+          <q-card-section class="bg-green-7 text-white">
+            <div class="text-h6">Pindah Kelas Massal</div>
+          </q-card-section>
+
+          <q-card-section>
+            <div class="text-caption text-grey-7 q-mb-sm">
+              Pilih kelas baru untuk {{ selected.length }} siswa terpilih.
+            </div>
+            <q-select
+              v-model="kelasBaru"
+              :options="kelasOptions"
+              label="Pilih kelas tujuan"
+              option-value="id"
+              option-label="kelas"
+              emit-value
+              map-options
+              outlined
+              dense
+            />
+          </q-card-section>
+
+          <q-card-actions align="right">
+            <q-btn flat label="Batal" @click="closeDialogKelas" />
+            <q-btn
+              flat
+              label="Simpan"
+              color="green-7"
+              :disable="!kelasBaru"
+              :loading="updatingKelas"
+              @click="submitBulkGantiKelas"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>
   </q-page>
 </template>
@@ -225,11 +320,17 @@ setup(){
         dialogLaporan:ref(false),
         confirm:ref(false),
         confirmMultiple:ref(false),
+        dialogGantiKelas:ref(false),
+        dialogBulkKelas:ref(false),
         file:ref(null),
         id:ref(""),
+        kelasTargetId:ref(null),
+        kelasTargetNama:ref(''),
+        kelasBaru:ref(null),
         selected:ref([]),
         importing:ref(false),
         deleting:ref(false),
+        updatingKelas:ref(false),
         laporanImport:ref({
             imported: 0,
             total_duplicates: 0,
@@ -325,6 +426,58 @@ methods:{
             return error
         }).finally(()=>{
             this.deleting = false
+        })
+    },
+    openGantiKelas(row){
+        this.kelasTargetId = row.id
+        this.kelasTargetNama = `${row.nama} (${row.nis})`
+        this.kelasBaru = row.kelas_id || null
+        this.dialogGantiKelas = true
+    },
+    openBulkGantiKelas(){
+        this.kelasBaru = null
+        this.kelasTargetId = null
+        this.kelasTargetNama = ''
+        this.dialogBulkKelas = true
+    },
+    closeDialogKelas(){
+        this.dialogGantiKelas = false
+        this.dialogBulkKelas = false
+        this.kelasTargetId = null
+        this.kelasTargetNama = ''
+        this.kelasBaru = null
+    },
+    async submitGantiKelas(){
+        if (!this.kelasTargetId || !this.kelasBaru) return
+        this.updatingKelas = true
+        await axios.put(`importSiswa/${this.kelasTargetId}/kelas`, {
+            kelas_id: this.kelasBaru
+        }).then(()=>{
+            this.$toast.success('Kelas siswa berhasil diperbarui')
+            this.getImport()
+            this.closeDialogKelas()
+        }).catch(()=>{
+            this.$toast.error('Gagal memperbarui kelas siswa')
+        }).finally(()=>{
+            this.updatingKelas = false
+        })
+    },
+    async submitBulkGantiKelas(){
+        if (!this.kelasBaru || this.selected.length === 0) return
+        this.updatingKelas = true
+        const ids = this.selected.map(item => item.id)
+        await axios.put('importSiswa/bulk/kelas', {
+            ids,
+            kelas_id: this.kelasBaru
+        }).then((response)=>{
+            this.$toast.success(`${response.data.updated || ids.length} data berhasil dipindahkan kelas`)
+            this.selected = []
+            this.getImport()
+            this.closeDialogKelas()
+        }).catch(()=>{
+            this.$toast.error('Gagal memindahkan kelas massal')
+        }).finally(()=>{
+            this.updatingKelas = false
         })
     }
 },

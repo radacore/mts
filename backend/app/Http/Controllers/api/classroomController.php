@@ -18,7 +18,17 @@ class classroomController extends Controller
 {
     public function index()
     {
-        $data = classroom::with(['katalog', 'kelas'])->where('user_id', Auth()->User()->id)->latest()->get();
+        $data = classroom::with(['katalog', 'kelas'])
+            ->where('user_id', Auth()->User()->id)
+            ->select('classrooms.*')
+            ->selectSub(function ($query) {
+                $query->from('data_siswas')
+                    ->selectRaw('count(*)')
+                    ->whereColumn('data_siswas.kelas_id', 'classrooms.kelas_id');
+            }, 'jumlah_siswa')
+            ->latest()
+            ->get();
+
         return response()->json($data);
     }
 
@@ -171,7 +181,7 @@ public function materiPost(Request $request)
 
     public function classroomCek($id)
     {
-        $data = classroom::with('katalog')->where('id', $id)->first();
+        $data = classroom::with(['katalog', 'kelas', 'User:id,name'])->where('id', $id)->first();
         return response()->json($data);
     }
 

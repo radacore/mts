@@ -471,6 +471,25 @@ class peminjamanController extends Controller
         jumlah_pinjam::insert($datas);
         return response()->json($data);
     }
+    public function pinjamLainCopy($id)
+    {
+        $cek = pinjam_lain::where('id', $id)->first();
+
+        if (!$cek) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $data = pinjam_lain::create([
+            'user_id' => Auth()->User()->id,
+            'tgl' => $cek->tgl,
+            'mulai' => $cek->mulai,
+            'selesai' => $cek->selesai,
+            'kegiatan' => $cek->kegiatan,
+            'status' => 'diajukan',
+        ]);
+
+        return response()->json($data);
+    }
     public function pinjamAlatCopy($id)
     {
         $cek=pinjam_alat::where('id', $id)->first();

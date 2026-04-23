@@ -53,7 +53,7 @@
     
     <div v-intersection="onIntersection"></div>
     <q-page-container class="bg-grey-2">
-      <div v-if="authenticated && informasiAktif.length && $route.name === 'ruang-praktikum'" class="row justify-center q-mt-sm">
+      <div v-if="authenticated && informasiAktif.length && ['ruang-praktikum', 'labroom'].includes($route.name)" class="row justify-center q-mt-sm">
       <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8 info-rolling-card" flat bordered>
         <q-carousel
           v-model="infoSlide"

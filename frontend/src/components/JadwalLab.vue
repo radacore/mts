@@ -1,7 +1,9 @@
 <template>
-    <q-table
+  <q-table
+    title="Jadwal Penggunaan Lab untuk Kegiatan Praktikum"
     :rows="rows"
     :columns="columns"
+    :pagination="pagination"
     :loading="loading"
     row-key="name"
     flat
@@ -13,19 +15,9 @@
         <q-spinner-ios size="30px" color="green-7" />
     </q-inner-loading>
   </template>
- <template v-slot:top-left>
-    <span class="text-green-7">Jadwal Penggunaan Lab untuk Kegiatan Praktikum</span>
-  </template>
   <template v-slot:body-cell-hari="props">
     <q-td :props="props">
       {{day(props.row.tgl)}}, {{dateTime(props.row.tgl)}}
-    </q-td>
-  </template>
-  <template v-slot:body-cell-foto="props">
-    <q-td :props="props">
-     <q-avatar color="green-7">
-        <img :src="url+props.row.foto"/>
-     </q-avatar>
     </q-td>
   </template>
   <template v-slot:body-cell-jam="props">
@@ -49,14 +41,12 @@
 <script>
 import { ref } from '@vue/reactivity'
 import axios from 'axios'
-import { mapState } from 'vuex';
 import moment from "moment";
 import "moment/locale/id";
 moment.locale("id");
 export default {
 setup(){
     const columns = [
-        { name: 'foto', align: 'left', label: '', sortable: true },
         { name: 'guru', align: 'left', label: 'Guru Mapel', field: 'peminjam', sortable: true },
         { name: 'hari', align: 'left', label: 'Hari', field: 'tgl', sortable: true },
         { name: 'jam', align: 'left', label: 'JAM', sortable: true },
@@ -65,12 +55,10 @@ setup(){
     ]
     return{
         columns,
+        pagination: ref({ rowsPerPage: 15 }),
         loading:ref(false),
         rows:ref([]),
     }
-},
-computed:{
-...mapState("kontrol",["url"])
 },
 methods:{
     dateTime(value) {
@@ -100,5 +88,3 @@ created(){
 .q-table thead tr th
     background: rgba(200, 247, 197)
 </style>
-
-

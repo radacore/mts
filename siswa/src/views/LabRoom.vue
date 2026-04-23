@@ -3,101 +3,158 @@
     <div class="row justify-center">
         <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8">
             <q-card-section>
-                <div v-for="abs in absens" :key="abs.id">
-                <q-expansion-item
-                class="shadow-1 overflow-hidden"
-                style="border-radius: 10px"
-                icon="o_pan_tool"
-                label="Absensi"
-                header-class="bg-green-11 text-dark"
-                expand-icon-class="text-white"
-              >
-                <q-card>
-                  <q-card-section>
-                    Absensi Dibuka Pada Pukul {{abs.jam_buka}} Wita, dan Ditutup pada Pukul {{abs.jam_tutup}} Wita
-                    <div v-if="serverTime > abs.jam_tutup" class="q-my-sm text-red text-weight-bold row items-center">
-                        <q-icon name="warning" size="sm" class="q-mr-sm"/>
-                        Waktu absensi telah habis!
-                    </div>
-                    <data-absen :absen_id="abs.id" :late="serverTime > abs.jam_tutup"/>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              </div>
-              <div class="q-my-sm" v-if="moduls.length">
-                <q-expansion-item
-                class="shadow-1 overflow-hidden"
-                style="border-radius: 10px"
-                icon="o_book"
-                label="Modul Ajar"
-                header-class="bg-green-1 text-dark"
-                expand-icon-class="text-white"
-              >
-                <q-card>
-                  <q-card-section>
-                    <div v-for="mod in moduls" :key="mod.id" >
-                        <!-- ✅ BANNER FILE MODUL (DARI LABORAN) -->
-                        <a :href="getDownloadUrl(mod.modul_file_path)" target="_blank" v-if="mod.modul_file_path">
-                          <q-banner rounded class="bg-grey-3 q-mb-md">
-                            <template v-slot:avatar>
-                              <q-icon
-                                :name="getFileIcon(mod.modul_extension)"
-                                :color="getIconColor(mod.modul_extension)"
-                                size="lg"
-                              />
-                            </template>
-                            <div>{{ mod.modul_file_name }}</div>
-                          </q-banner>
-                        </a>
-
-
-                        <!-- ✅ JUDUL DAN DESKRIPSI MODUL -->
-                        <div class="q-mb-md">
-                          <div class="text-h6">{{ mod.judul }}</div>
-                          <div class="text-caption text-grey-7">{{ mod.des }}</div>
-                        </div>
-
-                        <!-- ✅ LINK TAMBAHAN (JIKA ADA) -->
-                        <q-card-section v-if="mod.link_tambahan" class="q-pa-none q-mb-md">
-                          <q-item clickable tag="a" :href="mod.link_tambahan" target="_blank">
-                            <q-item-section avatar>
-                              <q-icon name="open_in_new" color="primary" />
-                            </q-item-section>
-                            <q-item-section>
-                              <q-item-label class="text-primary">🔗 Link Tambahan</q-item-label>
-                              <q-item-label caption lines="2">{{ mod.link_tambahan }}</q-item-label>
-                            </q-item-section>
-                          </q-item>
-                        </q-card-section>
-
-                        <q-separator class="q-my-md"/>
-                    </div>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              </div>
-              <q-expansion-item
-              class="shadow-1 overflow-hidden"
-              style="border-radius: 10px"
-              icon="o_assignment"
-              label="Penugasan"
-              header-class="bg-green-3 text-dark"
-              expand-icon-class="text-white"
-            >
-              <q-card>
-                <q-card-section>
-                  <div v-for="tgs in tugas" :key="tgs.id">
-                    <p>
-                        {{tgs.jt}}
-                        <br/>
-                        <span class="text-caption">{{tgs.soal}}</span>
-                    </p>
-                    <q-separator class="q-mb-sm"/>
-                    <data-tugas :tugas_id="tgs.id" :tugas_data="tgs"/>
+                <q-banner rounded class="bg-green-1 text-green-10 q-mb-md">
+                  <template v-slot:avatar>
+                    <q-icon name="o_cast_for_education" color="green-8" />
+                  </template>
+                  <div class="text-subtitle2 text-weight-bold">{{ kelasInfo.topik || 'Ruang Praktikum' }}</div>
+                  <div class="text-caption">
+                    Kelas: {{ kelasInfo.kelas || '-' }} | Guru: {{ kelasInfo.guru || '-' }}
                   </div>
-                </q-card-section>
-              </q-card>
-            </q-expansion-item>
+                </q-banner>
+
+                <q-list v-if="moduls.length" padding dense>
+                  <div class="section-head q-mb-sm">
+                    <div class="row items-center justify-between">
+                      <div class="row items-center no-wrap">
+                        <q-avatar color="green-7" text-color="white" icon="o_menu_book" />
+                        <div class="q-ml-sm">
+                          <div class="text-subtitle1 text-weight-bold">Modul Ajar</div>
+                          <div class="text-caption text-grey-7">Materi pembelajaran untuk kelas {{ kelasInfo.kelas || '-' }}</div>
+                        </div>
+                      </div>
+                      <q-chip dense color="green-1" text-color="green-9" icon="o_inventory_2">{{ moduls.length }} Materi</q-chip>
+                    </div>
+                  </div>
+
+                  <div v-for="mod in moduls" :key="mod.id" class="q-mb-sm">
+                    <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side>
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <q-avatar icon="o_article" color="green-7" text-color="white" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label class="text-h6">{{ mod.judul }}</q-item-label>
+                          <q-item-label caption lines="2">{{ mod.des }}</q-item-label>
+                        </q-item-section>
+                      </template>
+
+                      <q-card>
+                        <q-card-section>
+                          <a :href="getDownloadUrl(mod.modul_file_path)" target="_blank" v-if="mod.modul_file_path">
+                            <q-banner rounded class="bg-grey-3 q-mb-md">
+                              <template v-slot:avatar>
+                                <q-icon
+                                  :name="getFileIcon(mod.modul_extension)"
+                                  :color="getIconColor(mod.modul_extension)"
+                                  size="lg"
+                                />
+                              </template>
+                              <div>{{ mod.modul_file_name }}</div>
+                            </q-banner>
+                          </a>
+
+                          <q-card-section v-if="mod.link_tambahan" class="q-pa-none">
+                            <q-item clickable tag="a" :href="mod.link_tambahan" target="_blank">
+                              <q-item-section avatar>
+                                <q-icon name="open_in_new" color="primary" />
+                              </q-item-section>
+                              <q-item-section>
+                                <q-item-label class="text-primary">Link Tambahan</q-item-label>
+                                <q-item-label caption lines="2">{{ mod.link_tambahan }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                          </q-card-section>
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
+                  </div>
+                </q-list>
+
+                <q-list v-if="tugas.length" padding class="q-my-sm">
+                  <div class="section-head q-mb-sm">
+                    <div class="row items-center justify-between">
+                      <div class="row items-center no-wrap">
+                        <q-avatar color="orange-8" text-color="white" icon="o_assignment" />
+                        <div class="q-ml-sm">
+                          <div class="text-subtitle1 text-weight-bold">Penugasan</div>
+                          <div class="text-caption text-grey-7">Daftar tugas aktif untuk kelas ini</div>
+                        </div>
+                      </div>
+                      <q-chip dense color="orange-1" text-color="orange-9" icon="o_checklist">{{ tugas.length }} Tugas</q-chip>
+                    </div>
+                  </div>
+
+                  <div v-for="tgs in tugas" :key="tgs.id" class="q-mb-sm">
+                    <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side>
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <q-avatar icon="o_assignment" color="green-7" text-color="white" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label class="text-h6">{{ tgs.jt }}</q-item-label>
+                          <q-item-label caption lines="2">{{ tgs.soal }}</q-item-label>
+                        </q-item-section>
+                      </template>
+                      <q-card>
+                        <q-card-section>
+                          <data-tugas :tugas_id="tgs.id" :tugas_data="tgs" />
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
+                  </div>
+                </q-list>
+
+                <q-list v-if="absens.length" padding>
+                  <div class="section-head q-mb-sm">
+                    <div class="row items-center justify-between">
+                      <div class="row items-center no-wrap">
+                        <q-avatar color="blue-7" text-color="white" icon="o_how_to_reg" />
+                        <div class="q-ml-sm">
+                          <div class="text-subtitle1 text-weight-bold">Absensi</div>
+                          <div class="text-caption text-grey-7">Sesi kehadiran kelas dan status buka/tutup</div>
+                        </div>
+                      </div>
+                      <q-chip dense color="blue-1" text-color="blue-9" icon="o_event_available">{{ absens.length }} Sesi</q-chip>
+                    </div>
+                  </div>
+
+                  <div v-for="abs in absens" :key="abs.id" class="q-mb-sm">
+                    <q-expansion-item class="section-item" header-class="text-green-9" switch-toggle-side>
+                      <template v-slot:header>
+                        <q-item-section avatar>
+                          <q-avatar icon="o_fact_check" color="green-7" text-color="white" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label class="text-h6">Absensi</q-item-label>
+                          <q-item-label caption lines="2">Buka: {{ abs.jam_buka }} | Tutup: {{ abs.jam_tutup }} Wita</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-chip dense :color="isAbsenClosed(abs.status) ? 'grey-7' : 'green-7'" text-color="white">
+                            {{ isAbsenClosed(abs.status) ? 'Close' : 'Open' }}
+                          </q-chip>
+                        </q-item-section>
+                      </template>
+
+                      <q-card>
+                        <q-card-section>
+                          <div class="text-caption text-grey-8 q-mb-sm">
+                            Absensi dibuka pada pukul <strong>{{ abs.jam_buka }}</strong> Wita dan ditutup pada pukul <strong>{{ abs.jam_tutup }}</strong> Wita.
+                          </div>
+                          <div v-if="serverTime > abs.jam_tutup" class="q-my-sm text-red text-weight-bold row items-center">
+                            <q-icon name="warning" size="sm" class="q-mr-sm"/>
+                            Waktu absensi telah habis!
+                          </div>
+                          <data-absen
+                            :absen_id="abs.id"
+                            :late="serverTime > abs.jam_tutup"
+                            :is-closed="isAbsenClosed(abs.status)"
+                          />
+                        </q-card-section>
+                      </q-card>
+                    </q-expansion-item>
+                  </div>
+                </q-list>
             </q-card-section>
         </q-card>
     </div>
@@ -123,6 +180,11 @@ setup(){
         moduls:ref([]),
         tugas:ref([]),
         serverTime:ref(''),
+        kelasInfo:ref({
+            topik: '',
+            kelas: '',
+            guru: ''
+        })
     }
 },
 computed:{
@@ -144,6 +206,27 @@ methods:{
         await axios.get("tugasSiswa/"+this.class_id).then((response)=>{
             this.tugas=response.data
         })
+    },
+    async getKelasInfo(){
+        await axios.get("classroom/cek/"+this.class_id).then((response)=>{
+            const data = response.data || {}
+            this.kelasInfo = {
+              topik: data.katalog?.topik || '',
+              kelas: data.kelas?.kelas || '',
+              guru: data.user?.name || data.User?.name || ''
+            }
+        }).catch(()=>{
+            this.kelasInfo = {
+              topik: '',
+              kelas: '',
+              guru: ''
+            }
+        })
+    },
+    isAbsenClosed(status){
+        if (status === null || status === undefined) return false
+        const normalized = String(status).toLowerCase().trim()
+        return ['0', 'close', 'closed', 'false'].includes(normalized)
     },
     // ✅ Helper function untuk download URL modul
     getDownloadUrl(filePath) {
@@ -178,16 +261,27 @@ methods:{
     }
 },
 created(){
-this.getAbsen()
-this.getMateri()
-this.getTugas()
+ this.getKelasInfo()
+ this.getAbsen()
+ this.getMateri()
+ this.getTugas()
 }
 }
 </script>
-<style scoped>
-a {
-    color: unset !important;
-    text-decoration: none !important;
-  }
-</style>
+<style scoped lang="sass">
+a
+  color: unset !important
+  text-decoration: none !important
 
+.section-head
+  background: linear-gradient(180deg, #f4fbf5 0%, #ffffff 100%)
+  border: 1px solid #d8e8da
+  border-radius: 12px
+  padding: 10px 12px
+
+.section-item
+  border: 1px solid #dfe9e1
+  border-radius: 12px
+  background: #ffffff
+  overflow: hidden
+</style>

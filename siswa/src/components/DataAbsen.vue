@@ -1,7 +1,14 @@
 <template>
   <div>
-    <q-btn v-if="typeof(status)=='undefined'" :disable="late" label="Click untuk Absen" rounded color="green-7" @click="absen"/>
-    <q-btn v-else  label="Sudah Absen" rounded color="grey" disable @click="absen"/>
+    <q-btn
+      v-if="typeof(status)=='undefined'"
+      :disable="late || isClosed"
+      :label="absenLabel"
+      rounded
+      :color="isClosed ? 'grey-7' : 'green-7'"
+      @click="absen"
+    />
+    <q-btn v-else label="Sudah Absen" rounded color="grey" disable @click="absen"/>
   </div>
 </template>
 
@@ -10,7 +17,7 @@ import axios from 'axios'
 import { ref } from '@vue/reactivity'
 
 export default {
-props:["absen_id", "late"],
+props:["absen_id", "late", "isClosed"],
 setup(){
     return{
         status:ref(""),
@@ -37,9 +44,15 @@ methods:{
         })
     }
 },
+computed:{
+    absenLabel(){
+        if (this.isClosed) return 'Absensi Ditutup'
+        if (this.late) return 'Waktu Absensi Habis'
+        return 'Click untuk Absen'
+    }
+},
 created(){
     this.cekAbsen();
 }
 }
 </script>
-

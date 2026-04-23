@@ -39,6 +39,16 @@
         </q-input>
         <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
       </template>
+      <template v-slot:header-cell-copy="props">
+        <q-th :props="props">
+          <q-icon name="o_content_copy" size="1.5em" />
+        </q-th>
+      </template>
+      <template v-slot:body-cell-copy="props">
+        <q-td :props="props">
+          <kopi-lain :lain_id="props.row.id"/>
+        </q-td>
+      </template>
       <template v-slot:body-cell-tgl="props">
         <q-td :props="props">
           {{hari(props.row.tgl)}}. {{dateTime(props.row.tgl)}}
@@ -179,13 +189,18 @@
 <script>
 import { ref } from '@vue/reactivity';
 import axios from 'axios';
-import { mapGetters } from 'vuex';
+import { mapGetters, mapState } from 'vuex';
+import KopiLain from '@/components/KopiLain.vue';
 import moment from "moment";
 import "moment/locale/id";
 moment.locale("id");
 export default {
+components:{
+  KopiLain,
+},
 setup(){
   const columns=[
+    { name: 'copy', align: 'left', label: 'kopi', sortable: true },
     { name: 'tgl', align: 'left', label: 'Tanggal Pinjam', field: 'tgl', sortable: true },
     { name: 'peminjam', align: 'left', label: 'peminjam', field: row => row.user.name, sortable: true },
     { name: 'mulai', align: 'left', label: 'Jam Mulai', field:'mulai', sortable: true },
@@ -224,9 +239,10 @@ computed:{
       authenticated: "auth/authenticated",
       user: "auth/user",
     }),
+    ...mapState("kontrol", ["triger"]),
     displayedColumns() {
       if (this.user.user.role_id === 2) {
-        return this.columns.filter(col => col.name !== 'aksi')
+        return this.columns.filter(col => col.name !== 'aksi' && col.name !== 'copy')
       }
       if (this.user.user.role_id === 3) {
         return this.columns.filter(col => col.name !== 'proses')
@@ -239,6 +255,11 @@ computed:{
       }
       return this.rows.filter(row => row.status === this.statusFilter);
     }
+},
+watch:{
+  triger(){
+    this.getData()
+  }
 },
 methods:{
   dateTime(value) {

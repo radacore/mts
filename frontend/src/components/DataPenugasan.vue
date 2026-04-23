@@ -23,10 +23,14 @@
           </q-item-section>
   
           <q-item-section side top>
-            Nilai: {{row.nilai}}
-            <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-              <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
-            </q-popup-edit>
+            <div class="nilai-badge cursor-pointer">
+              <q-badge rounded :color="nilaiColor(row.nilai)" text-color="white" class="q-px-sm q-py-xs">
+                {{ nilaiLabel(row.nilai) }}
+              </q-badge>
+              <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
+                <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
+              </q-popup-edit>
+            </div>
             <nilai-tugas :id="row.id" :nilai="row.nilai"/>
           </q-item-section>
           <q-separator/>
@@ -74,10 +78,14 @@
   
           <q-item-section side top>
             <div class="text-right">
-              <div>Nilai: {{row.nilai}}</div>
-              <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-                <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
-              </q-popup-edit>
+              <div class="nilai-badge cursor-pointer">
+                <q-badge rounded :color="nilaiColor(row.nilai)" text-color="white" class="q-px-sm q-py-xs">
+                  {{ nilaiLabel(row.nilai) }}
+                </q-badge>
+                <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
+                  <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
+                </q-popup-edit>
+              </div>
               <nilai-tugas :id="row.id" :nilai="row.nilai"/>
               <!-- ✅ TOMBOL DOWNLOAD (FORCE DOWNLOAD) -->
               <q-btn 
@@ -117,10 +125,14 @@
           </q-item-section>
   
           <q-item-section side top>
-            Nilai: {{row.nilai}}
-            <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
-              <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
-            </q-popup-edit>
+            <div class="nilai-badge cursor-pointer">
+              <q-badge rounded :color="nilaiColor(row.nilai)" text-color="white" class="q-px-sm q-py-xs">
+                {{ nilaiLabel(row.nilai) }}
+              </q-badge>
+              <q-popup-edit v-model="row.nilai" auto-save v-slot="scope">
+                <q-input v-model.number="scope.value" type="number" :rules="[ val => val <= 100 || 'Maksimal 100', val => val >= 0 || 'Min 0' ]" dense autofocus counter @keyup.enter="scope.set" />
+              </q-popup-edit>
+            </div>
             <nilai-tugas :id="row.id" :nilai="row.nilai"/>
           </q-item-section>
           <q-separator/>
@@ -196,6 +208,14 @@ watch:{
   }
 },
 methods:{
+  nilaiLabel(nilai) {
+    if (nilai === null || nilai === undefined || nilai === '') return 'Klik untuk beri nilai';
+    return `Nilai: ${nilai}`;
+  },
+  nilaiColor(nilai) {
+    if (nilai === null || nilai === undefined || nilai === '') return 'orange-8';
+    return 'green-7';
+  },
   esay(){
     this.status=1
   },
@@ -314,3 +334,9 @@ this.getTugasLink()
 }
 </script>
 
+<style scoped lang="sass">
+.nilai-badge
+  display: inline-flex
+  align-items: center
+  margin-bottom: 6px
+</style>

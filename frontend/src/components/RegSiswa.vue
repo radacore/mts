@@ -55,7 +55,7 @@ methods:{
     },
     async resetPassword(){
         this.loading = true
-        await axios.post("resetPasswordSiswa", { email: this.email }).then((response)=>{
+        await axios.post("resetPasswordSiswa", { id: this.cekin }).then((response)=>{
             this.$toast.success('Password berhasil direset ke NIS')
             this.confirmReset = false
             return response

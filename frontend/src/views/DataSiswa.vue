@@ -63,14 +63,14 @@
                    color="green-7"
                    @click="openBulkGantiKelas"
                  />
-                <q-btn
-                  label="Template XLSX"
-                  class="q-ml-md"
-                  icon="o_download"
-                  color="primary"
-                  :href="templateUrl"
-                  target="_blank"
-                />
+                
+                <a 
+                  class="q-btn q-btn-item non-selectable no-outline q-btn--standard q-btn--rectangle bg-primary text-white q-btn--actionable q-focusable q-hoverable q-ml-md q-btn--active" 
+                  href="/template_import_siswa.xlsx" 
+                  download="template_import_siswa.xlsx" 
+                >
+                  Template XLSX
+                </a>
                 <q-btn label="Import" class="q-ml-md" icon="o_upload" color="green-7" @click="dialogImport=true" />
               </template>
               <template v-slot:body-cell-kelas="props">

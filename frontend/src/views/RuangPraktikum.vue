@@ -72,8 +72,8 @@
                       <q-banner rounded class="bg-grey-3">
                         <template v-slot:avatar>
                           <q-icon
-                            :name="getFileIcon(row.modul_extension)"
-                            :color="getIconColor(row.modul_extension)"
+                            :name="getFileIcon(row.modul_extension, row.modul_file_path)"
+                            :color="getIconColor(row.modul_extension, row.modul_file_path)"
                             size="lg"
                           />
                         </template>
@@ -300,14 +300,20 @@
               @click="selectModul(modul)"
             >
               <q-item-section avatar>
-                <q-icon :name="getFileIcon(modul.extension)" :color="getIconColor(modul.extension)" />
+                <q-icon :name="getFileIcon(modul.extension, modul.file_path)" :color="getIconColor(modul.extension, modul.file_path)" />
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ modul.judul }}</q-item-label>
                 <q-item-label caption>{{ modul.file_name }} · {{ modul.uploader_name || 'Laboran' }}</q-item-label>
               </q-item-section>
               <q-item-section side>
-                <q-btn flat dense round icon="download" @click.stop="downloadModul(modul)" />
+                <q-btn
+                  flat
+                  dense
+                  round
+                  :icon="isExternalLink(modul.file_path) ? 'open_in_new' : 'download'"
+                  @click.stop="downloadModul(modul)"
+                />
               </q-item-section>
             </q-item>
             <q-item v-if="filteredModulList.length === 0">
@@ -735,7 +741,12 @@ export default {
     },
 
     // Helper Icon
-    getFileIcon(ext) {
+    isExternalLink(path) {
+      const value = (path || '').toString().trim().toLowerCase();
+      return value.startsWith('http://') || value.startsWith('https://');
+    },
+    getFileIcon(ext, filePath = '') {
+      if (this.isExternalLink(filePath)) return 'link';
       const e = ext?.toLowerCase() || '';
       if (e === 'pdf') return 'picture_as_pdf';
       if (['doc', 'docx'].includes(e)) return 'description';
@@ -743,7 +754,8 @@ export default {
       if (['ppt', 'pptx'].includes(e)) return 'slideshow';
       return 'insert_drive_file';
     },
-    getIconColor(ext) {
+    getIconColor(ext, filePath = '') {
+      if (this.isExternalLink(filePath)) return 'teal';
       const e = ext?.toLowerCase() || '';
       if (e === 'pdf') return 'red';
       if (['doc', 'docx'].includes(e)) return 'blue';
@@ -752,7 +764,7 @@ export default {
       return 'grey';
     },
     getDownloadUrl(filePath) {
-      // ✅ Sesuaikan dengan baseURL Anda
+      if (this.isExternalLink(filePath)) return filePath;
       return `${this.url}${filePath}`;
     },
     isAbsensiClosed(status) {

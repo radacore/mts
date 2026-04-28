@@ -29,33 +29,19 @@
               </q-td>
             </template>
 
-            <template v-slot:body-cell-tipe="props">
+            <template v-slot:body-cell-aktif="props">
               <q-td :props="props">
-                <q-badge :color="badgeTipe(props.row.tipe).color" text-color="white">
-                  {{ badgeTipe(props.row.tipe).label }}
-                </q-badge>
+                <q-toggle
+                  :model-value="props.row.status === 'aktif'"
+                  color="green-7"
+                  checked-icon="o_check"
+                  unchecked-icon="o_close"
+                  @update:model-value="activateInformasi(props.row, $event)"
+                />
               </q-td>
             </template>
 
-            <template v-slot:body-cell-status="props">
-              <q-td :props="props">
-                <q-badge :color="props.row.status === 'aktif' ? 'green-7' : 'grey-7'" text-color="white">
-                  {{ props.row.status }}
-                </q-badge>
-              </q-td>
-            </template>
 
-            <template v-slot:body-cell-mulai_at="props">
-              <q-td :props="props">
-                {{ formatDateTimeView(props.row.mulai_at) }}
-              </q-td>
-            </template>
-
-            <template v-slot:body-cell-selesai_at="props">
-              <q-td :props="props">
-                {{ formatDateTimeView(props.row.selesai_at) }}
-              </q-td>
-            </template>
 
             <template v-slot:body-cell-aksi="props">
               <q-td :props="props">
@@ -87,100 +73,6 @@
         <q-card-section>
           <q-input outlined dense v-model="form.judul" label="Judul*" class="q-mb-sm" />
           <q-input outlined dense type="textarea" v-model="form.isi" label="Isi Informasi*" class="q-mb-sm" autogrow />
-          <div class="row q-col-gutter-sm">
-            <div class="col-12 col-md-3">
-              <q-select
-                outlined
-                dense
-                v-model="form.tipe"
-                :options="tipeOptions"
-                emit-value
-                map-options
-                option-value="value"
-                option-label="label"
-                label="Tipe*"
-              />
-            </div>
-            <div class="col-12 col-md-4">
-              <q-select
-                outlined
-                dense
-                v-model="form.status"
-                :options="statusOptions"
-                emit-value
-                map-options
-                option-value="value"
-                option-label="label"
-                label="Status*"
-              />
-            </div>
-          </div>
-
-          <q-card flat bordered class="q-pa-sm q-mt-sm bg-green-1">
-            <div class="text-subtitle2 text-green-9 q-mb-sm">Periode Berlaku (Opsional)</div>
-            <div class="row q-col-gutter-sm">
-              <div class="col-12 col-md-3">
-                <q-input outlined dense v-model="form.mulai_tanggal" label="Tanggal Mulai" readonly>
-                  <template v-slot:append>
-                    <q-icon name="event" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-date v-model="form.mulai_tanggal" mask="YYYY-MM-DD" color="green-7">
-                          <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Tutup" color="green-7" flat />
-                          </div>
-                        </q-date>
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-12 col-md-3">
-                <q-input outlined dense v-model="form.mulai_jam" label="Jam Mulai" readonly>
-                  <template v-slot:append>
-                    <q-icon name="access_time" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-time v-model="form.mulai_jam" mask="HH:mm" format24h color="green-7">
-                          <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Tutup" color="green-7" flat />
-                          </div>
-                        </q-time>
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-12 col-md-3">
-                <q-input outlined dense v-model="form.selesai_tanggal" label="Tanggal Selesai" readonly>
-                  <template v-slot:append>
-                    <q-icon name="event" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-date v-model="form.selesai_tanggal" mask="YYYY-MM-DD" color="green-7">
-                          <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Tutup" color="green-7" flat />
-                          </div>
-                        </q-date>
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-12 col-md-3">
-                <q-input outlined dense v-model="form.selesai_jam" label="Jam Selesai" readonly>
-                  <template v-slot:append>
-                    <q-icon name="access_time" class="cursor-pointer">
-                      <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-time v-model="form.selesai_jam" mask="HH:mm" format24h color="green-7">
-                          <div class="row items-center justify-end">
-                            <q-btn v-close-popup label="Tutup" color="green-7" flat />
-                          </div>
-                        </q-time>
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-              </div>
-            </div>
-          </q-card>
         </q-card-section>
         <q-separator />
         <q-card-actions align="right">
@@ -214,11 +106,8 @@ export default {
   setup() {
     const columns = [
       { name: 'judul', label: 'Judul', align: 'left', field: 'judul', sortable: true },
-      { name: 'tipe', label: 'Tipe', align: 'left', field: 'tipe', sortable: true },
-      { name: 'status', label: 'Status', align: 'left', field: 'status', sortable: true },
-      { name: 'mulai_at', label: 'Mulai', align: 'left', field: 'mulai_at', sortable: true },
-      { name: 'selesai_at', label: 'Selesai', align: 'left', field: 'selesai_at', sortable: true },
       { name: 'isi', label: 'Isi', align: 'left', field: 'isi' },
+      { name: 'aktif', label: 'Aktif', align: 'center', field: 'status', sortable: false },
       { name: 'aksi', label: 'Aksi', align: 'left', field: 'aksi' },
     ]
 
@@ -229,15 +118,6 @@ export default {
       filter: ref(''),
       dialog: ref(false),
       confirm: ref(false),
-      tipeOptions: [
-        { label: 'Info', value: 'info' },
-        { label: 'Peringatan', value: 'peringatan' },
-        { label: 'Penutupan Lab', value: 'penutupan_lab' },
-      ],
-      statusOptions: [
-        { label: 'Aktif', value: 'aktif' },
-        { label: 'Nonaktif', value: 'nonaktif' },
-      ],
     }
   },
   data: () => ({
@@ -246,12 +126,6 @@ export default {
       id: '',
       judul: '',
       isi: '',
-      tipe: 'info',
-      status: 'aktif',
-      mulai_tanggal: '',
-      mulai_jam: '',
-      selesai_tanggal: '',
-      selesai_jam: '',
     },
   }),
   computed: {
@@ -261,33 +135,6 @@ export default {
     }),
   },
   methods: {
-    splitDateTime(value) {
-      if (!value) return { tanggal: '', jam: '' }
-      const dt = String(value).replace('T', ' ')
-      const [tanggal = '', timeFull = ''] = dt.split(' ')
-      const jam = timeFull ? timeFull.slice(0, 5) : ''
-      return { tanggal, jam }
-    },
-    composeDateTime(tanggal, jam) {
-      if (!tanggal) return null
-      return `${tanggal} ${jam || '00:00'}:00`
-    },
-    formatDateTimeView(value) {
-      if (!value) return '-'
-      const date = new Date(String(value).replace(' ', 'T'))
-      if (isNaN(date.getTime())) return '-'
-      const d = String(date.getDate()).padStart(2, '0')
-      const m = String(date.getMonth() + 1).padStart(2, '0')
-      const y = date.getFullYear()
-      const h = String(date.getHours()).padStart(2, '0')
-      const i = String(date.getMinutes()).padStart(2, '0')
-      return `${d}-${m}-${y} ${h}:${i}`
-    },
-    badgeTipe(tipe) {
-      if (tipe === 'penutupan_lab') return { label: 'Penutupan Lab', color: 'red-8' }
-      if (tipe === 'peringatan') return { label: 'Peringatan', color: 'orange-8' }
-      return { label: 'Info', color: 'blue-7' }
-    },
     resetForm() {
       this.dialog = false
       this.confirm = false
@@ -296,12 +143,6 @@ export default {
         id: '',
         judul: '',
         isi: '',
-        tipe: 'info',
-        status: 'aktif',
-        mulai_tanggal: '',
-        mulai_jam: '',
-        selesai_tanggal: '',
-        selesai_jam: '',
       }
     },
     async getData() {
@@ -313,30 +154,43 @@ export default {
       })
     },
     async save() {
-      const mulaiAt = this.composeDateTime(this.form.mulai_tanggal, this.form.mulai_jam)
-      const selesaiAt = this.composeDateTime(this.form.selesai_tanggal, this.form.selesai_jam)
-
-      if (mulaiAt && selesaiAt && new Date(mulaiAt) > new Date(selesaiAt)) {
-        this.$toast.error('Waktu selesai harus lebih besar atau sama dengan waktu mulai')
-        return
-      }
-
       const payload = {
         id: this.form.id,
         judul: this.form.judul,
         isi: this.form.isi,
-        tipe: this.form.tipe,
-        status: this.form.status,
-        mulai_at: mulaiAt,
-        selesai_at: selesaiAt,
+        tipe: 'info',
+        status: 'aktif',
       }
 
       await axios.post('informasi-terkini', payload).then(() => {
-        this.$toast.success('Informasi berhasil disimpan')
+        this.$toast.success('Informasi berhasil disimpan. Informasi lain otomatis dinonaktifkan.')
         this.resetForm()
         this.getData()
       }).catch(() => {
         this.$toast.error('Gagal menyimpan informasi')
+      })
+    },
+    async activateInformasi(row, isOn) {
+      if (!isOn) {
+        this.$toast.info('Minimal satu informasi harus aktif.')
+        this.getData()
+        return
+      }
+
+      const payload = {
+        id: row.id,
+        judul: row.judul,
+        isi: row.isi,
+        tipe: 'info',
+        status: 'aktif',
+      }
+
+      await axios.post('informasi-terkini', payload).then(() => {
+        this.$toast.success('Informasi aktif berhasil diperbarui.')
+        this.getData()
+      }).catch(() => {
+        this.$toast.error('Gagal mengubah informasi aktif')
+        this.getData()
       })
     },
     async edit(id) {
@@ -345,14 +199,6 @@ export default {
         this.form.id = d.id
         this.form.judul = d.judul
         this.form.isi = d.isi
-        this.form.tipe = d.tipe
-        this.form.status = d.status
-        const mulai = this.splitDateTime(d.mulai_at)
-        const selesai = this.splitDateTime(d.selesai_at)
-        this.form.mulai_tanggal = mulai.tanggal
-        this.form.mulai_jam = mulai.jam
-        this.form.selesai_tanggal = selesai.tanggal
-        this.form.selesai_jam = selesai.jam
         this.dialog = true
       })
     },

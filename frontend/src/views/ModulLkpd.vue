@@ -46,9 +46,9 @@
             <template v-slot:body-cell-file="props">
               <q-td :props="props">
                 <q-icon
-                  :name="getFileIcon(props.row.extension)"
+                  :name="getFileIcon(props.row.extension, props.row.resource_type)"
                   size="md"
-                  :color="getIconColor(props.row.extension)"
+                  :color="getIconColor(props.row.extension, props.row.resource_type)"
                 />
                 <span class="q-ml-sm">{{ props.row.file_name }}</span>
               </q-td>
@@ -63,16 +63,15 @@
             <template v-slot:body-cell-download="props">
               <q-td :props="props">
                 <a
-                  :href="getDownloadUrl(props.row.file_path)"
+                  :href="getDownloadUrl(props.row)"
                   target="_blank"
-                  download
                 >
                   <q-btn
-                    label="Download"
+                    :label="props.row.resource_type === 'link' ? 'Buka Link' : 'Download'"
                     color="primary"
                     dense
                     rounded
-                    icon="download"
+                    :icon="props.row.resource_type === 'link' ? 'open_in_new' : 'download'"
                     size="sm"
                   />
                 </a>
@@ -138,7 +137,19 @@
             dense
             class="q-mb-md"
           />
+          <q-option-group
+            v-model="inputMode"
+            :options="[
+              { label: 'Upload File', value: 'file' },
+              { label: 'Input Link', value: 'link' }
+            ]"
+            inline
+            color="green-7"
+            class="q-mb-md"
+          />
+
           <q-file
+            v-if="inputMode === 'file'"
             v-model="file"
             label="Pilih File (PDF, DOCX, XLSX, PPTX)"
             outlined
@@ -149,9 +160,18 @@
               <q-icon name="attach_file" />
             </template>
           </q-file>
-          <div v-if="file" class="text-caption text-grey q-mt-xs">
+          <div v-if="inputMode === 'file' && file" class="text-caption text-grey q-mt-xs">
             {{ file.name }} ({{ formatBytes(file.size) }})
           </div>
+
+          <q-input
+            v-if="inputMode === 'link'"
+            v-model="link"
+            label="Link Modul/LKPD"
+            outlined
+            dense
+            placeholder="https://..."
+          />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -162,7 +182,7 @@
             color="primary"
             @click="upload"
             :loading="uploading"
-            :disable="!file || !judul"
+            :disable="!canSubmit"
           />
         </q-card-actions>
       </q-card>
@@ -192,8 +212,10 @@ export default {
       filter: ref(null),
       dialogUpload: ref(false),
       dialogConfirmDelete: ref(false),
+      inputMode: ref('file'),
       judul: ref(''),
       file: ref(null),
+      link: ref(''),
       selectedId: ref(null),
     };
   },
@@ -203,6 +225,12 @@ export default {
       user: 'auth/user',
     }),
     ...mapState('kontrol', ['url']),
+    canSubmit() {
+      const hasJudul = !!(this.judul && String(this.judul).trim());
+      if (!hasJudul) return false;
+      if (this.inputMode === 'file') return !!this.file;
+      return !!(this.link && String(this.link).trim());
+    },
   },
   methods: {
     async getData() {
@@ -220,14 +248,28 @@ export default {
     },
 
     async upload() {
-      if (!this.file || !this.judul) {
-        this.$toast.error('Harap lengkapi judul dan file');
+      if (!this.judul || !String(this.judul).trim()) {
+        this.$toast.error('Judul modul wajib diisi');
+        return;
+      }
+
+      if (this.inputMode === 'file' && !this.file) {
+        this.$toast.error('Harap pilih file modul');
+        return;
+      }
+
+      if (this.inputMode === 'link' && !this.link) {
+        this.$toast.error('Harap isi link modul');
         return;
       }
 
       const formData = new FormData();
       formData.append('judul', this.judul);
-      formData.append('file', this.file);
+      if (this.inputMode === 'file') {
+        formData.append('file', this.file);
+      } else {
+        formData.append('link', this.link);
+      }
 
       this.uploading = true;
       try {
@@ -236,7 +278,7 @@ export default {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
-        this.$toast.success('Modul berhasil diupload');
+        this.$toast.success('Modul berhasil disimpan');
         this.dialogUpload = false;
         this.resetForm();
         this.getData();
@@ -275,9 +317,12 @@ export default {
     resetForm() {
       this.judul = '';
       this.file = null;
+      this.link = '';
+      this.inputMode = 'file';
     },
 
-    getFileIcon(ext) {
+    getFileIcon(ext, resourceType) {
+      if (resourceType === 'link') return 'link';
       const e = ext?.toLowerCase() || '';
       if (e === 'pdf') return 'picture_as_pdf';
       if (['doc', 'docx'].includes(e)) return 'description';
@@ -286,7 +331,8 @@ export default {
       return 'insert_drive_file';
     },
 
-    getIconColor(ext) {
+    getIconColor(ext, resourceType) {
+      if (resourceType === 'link') return 'teal';
       const e = ext?.toLowerCase() || '';
       if (e === 'pdf') return 'red';
       if (['doc', 'docx'].includes(e)) return 'blue';
@@ -295,8 +341,10 @@ export default {
       return 'grey';
     },
 
-    getDownloadUrl(filePath) {
-      return `${this.url}${filePath}`;
+    getDownloadUrl(row) {
+      if (!row) return '#';
+      if (row.resource_type === 'link') return row.file_path;
+      return `${this.url}${row.file_path}`;
     },
 
     formatBytes(bytes, decimals = 2) {

@@ -37,13 +37,16 @@ class ModulLkpdController extends Controller
         }
 
         return response()->json($moduls->map(function ($modul) {
+            $isLink = Str::startsWith((string) $modul->file_path, ['http://', 'https://']);
+
             return [
                 'id' => $modul->id,
                 'judul' => $modul->judul,
                 'file_path' => $modul->file_path,
                 'file_name' => $modul->file_name,
                 'mime_type' => $modul->mime_type,
-                'extension' => $modul->extension,
+                'extension' => $isLink ? null : $modul->extension,
+                'resource_type' => $isLink ? 'link' : 'file',
                 'uploader_name' => $modul->uploader_name ?? 'Laboran',
                 'created_at' => $modul->created_at,
             ];
@@ -67,20 +70,29 @@ class ModulLkpdController extends Controller
 
         $request->validate([
             'judul' => 'required|string|max:255',
-            'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:20480', // 20MB
+            'file' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:20480|required_without:link',
+            'link' => 'nullable|url|required_without:file',
         ]);
 
-        $file = $request->file('file');
-        $originalName = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
-        $mimeType = $file->getMimeType();
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $mimeType = $file->getMimeType();
 
-        // Simpan ke: storage/app/public/modul/
-        $path = $file->storeAs(
-            'modul',
-            Str::slug($request->judul) . '_' . time() . '.' . $extension,
-            'public' // disk 'public' → bisa diakses via /storage/
-        );
+            $path = $file->storeAs(
+                'modul',
+                Str::slug($request->judul) . '_' . time() . '.' . $extension,
+                'public'
+            );
+            $resourceType = 'file';
+        } else {
+            $path = trim((string) $request->link);
+            $host = parse_url($path, PHP_URL_HOST);
+            $originalName = $host ? "Link: {$host}" : 'Link Modul';
+            $mimeType = 'text/url';
+            $resourceType = 'link';
+        }
 
         $modul = ModulLkpd::create([
             'judul' => $request->judul,
@@ -95,7 +107,8 @@ class ModulLkpdController extends Controller
             'judul' => $modul->judul,
             'file_path' => $modul->file_path,
             'file_name' => $modul->file_name,
-            'extension' => $modul->extension,
+            'extension' => $resourceType === 'file' ? $modul->extension : null,
+            'resource_type' => $resourceType,
             'uploader_name' => $modul->uploader_name,
         ], 201);
     }
@@ -121,8 +134,9 @@ class ModulLkpdController extends Controller
             $modul = ModulLkpd::where('uploaded_by', $user->id)->findOrFail($id);
         }
 
-        // Hapus file dari storage
-        if (Storage::disk('public')->exists($modul->file_path)) {
+        // Hapus file dari storage (jika tipe file upload)
+        $isLink = Str::startsWith((string) $modul->file_path, ['http://', 'https://']);
+        if (!$isLink && Storage::disk('public')->exists($modul->file_path)) {
             Storage::disk('public')->delete($modul->file_path);
         }
 

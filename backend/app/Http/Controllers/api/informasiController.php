@@ -35,7 +35,10 @@ class informasiController extends Controller
     {
         $this->authorizeManage();
 
-        $data = informasi_terkini::latest()->get();
+        $data = informasi_terkini::query()
+            ->orderByRaw("CASE WHEN status = 'aktif' THEN 0 ELSE 1 END")
+            ->latest('updated_at')
+            ->get();
         return response()->json($data);
     }
 
@@ -51,6 +54,13 @@ class informasiController extends Controller
             'mulai_at' => 'nullable|date',
             'selesai_at' => 'nullable|date|after_or_equal:mulai_at',
         ]);
+
+        // Hanya 1 informasi yang boleh aktif — nonaktifkan yang lain
+        if ($request->status === 'aktif') {
+            informasi_terkini::where('status', 'aktif')
+                ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
+                ->update(['status' => 'nonaktif']);
+        }
 
         $data = informasi_terkini::updateOrCreate(
             ['id' => $request->id],

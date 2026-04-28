@@ -6,9 +6,27 @@
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
 
-      <div class="row items-center justify-center container q-pa-md q-py-xl">
-        <!-- Left: Text Content -->
-        <div class="col-12 col-md-6 q-pa-md z-top animate__animated animate__fadeInLeft">
+      <div class="row items-center justify-center hero-container q-pa-md q-py-xl">
+        <!-- Left: Informasi Terkini -->
+        <div class="col-12 col-md-3 q-pa-md z-top animate__animated animate__fadeInLeft" v-if="informasiAktif">
+          <div class="hero-info-card full-height">
+            <div class="info-header">
+              <span class="info-live-dot"></span>
+              <span class="info-label">INFORMASI TERKINI</span>
+            </div>
+            <div class="info-body">
+              <div class="info-judul">{{ informasiAktif.judul }}</div>
+              <div v-if="informasiAktif.isi" class="info-isi">{{ informasiAktif.isi }}</div>
+            </div>
+            <div v-if="informasiAktif.mulai_at || informasiAktif.selesai_at" class="info-footer">
+              <q-icon name="o_schedule" size="13px" class="q-mr-xs" />
+              {{ formatPeriodeInfo(informasiAktif) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Title + CTA -->
+        <div class="q-pa-md z-top animate__animated animate__fadeInLeft" :class="informasiAktif ? 'col-12 col-md-4' : 'col-12 col-md-6'">
           <div class="glass-morph q-pa-lg rounded-xl">
              <div class="row items-center q-mb-md">
                 <div class="hero-lab-title text-green-8">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
@@ -39,7 +57,7 @@
         </div>
 
         <!-- Right: Slider -->
-        <div class="col-12 col-md-6 q-pa-md q-pt-xl animate__animated animate__fadeInRight">
+        <div class="col-12 col-md-5 q-pa-md q-pt-xl animate__animated animate__fadeInRight">
           <div class="slider-container shadow-20 rounded-borders overflow-hidden border-white">
             <q-carousel
               v-model="slide"
@@ -95,9 +113,6 @@
         <div class="row q-col-gutter-lg">
           <div class="col-12 col-sm-6 col-md-3" v-for="(feature, idx) in features" :key="idx">
             <q-card class="feature-card text-center q-pa-lg full-height no-shadow bg-white">
-              <div class="icon-box q-mx-auto q-mb-lg bg-green-1 text-green-7 shadow-3">
-                 <q-icon :name="feature.icon" size="32px" />
-              </div>
               <div class="text-h6 text-weight-bold q-mb-sm">{{ feature.title }}</div>
               <div class="text-body2 text-grey-7">{{ feature.desc }}</div>
             </q-card>
@@ -239,6 +254,7 @@ export default {
     return {
       slide: ref(0),
       slides: ref([]),
+      informasiAktif: ref(null),
       stats: ref({
         guru: 0,
         siswa: 0,
@@ -314,6 +330,37 @@ export default {
         this.siteSettings = res.data;
       } catch (e) { console.log(e) }
     },
+    async loadInformasi() {
+      try {
+        const res = await axios.get('informasi-terkini/aktif');
+        const data = res.data || [];
+        this.informasiAktif = data.length > 0 ? data[0] : null;
+      } catch (e) {
+        this.informasiAktif = null;
+      }
+    },
+    labelTipe(tipe) {
+      if (tipe === 'penutupan_lab') return 'PENUTUPAN LAB';
+      if (tipe === 'peringatan') return 'PERINGATAN';
+      return 'INFO';
+    },
+    toneInfo(tipe) {
+      if (tipe === 'penutupan_lab') return { bg: 'red-8' };
+      if (tipe === 'peringatan') return { bg: 'orange-8' };
+      return { bg: 'green-7' };
+    },
+    formatPeriodeInfo(item) {
+      const fmt = (value) => {
+        if (!value) return '-';
+        const date = new Date(String(value).replace(' ', 'T'));
+        if (isNaN(date.getTime())) return '-';
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}-${m}-${y}`;
+      };
+      return `${fmt(item.mulai_at)} s/d ${fmt(item.selesai_at)}`;
+    },
     scrollToSection(id) {
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -323,6 +370,7 @@ export default {
     this.loadSlides();
     this.loadStats();
     this.loadSettings();
+    this.loadInformasi();
   },
 };
 </script>
@@ -344,6 +392,12 @@ export default {
 .hero-section {
   background: white;
   position: relative;
+}
+
+.hero-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .blob {
@@ -423,6 +477,88 @@ export default {
   letter-spacing: 0.08em;
   line-height: 1.25;
   text-transform: uppercase;
+}
+
+.hero-info-card {
+  background: linear-gradient(160deg, #1b5e20 0%, #2e7d32 45%, #388e3c 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(27, 94, 32, 0.25);
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.info-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #69f0ae;
+  box-shadow: 0 0 6px #69f0ae;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px #69f0ae; }
+  50% { opacity: 0.5; box-shadow: 0 0 2px #69f0ae; }
+}
+
+.info-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+}
+
+.info-body {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.info-tipe-row {
+  margin-bottom: 12px;
+}
+
+.info-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  letter-spacing: 0.03em;
+  border-radius: 4px;
+}
+
+.info-judul {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.info-isi {
+  font-size: 0.84rem;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.6;
+}
+
+.info-footer {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.02em;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.08);
 }
 
 @media (max-width: 1023px) {

@@ -8,7 +8,6 @@
           </q-toolbar-title>
           <q-space/>
           <q-btn v-if="authenticated" label="ruang praktikum" rounded dense no-caps style="width:150px" to="/ruang-praktikum" unelevated/>
-          <q-btn v-if="authenticated" icon="o_home" size="sm" class="q-mx-sm" to="/" round unelevated />
           <q-icon v-if="authenticated" name="o_notifications" size="sm" class="q-mx-sm"/>
           <q-btn v-if="!authenticated" label="Login" icon="o_login" color="green-7" rounded flat >
             <q-menu>
@@ -53,41 +52,32 @@
     
     <div v-intersection="onIntersection"></div>
     <q-page-container class="bg-grey-2">
-      <div v-if="authenticated && informasiAktif.length && ['ruang-praktikum', 'labroom'].includes($route.name)" class="row justify-center q-mt-sm">
-      <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8 info-rolling-card" flat bordered>
-        <q-carousel
-          v-model="infoSlide"
-          :autoplay="7000"
-          swipeable
-          animated
-          infinite
-          height="128px"
-          control-color="green-7"
-          class="bg-transparent"
-        >
-          <q-carousel-slide
-            v-for="item in informasiAktif"
-            :key="item.id"
-            :name="item.id"
-            class="q-pa-md"
-          >
-            <div class="row no-wrap items-start">
-              <q-avatar :color="toneInfo(item.tipe).bg" text-color="white" size="34px" class="q-mr-sm">
-                <q-icon :name="toneInfo(item.tipe).icon" size="18px" />
-              </q-avatar>
-              <div class="full-width">
-                <div class="row items-center justify-between">
-                  <div class="text-subtitle2 text-weight-bold">{{ item.judul }}</div>
-                  <q-badge :color="toneInfo(item.tipe).bg" text-color="white">{{ labelTipe(item.tipe) }}</q-badge>
-                </div>
-                <div class="text-caption q-mt-xs">{{ item.isi }}</div>
-                <div class="text-caption text-grey-7 q-mt-xs" v-if="item.mulai_at || item.selesai_at">
-                  Berlaku: {{ formatPeriode(item) }}
-                </div>
-              </div>
-            </div>
-          </q-carousel-slide>
-        </q-carousel>
+      <div v-if="showSiswaTataTertib" class="row justify-center q-mt-sm">
+      <q-card class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-8 tata-tertib-card" flat bordered>
+        <q-card-section class="q-pa-md tata-tertib-content">
+          <div class="text-h5 text-center text-weight-bold text-green-10">TATA TERTIB</div>
+          <div class="text-h6 text-center text-weight-bold text-green-9 q-mt-xs">LABORATORIUM IPA TERPADU</div>
+          <div class="text-body1 q-mt-md text-justify">
+            Sebelum memasuki laboratorium atau ruang praktikum, peserta didik harus mematuhi tata tertib
+            laboratorium Digital IPA Terpadu. Adapun tata tertib yang harus dipatuhi sebagai berikut:
+          </div>
+          <ol class="tata-tertib-list q-mt-sm">
+            <li>Peserta didik hadir 10 menit sebelum praktikum dimulai.</li>
+            <li>Peserta didik wajib memakai perlindungan diri (jas laboratorium, masker, kacamata pelindung, dan sarung tangan).</li>
+            <li>Alat/bahan praktikum harus digunakan sesuai petunjuk penggunaan dan anjuran guru.</li>
+            <li>Dilarang makan/minum dan membawa makanan/minuman ke ruangan laboratorium kecuali untuk kegiatan praktikum.</li>
+            <li>Peserta didik tidak diperkenankan menghirup dan menggunakan zat kimia berbahaya.</li>
+            <li>Peserta didik memperhatikan label zat kimia berbahaya dan jika label rusak/hilang segera dilaporkan kepada guru/laboran.</li>
+            <li>Peserta didik tidak diperkenankan mencampuradukkan zat kimia berbahaya dan mereaksikan suatu zat dengan zat lain tanpa petunjuk guru/laboran.</li>
+            <li>Peserta didik bertanggung jawab atas keamanan dan kebersihan alat dan bahan baik saat praktikum maupun setelah praktikum.</li>
+            <li>Peserta didik harus mengganti alat praktikum yang dirusakkan/dipecahkan.</li>
+            <li>Menjaga ketenangan dan ketertiban selama berada di ruangan laboratorium.</li>
+            <li>Tidak diperkenankan membawa tas, jaket, topi, atau barang yang tidak ada kaitannya dengan praktikum ke ruangan laboratorium.</li>
+            <li>Tidak diperkenankan membawa keluar alat/bahan praktikum tanpa seizin guru/laboran.</li>
+            <li>Membuang sampah pada tempatnya.</li>
+            <li>Peserta didik menjaga kebersihan ruangan laboratorium.</li>
+          </ol>
+        </q-card-section>
       </q-card>
       </div>
       <router-view v-slot="{ Component, route }">
@@ -101,7 +91,6 @@
 
 <script>
 import { computed, ref } from 'vue'
-import axios from 'axios';
 import { mapGetters,mapState,mapActions } from 'vuex';
 
 export default {
@@ -116,8 +105,6 @@ export default {
       leftDrawerOpen: ref(false),
       username: ref(""),
       password: ref(""),
-      informasiAktif: ref([]),
-      infoSlide: ref(null),
       visible,
       visibleClass: computed(
         () => `${visible.value ? 'bg-transparent' : 'bg-white'}`
@@ -134,6 +121,9 @@ export default {
       user: "auth/user",
     }),
     ...mapState("kontrol", ["url"]),
+    showSiswaTataTertib() {
+      return this.authenticated && ['ruang-praktikum', 'labroom'].includes(this.$route.name)
+    },
   },
   methods:{
     submit() {
@@ -162,56 +152,19 @@ export default {
     }),
     logout() {
       // Clear cookie
-      document.cookie = "token=; path=/; domain=localhost; max-age=0";
+      document.cookie = 'token=; path=/; max-age=0';
       this.logoutAction().then(() => {
         this.$toast.success('Berhasil logout', {
           position: 'top',
           duration: 2000,
         });
-        // Redirect ke frontend login page
-        setTimeout(() => {
-          window.location.href = 'http://localhost:8080/login';
-        }, 500);
+        const { protocol, hostname } = window.location;
+        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+        const target = isLocal
+          ? `${protocol}//${hostname}:8080/`
+          : `${protocol}//${hostname}/`;
+        window.location.href = target;
       });
-    },
-    async getInformasiAktif() {
-      if (!this.authenticated) {
-        this.informasiAktif = []
-        return
-      }
-
-      await axios.get('informasi-terkini/aktif').then((response) => {
-        this.informasiAktif = response.data || []
-        this.infoSlide = this.informasiAktif.length ? this.informasiAktif[0].id : null
-      }).catch(() => {
-        this.informasiAktif = []
-        this.infoSlide = null
-      })
-    },
-    labelTipe(tipe) {
-      if (tipe === 'penutupan_lab') return 'PENUTUPAN LAB'
-      if (tipe === 'peringatan') return 'PERINGATAN'
-      return 'INFO'
-    },
-    toneInfo(tipe) {
-      if (tipe === 'penutupan_lab') return { bg: 'red-8', icon: 'o_campaign' }
-      if (tipe === 'peringatan') return { bg: 'orange-8', icon: 'o_warning' }
-      return { bg: 'green-7', icon: 'o_info' }
-    },
-    formatPeriode(item) {
-      const fmt = (value) => {
-        if (!value) return '-'
-        const date = new Date(String(value).replace(' ', 'T'))
-        if (isNaN(date.getTime())) return '-'
-        const d = String(date.getDate()).padStart(2, '0')
-        const m = String(date.getMonth() + 1).padStart(2, '0')
-        const y = date.getFullYear()
-        const h = String(date.getHours()).padStart(2, '0')
-        const i = String(date.getMinutes()).padStart(2, '0')
-        return `${d}-${m}-${y} ${h}:${i}`
-      }
-
-      return `${fmt(item.mulai_at)} s/d ${fmt(item.selesai_at)}`
     },
   },
   created(){
@@ -228,18 +181,13 @@ export default {
        this.attempt(token).then(() => {
             // Redirect to appropriate page
             this.$router.replace({ name: 'ruang-praktikum' });
-            this.getInformasiAktif()
        });
     }
-    this.getInformasiAktif()
   },
 watch:{
   visible(){
     console.log(this.visible)
   },
-  authenticated(){
-    this.getInformasiAktif()
-  }
 }
 }
 </script>
@@ -260,8 +208,26 @@ page
   background-color: #E8F5E9
   color: #1B5E20
 
-.info-rolling-card
+.tata-tertib-card
   border: 1px solid #c8e6c9
-  background: linear-gradient(180deg, #f5fff6 0%, #ffffff 100%)
+  background: linear-gradient(180deg, #f1fff2 0%, #ffffff 100%)
+
+.tata-tertib-content
+  color: #1b3f1f
+
+.tata-tertib-list
+  margin: 0
+  padding-left: 22px
+  line-height: 1.65
+  column-count: 2
+  column-gap: 28px
+
+.tata-tertib-list li
+  margin-bottom: 6px
+  break-inside: avoid
+
+@media (max-width: 900px)
+  .tata-tertib-list
+    column-count: 1
 
 </style>

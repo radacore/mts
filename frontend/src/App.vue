@@ -1,21 +1,6 @@
 <template>
   <q-layout view="hHh LpR fFf">
     <q-header class="bg-white text-green-7 shadow z-max">
-      <div v-if="isLandingTickerVisible" class="landing-ticker-bar">
-        <div class="landing-ticker-label">Informasi Terkini</div>
-        <div class="landing-ticker-track">
-          <div class="landing-ticker-content">
-            <span class="ticker-item" v-for="item in informasiAktif" :key="`ticker-${item.id}`">
-              <q-badge :color="toneInfo(item.tipe).bg" text-color="white" class="q-mr-sm">
-                {{ labelTipe(item.tipe) }}
-              </q-badge>
-              <span>{{ tickerMainText(item) }}</span>
-              <span v-if="formatPeriodeTicker(item)" class="q-ml-xs text-grey-8">({{ formatPeriodeTicker(item) }})</span>
-              <span class="q-mx-md text-green-9">•</span>
-            </span>
-          </div>
-        </div>
-      </div>
       <q-toolbar>
         <q-btn
           v-if="authenticated && !isLandingStaffHome"
@@ -306,44 +291,35 @@
 
     <q-page-container>
       <q-card
-        v-if="authenticated && (user.user.role_id==3 || user.user.role_id==4) && informasiAktif.length && !isLandingStaffHome"
-        class="q-ma-sm info-rolling-card"
+        v-if="showGuruTataTertib"
+        class="q-ma-sm tata-tertib-card"
         flat
         bordered
       >
-        <q-carousel
-          v-model="infoSlide"
-          :autoplay="7000"
-          swipeable
-          animated
-          infinite
-          height="128px"
-          control-color="green-7"
-          class="bg-transparent"
-        >
-          <q-carousel-slide
-            v-for="item in informasiAktif"
-            :key="item.id"
-            :name="item.id"
-            class="q-pa-md"
-          >
-            <div class="row no-wrap items-start">
-              <q-avatar :color="toneInfo(item.tipe).bg" text-color="white" size="34px" class="q-mr-sm">
-                <q-icon :name="toneInfo(item.tipe).icon" size="18px" />
-              </q-avatar>
-              <div class="full-width">
-                <div class="row items-center justify-between">
-                  <div class="text-subtitle2 text-weight-bold info-rolling-title">{{ item.judul }}</div>
-                  <q-badge :color="toneInfo(item.tipe).bg" text-color="white">{{ labelTipe(item.tipe) }}</q-badge>
-                </div>
-                <div class="text-caption q-mt-xs info-rolling-body">{{ item.isi }}</div>
-                <div class="text-caption text-grey-7 q-mt-xs info-rolling-meta" v-if="item.mulai_at || item.selesai_at">
-                  Berlaku: {{ formatPeriode(item) }}
-                </div>
-              </div>
-            </div>
-          </q-carousel-slide>
-        </q-carousel>
+        <q-card-section class="q-pa-md q-pa-lg-sm tata-tertib-content">
+          <div class="text-h5 text-center text-weight-bold text-green-10">TATA TERTIB</div>
+          <div class="text-h6 text-center text-weight-bold text-green-9 q-mt-xs">LABORATORIUM IPA TERPADU</div>
+          <div class="text-body1 q-mt-md text-justify">
+            Sebelum memasuki laboratorium atau ruang praktikum, peserta didik harus mematuhi tata tertib
+            laboratorium Digital IPA Terpadu. Adapun tata tertib yang harus dipatuhi sebagai berikut:
+          </div>
+          <ol class="tata-tertib-list q-mt-sm">
+            <li>Peserta didik hadir 10 menit sebelum praktikum dimulai.</li>
+            <li>Peserta didik wajib memakai perlindungan diri (jas laboratorium, masker, kacamata pelindung, dan sarung tangan).</li>
+            <li>Alat/bahan praktikum harus digunakan sesuai petunjuk penggunaan dan anjuran guru.</li>
+            <li>Dilarang makan/minum dan membawa makanan/minuman ke ruangan laboratorium kecuali untuk kegiatan praktikum.</li>
+            <li>Peserta didik tidak diperkenankan menghirup dan menggunakan zat kimia berbahaya.</li>
+            <li>Peserta didik memperhatikan label zat kimia berbahaya dan jika label rusak/hilang segera dilaporkan kepada guru/laboran.</li>
+            <li>Peserta didik tidak diperkenankan mencampuradukkan zat kimia berbahaya dan mereaksikan suatu zat dengan zat lain tanpa petunjuk guru/laboran.</li>
+            <li>Peserta didik bertanggung jawab atas keamanan dan kebersihan alat dan bahan baik saat praktikum maupun setelah praktikum.</li>
+            <li>Peserta didik harus mengganti alat praktikum yang dirusakkan/dipecahkan.</li>
+            <li>Menjaga ketenangan dan ketertiban selama berada di ruangan laboratorium.</li>
+            <li>Tidak diperkenankan membawa tas, jaket, topi, atau barang yang tidak ada kaitannya dengan praktikum ke ruangan laboratorium.</li>
+            <li>Tidak diperkenankan membawa keluar alat/bahan praktikum tanpa seizin guru/laboran.</li>
+            <li>Membuang sampah pada tempatnya.</li>
+            <li>Peserta didik menjaga kebersihan ruangan laboratorium.</li>
+          </ol>
+        </q-card-section>
       </q-card>
       <router-view v-slot="{ Component, route }">
         <transition
@@ -375,8 +351,6 @@ export default {
   setup () {
     return {
       leftDrawerOpen: ref(false),
-      informasiAktif: ref([]),
-      infoSlide: ref(null),
       notifikasi: ref([]),
       notifUnread: ref(0),
       notifLoading: ref(false),
@@ -393,8 +367,9 @@ export default {
       const roleId = this.user && this.user.user ? this.user.user.role_id : null
       return this.authenticated && this.$route.path === '/' && [1, 2, 3].includes(roleId)
     },
-    isLandingTickerVisible() {
-      return this.$route.path === '/' && this.informasiAktif.length > 0
+    showGuruTataTertib() {
+      const roleId = this.user && this.user.user ? this.user.user.role_id : null
+      return this.authenticated && roleId === 3 && this.$route.path === '/dashboard'
     },
   },
   methods:{
@@ -411,15 +386,6 @@ export default {
           name: "login",
         });
       });
-    },
-    async getInformasiAktif() {
-      await axios.get('informasi-terkini/aktif').then((response) => {
-        this.informasiAktif = response.data || []
-        this.infoSlide = this.informasiAktif.length ? this.informasiAktif[0].id : null
-      }).catch(() => {
-        this.informasiAktif = []
-        this.infoSlide = null
-      })
     },
     async getNotifikasi() {
       if (!this.authenticated) {
@@ -467,55 +433,8 @@ export default {
         this.notifTimer = null
       }
     },
-    labelTipe(tipe) {
-      if (tipe === 'penutupan_lab') return 'PENUTUPAN LAB'
-      if (tipe === 'peringatan') return 'PERINGATAN'
-      return 'INFO'
-    },
-    toneInfo(tipe) {
-      if (tipe === 'penutupan_lab') return { bg: 'red-8', icon: 'o_campaign' }
-      if (tipe === 'peringatan') return { bg: 'orange-8', icon: 'o_warning' }
-      return { bg: 'green-7', icon: 'o_info' }
-    },
-    formatPeriode(item) {
-      const fmt = (value) => {
-        if (!value) return '-'
-        const date = new Date(String(value).replace(' ', 'T'))
-        if (isNaN(date.getTime())) return '-'
-        const d = String(date.getDate()).padStart(2, '0')
-        const m = String(date.getMonth() + 1).padStart(2, '0')
-        const y = date.getFullYear()
-        const h = String(date.getHours()).padStart(2, '0')
-        const i = String(date.getMinutes()).padStart(2, '0')
-        return `${d}-${m}-${y} ${h}:${i}`
-      }
-
-      return `${fmt(item.mulai_at)} s/d ${fmt(item.selesai_at)}`
-    },
-    tickerMainText(item) {
-      const judul = (item.judul || '').trim()
-      const isi = (item.isi || '').trim()
-      if (judul && isi) return `${judul}: ${isi}`
-      return judul || isi || '-'
-    },
-    formatTanggalTicker(value) {
-      if (!value) return ''
-      const date = new Date(String(value).replace(' ', 'T'))
-      if (isNaN(date.getTime())) return ''
-      const d = String(date.getDate()).padStart(2, '0')
-      const m = String(date.getMonth() + 1).padStart(2, '0')
-      const y = date.getFullYear()
-      return `${d}-${m}-${y}`
-    },
-    formatPeriodeTicker(item) {
-      const mulai = this.formatTanggalTicker(item.mulai_at)
-      const selesai = this.formatTanggalTicker(item.selesai_at)
-      if (mulai && selesai) return `${mulai} s/d ${selesai}`
-      return mulai || selesai || ''
-    },
   },
   created(){
-    this.getInformasiAktif()
     this.getNotifikasi()
     this.startNotifPolling()
   },
@@ -524,7 +443,6 @@ export default {
   },
   watch: {
     authenticated() {
-      this.getInformasiAktif()
       this.getNotifikasi()
       if (this.authenticated) {
         this.startNotifPolling()
@@ -552,61 +470,27 @@ page
   background-color: #E8F5E9
   color: #1B5E20
 
-.info-rolling-card
+.tata-tertib-card
   border: 1px solid #c8e6c9
-  background: linear-gradient(180deg, #f5fff6 0%, #ffffff 100%)
+  background: linear-gradient(180deg, #f1fff2 0%, #ffffff 100%)
 
-.info-rolling-title
-  font-size: 1.02rem
+.tata-tertib-content
+  color: #1b3f1f
 
-.info-rolling-body
-  font-size: 0.92rem
-  line-height: 1.35
+.tata-tertib-list
+  margin: 0
+  padding-left: 22px
+  line-height: 1.65
+  column-count: 2
+  column-gap: 28px
 
-.info-rolling-meta
-  font-size: 0.84rem
+.tata-tertib-list li
+  margin-bottom: 6px
+  break-inside: avoid
 
-.landing-ticker-bar
-  display: flex
-  align-items: center
-  border-bottom: 1px solid #e0efe3
-  background: linear-gradient(90deg, #f5fff6 0%, #edf9ef 100%)
-  padding: 0 8px
-
-.landing-ticker-label
-  flex: 0 0 auto
-  color: #ffffff
-  background: #2e7d32
-  font-size: 0.78rem
-  font-weight: 700
-  text-transform: uppercase
-  letter-spacing: 0.03em
-  margin-right: 10px
-  padding: 7px 12px
-
-.landing-ticker-track
-  flex: 1
-  overflow: hidden
-  white-space: nowrap
-  min-width: 0
-
-.landing-ticker-content
-  display: inline-block
-  padding: 6px 0
-  color: #1b5e20
-  font-size: 0.86rem
-  padding-left: 100%
-  animation: ticker-right-to-left 26s linear infinite
-
-.ticker-item
-  display: inline-flex
-  align-items: center
-
-@keyframes ticker-right-to-left
-  0%
-    transform: translateX(0)
-  100%
-    transform: translateX(-100%)
+@media (max-width: 900px)
+  .tata-tertib-list
+    column-count: 1
 
 :deep(.notif-menu-layer)
   z-index: 100000 !important

@@ -158,12 +158,7 @@ export default {
           position: 'top',
           duration: 2000,
         });
-        const { protocol, hostname } = window.location;
-        const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
-        const target = isLocal
-          ? `${protocol}//${hostname}:8080/`
-          : `${protocol}//${hostname}/`;
-        window.location.href = target;
+        window.location.href = 'https://mtsn1kotamks.com/login';
       });
     },
   },

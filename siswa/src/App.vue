@@ -122,7 +122,7 @@ export default {
     }),
     ...mapState("kontrol", ["url"]),
     showSiswaTataTertib() {
-      return this.authenticated && ['ruang-praktikum', 'labroom'].includes(this.$route.name)
+      return this.authenticated && this.$route.name === 'ruang-praktikum'
     },
   },
   methods:{

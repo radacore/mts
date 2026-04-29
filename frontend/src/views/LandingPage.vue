@@ -6,58 +6,65 @@
       <div class="blob blob-1"></div>
       <div class="blob blob-2"></div>
 
-      <div class="row items-center justify-center hero-container q-pa-md q-py-xl">
-        <!-- Left: Informasi Terkini -->
-        <div class="col-12 col-md-3 q-pa-md z-top animate__animated animate__fadeInLeft" v-if="informasiAktif">
-          <div class="hero-info-card full-height">
-            <div class="info-header">
-              <span class="info-live-dot"></span>
-              <span class="info-label">INFORMASI TERKINI</span>
-            </div>
-            <div class="info-body">
-              <div class="info-judul">{{ informasiAktif.judul }}</div>
-              <div v-if="informasiAktif.isi" class="info-isi">{{ informasiAktif.isi }}</div>
-            </div>
-            <div v-if="informasiAktif.mulai_at || informasiAktif.selesai_at" class="info-footer">
-              <q-icon name="o_schedule" size="13px" class="q-mr-xs" />
-              {{ formatPeriodeInfo(informasiAktif) }}
-            </div>
-          </div>
-        </div>
+      <div class="row items-start justify-center hero-container q-pa-md q-py-xl">
 
-        <!-- Center: Title + CTA -->
-        <div class="q-pa-md z-top animate__animated animate__fadeInLeft" :class="informasiAktif ? 'col-12 col-md-4' : 'col-12 col-md-6'">
-          <div class="glass-morph q-pa-lg rounded-xl">
-             <div class="row items-center q-mb-md">
-                <div class="hero-lab-title text-green-8">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
-             </div>
-             
-            <h1 class="text-h2 text-weight-bolder text-grey-9 q-mb-md leading-tight">
-              Eksplorasi Sains <br>
-              <span class="text-green-6">Tanpa Batas</span>
-            </h1>
-            
-            <p class="text-h6 text-grey-7 q-mb-xl" style="line-height: 1.6;">
-              Tingkatkan pengalaman belajar IPA dengan sistem manajemen laboratorium yang terintegrasi, modern, dan mudah diakses.
-            </p>
+        <!-- Left: Lab Title + Informasi Terkini & Eksplorasi -->
+        <div class="col-12 col-md-7 q-pa-md z-top animate__animated animate__fadeInLeft">
 
-            <div class="q-gutter-md row">
-              <q-btn
-                label="Jelajahi Fitur"
-                color="white"
-                text-color="green-8"
-                outline
-                rounded
-                padding="12px 32px"
-                class="btn-action"
-                @click="scrollToSection('features')"
-              />
+          <!-- Row 1: Lab Title -->
+          <div class="hero-lab-title text-green-8 q-mb-md text-center">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
+
+          <!-- Row 2: Informasi Terkini + Eksplorasi Sains -->
+          <div class="row items-center q-col-gutter-md">
+
+            <!-- Informasi Terkini -->
+            <div class="col-12 col-sm-5 self-start info-card-col" v-if="informasiAktif">
+              <div class="hero-info-card">
+                <div class="info-header">
+                  <span class="info-live-dot"></span>
+                  <span class="info-label">INFORMASI TERKINI</span>
+                </div>
+                <div class="info-body">
+                  <div class="info-judul">{{ informasiAktif.judul }}</div>
+                  <div v-if="informasiAktif.isi" class="info-isi">{{ informasiAktif.isi }}</div>
+                </div>
+                <div v-if="informasiAktif.mulai_at || informasiAktif.selesai_at" class="info-footer">
+                  <q-icon name="o_schedule" size="13px" class="q-mr-xs" />
+                  {{ formatPeriodeInfo(informasiAktif) }}
+                </div>
+              </div>
             </div>
+
+            <!-- Eksplorasi Sains -->
+            <div :class="informasiAktif ? 'col-12 col-sm-7' : 'col-12'">
+              <div class="glass-morph q-pa-lg rounded-xl">
+                <h1 class="text-h2 text-weight-bolder text-grey-9 q-mb-md leading-tight">
+                  Eksplorasi Sains <br>
+                  <span class="text-green-6">Tanpa Batas</span>
+                </h1>
+                <p class="text-h6 text-grey-7 q-mb-xl" style="line-height: 1.6;">
+                  Tingkatkan pengalaman belajar IPA dengan sistem manajemen laboratorium yang terintegrasi, modern, dan mudah diakses.
+                </p>
+                <div class="q-gutter-md row">
+                  <q-btn
+                    label="Jelajahi Fitur"
+                    color="white"
+                    text-color="green-8"
+                    outline
+                    rounded
+                    padding="12px 32px"
+                    class="btn-action"
+                    @click="scrollToSection('features')"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
         <!-- Right: Slider -->
-        <div class="col-12 col-md-5 q-pa-md q-pt-xl animate__animated animate__fadeInRight">
+        <div class="col-12 col-md-5 q-pa-md animate__animated animate__fadeInRight">
           <div class="slider-container shadow-20 rounded-borders overflow-hidden border-white">
             <q-carousel
               v-model="slide"
@@ -572,6 +579,16 @@ export default {
   .hero-lab-title {
     font-size: 18px;
     letter-spacing: 0.04em;
+  }
+}
+
+// Info card alignment — only offset on desktop (sm+)
+.info-card-col {
+  margin-top: 0;
+}
+@media (min-width: 600px) {
+  .info-card-col {
+    margin-top: 80px;
   }
 }
 

@@ -131,6 +131,19 @@ public function materiPost(Request $request)
         ]
     );
 
+    // Simpan link_tambahan ke modul_lkpd agar muncul di halaman Modul LKPD
+    if ($request->link_tambahan && !$request->id) {
+        $host = parse_url($request->link_tambahan, PHP_URL_HOST);
+        $originalName = $host ? "Link: {$host}" : 'Link Modul';
+        ModulLkpd::create([
+            'judul'       => $request->judul,
+            'file_path'   => $request->link_tambahan,
+            'file_name'   => $originalName,
+            'mime_type'   => 'text/url',
+            'uploaded_by' => Auth()->User()->id,
+        ]);
+    }
+
     return response()->json($data);
 }
 

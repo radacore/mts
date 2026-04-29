@@ -369,7 +369,7 @@ export default {
     },
     showGuruTataTertib() {
       const roleId = this.user && this.user.user ? this.user.user.role_id : null
-      return this.authenticated && roleId === 3 && this.$route.path === '/dashboard'
+      return this.authenticated && [2, 3].includes(roleId) && this.$route.path === '/dashboard'
     },
   },
   methods:{

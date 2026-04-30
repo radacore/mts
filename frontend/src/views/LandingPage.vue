@@ -15,7 +15,7 @@
           <div class="row items-center justify-center q-mb-md q-gutter-sm">
             <img src="@/assets/logo-mtsn.png" alt="Logo MTsN" class="hero-logo" />
             <img src="@/assets/logo-lab.png" alt="Logo Lab IPA" class="hero-logo hero-logo-lab" />
-            <div class="hero-lab-title text-green-8 q-ml-xl">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
+            <div class="hero-lab-title text-green-8 q-ml-xl">LABORATORIUM DIGITAL<br>MTsN 1 KOTA MAKASSAR</div>
           </div>
 
           <!-- Row 2: Informasi Terkini + Eksplorasi Sains -->
@@ -497,7 +497,6 @@ export default {
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1.25;
-  text-transform: uppercase;
 }
 
 .hero-info-card {

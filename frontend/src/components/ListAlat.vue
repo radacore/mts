@@ -6,7 +6,7 @@
         <q-card-section>
           <q-table
           :rows="datas"
-          :columns="columns"
+          :columns="displayedColumns"
           :loading="loading"
           row-key="name"
           dense
@@ -32,8 +32,27 @@
               <q-avatar size="sm" text-color="white" color="secondary">
                   {{props.row.minta}}
               </q-avatar>
-              <q-popup-edit v-model="props.row.minta" title="diajukan"  buttons v-slot="scope">
-                <q-input type="number" v-model="scope.value" dense autofocus   />
+              <q-popup-edit
+                v-if="user.user.role_id==1 || user.user.role_id==3"
+                v-model="props.row.minta"
+                title="diajukan"
+                buttons
+                @save="saveMinta(props.row, $event)"
+                v-slot="scope"
+              >
+                <q-input
+                  type="number"
+                  v-model.number="scope.value"
+                  dense
+                  autofocus
+                  min="0"
+                  :max="props.row.jml"
+                  :rules="[
+                    val => val !== null && val !== '' || 'Wajib diisi',
+                    val => Number(val) >= 0 || 'Tidak boleh kurang dari 0',
+                    val => Number(val) <= Number(props.row.jml) || `Maksimal ${props.row.jml}`
+                  ]"
+                />
               </q-popup-edit>
            
           </q-td>
@@ -43,11 +62,34 @@
               <q-avatar size="sm" text-color="white" color="primary">
                   {{props.row.diberi}}
               </q-avatar>
+              <q-popup-edit
+                v-if="user.user.role_id==2 || user.user.role_id==1"
+                v-model="props.row.diberi"
+                title="diberikan"
+                buttons
+                @save="saveDiberi(props.row, $event)"
+                v-slot="scope"
+              >
+                <q-input
+                  type="number"
+                  v-model.number="scope.value"
+                  dense
+                  autofocus
+                  min="0"
+                  :max="props.row.minta"
+                  :rules="[
+                    val => val !== null && val !== '' || 'Wajib diisi',
+                    val => Number(val) >= 0 || 'Tidak boleh kurang dari 0',
+                    val => Number(val) <= Number(props.row.minta) || `Maksimal ${props.row.minta}`
+                  ]"
+                />
+              </q-popup-edit>
           </q-td>
         </template>
         <template v-slot:body-cell-aksi="props">
           <q-td :props="props">
-            <save-jumlah-alat :id="props.row.jpid" :minta="props.row.minta"/>
+            <save-jumlah-alat-2 v-if="user.user.role_id==2" :id="props.row.jpid" :diberi="props.row.diberi"/>
+            <save-jumlah-alat v-else :id="props.row.jpid" :minta="props.row.minta"/>
           </q-td>
         </template>
         </q-table>
@@ -63,11 +105,13 @@
   <script>
   import { ref } from '@vue/reactivity'
   import axios from 'axios';
-  import { mapState } from 'vuex';
+  import { mapGetters, mapState } from 'vuex';
   import SaveJumlahAlat from './SaveJumlahAlat.vue';
+  import SaveJumlahAlat2 from './saveJumlahAlat2.vue';
   export default {
   components:{
     SaveJumlahAlat,
+    SaveJumlahAlat2,
   },
   props:["paid","kat_id"],
   setup(){
@@ -87,7 +131,13 @@
       }
   },
   computed:{
-  ...mapState("kontrol",["triger"])
+  ...mapGetters({
+    user: 'auth/user',
+  }),
+  ...mapState("kontrol",["triger"]),
+  displayedColumns() {
+    return this.columns.filter(col => col.name !== 'aksi')
+  }
   },
   watch:{
       triger(){
@@ -102,6 +152,30 @@
       }
   },
   methods:{
+  async saveMinta(row, value){
+      const form = new FormData
+      form.append('id', row.jpid)
+      form.append('minta', Number(value))
+      await axios.post('jumlahPinjamAlat', form).then(()=>{
+          this.$store.commit('kontrol/SET_TRIGER')
+      }).catch((error)=>{
+          const msg = error.response?.data?.message || 'Gagal memperbarui jumlah diajukan'
+          this.$toast.error(msg)
+          this.getKatalog()
+      })
+  },
+  async saveDiberi(row, value){
+      const form = new FormData
+      form.append('id', row.jpid)
+      form.append('diberi', Number(value))
+      await axios.post('jumlahPinjamAlat2', form).then(()=>{
+          this.$store.commit('kontrol/SET_TRIGER')
+      }).catch((error)=>{
+          const msg = error.response?.data?.message || 'Gagal memperbarui jumlah diberikan'
+          this.$toast.error(msg)
+          this.getKatalog()
+      })
+  },
   async getKatalog(){
       this.loading=true
       await axios.get("filterTopikAlat/"+this.kat_id+"/"+this.paid).then((response)=>{

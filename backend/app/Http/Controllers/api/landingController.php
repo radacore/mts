@@ -7,7 +7,6 @@ use App\Models\classroom;
 use App\Models\data_siswa;
 use App\Models\inventaris;
 use App\Models\katalog;
-use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
 use App\Models\pinjam_lain;
 use App\Models\SiteSetting;
@@ -29,12 +28,6 @@ class landingController extends Controller
             ->pluck('total', 'bulan')
             ->toArray();
 
-        $alatPerBulan = pinjam_alat::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
-            ->whereYear('created_at', $year)
-            ->groupBy('bulan')
-            ->pluck('total', 'bulan')
-            ->toArray();
-
         $lainPerBulan = pinjam_lain::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
             ->whereYear('created_at', $year)
             ->groupBy('bulan')
@@ -45,7 +38,7 @@ class landingController extends Controller
         for ($m = 1; $m <= 12; $m++) {
             $peminjamanPerBulan[] = [
                 'bulan' => $m,
-                'total' => (int) ($labPerBulan[$m] ?? 0) + (int) ($alatPerBulan[$m] ?? 0) + (int) ($lainPerBulan[$m] ?? 0),
+                'total' => (int) ($labPerBulan[$m] ?? 0) + (int) ($lainPerBulan[$m] ?? 0),
             ];
         }
 

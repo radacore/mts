@@ -244,8 +244,32 @@ class peminjamanController extends Controller
     {
         if($request->id){
             $update=jumlah_pinjam_alat::find($request->id);
+            if (!$update) {
+                return response()->json([
+                    'message' => 'Data peminjaman alat tidak ditemukan.'
+                ], 404);
+            }
+
+            $minta = (int) $request->minta;
+            $stokTersedia = (int) DB::table('data_katalogs as dakat')
+                ->leftJoin('inventaris as inv', 'dakat.inventaris_id', '=', 'inv.id')
+                ->where('dakat.id', $update->data_katalog_id)
+                ->value('inv.jml');
+
+            if ($minta < 0) {
+                return response()->json([
+                    'message' => 'Jumlah diajukan tidak boleh kurang dari 0.'
+                ], 422);
+            }
+
+            if ($minta > $stokTersedia) {
+                return response()->json([
+                    'message' => 'Jumlah diajukan tidak boleh melebihi jumlah tersedia.'
+                ], 422);
+            }
+
             $update->update([
-                'minta'=>$request->minta
+                'minta'=>$minta
             ]);
         }
         return response()->json($update);
@@ -264,8 +288,29 @@ class peminjamanController extends Controller
     {
         if($request->id){
             $update=jumlah_pinjam_alat::find($request->id);
+            if (!$update) {
+                return response()->json([
+                    'message' => 'Data peminjaman alat tidak ditemukan.'
+                ], 404);
+            }
+
+            $diberi = (int) $request->diberi;
+            $minta = (int) $update->minta;
+
+            if ($diberi < 0) {
+                return response()->json([
+                    'message' => 'Jumlah diberikan tidak boleh kurang dari 0.'
+                ], 422);
+            }
+
+            if ($diberi > $minta) {
+                return response()->json([
+                    'message' => 'Jumlah diberikan tidak boleh melebihi jumlah diajukan.'
+                ], 422);
+            }
+
             $update->update([
-                'diberi'=>$request->diberi
+                'diberi'=>$diberi
             ]);
         }
         return response()->json($update);

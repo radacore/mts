@@ -1,6 +1,6 @@
 <template>
     <div>
-      
+      <q-icon name="o_hourglass_top" color="green-7" size="md"/>
     </div>
   </template>
   
@@ -29,6 +29,10 @@
               this.$store.commit('kontrol/SET_TRIGER')
               this.info=true
               return response
+          }).catch((error)=>{
+              const msg = error.response?.data?.message || 'Gagal memperbarui jumlah diberikan'
+              this.$toast.error(msg)
+              this.$store.commit('kontrol/SET_TRIGER')
           })
       }
   },

@@ -11,8 +11,12 @@
         <!-- Left: Lab Title + Informasi Terkini & Eksplorasi -->
         <div class="col-12 col-md-7 q-pa-md z-top animate__animated animate__fadeInLeft">
 
-          <!-- Row 1: Lab Title -->
-          <div class="hero-lab-title text-green-8 q-mb-md text-center">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
+          <!-- Row 1: Lab Title with Logos -->
+          <div class="row items-center justify-center q-mb-md q-gutter-sm">
+            <img src="@/assets/logo-mtsn.png" alt="Logo MTsN" class="hero-logo" />
+            <img src="@/assets/logo-lab.png" alt="Logo Lab IPA" class="hero-logo hero-logo-lab" />
+            <div class="hero-lab-title text-green-8 q-ml-xl">LABORATORIUM DIGITAL<br>MTSN 1 Kota Makassar</div>
+          </div>
 
           <!-- Row 2: Informasi Terkini + Eksplorasi Sains -->
           <div class="row items-center q-col-gutter-md">
@@ -478,6 +482,16 @@ export default {
   transition: transform 0.3s ease;
 }
 
+.hero-logo {
+  width: 105px;
+  height: 105px;
+  object-fit: contain;
+}
+.hero-logo-lab {
+  width: 105px;
+  height: 105px;
+}
+
 .hero-lab-title {
   font-size: 28px;
   font-weight: 800;
@@ -579,6 +593,14 @@ export default {
   .hero-lab-title {
     font-size: 18px;
     letter-spacing: 0.04em;
+  }
+  .hero-logo {
+    width: 65px;
+    height: 65px;
+  }
+  .hero-logo-lab {
+    width: 65px;
+    height: 65px;
   }
 }
 

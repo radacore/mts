@@ -74,15 +74,29 @@
                     {{props.row.katalog.topik}}
                   </q-td>
                 </template>
-                <template v-slot:body-cell-lkpd="props">
-                  <q-td :props="props">
-                   <div v-if="props.row.lkpd">
-                    <a :href="url+props.row.lkpd" target="_blank">
-                      <img src="../assets/pdf.png" style="max-width:20px;"/>
-                    </a>
-                   </div>
-                  </q-td>
-                </template>
+                 <template v-slot:body-cell-lkpd="props">
+                   <q-td :props="props">
+                    <div class="column q-gutter-xs">
+                      <div v-if="props.row.lkpd">
+                       <a :href="url+props.row.lkpd" target="_blank">
+                         <img src="../assets/pdf.png" style="max-width:20px;"/>
+                       </a>
+                      </div>
+                      <q-chip
+                        v-for="modul in props.row.modul_lkpd"
+                        :key="modul.id"
+                        dense
+                        clickable
+                        color="green-1"
+                        text-color="green-10"
+                        icon="description"
+                        @click="openModul(modul)"
+                      >
+                        {{ modul.judul }}
+                      </q-chip>
+                    </div>
+                   </q-td>
+                 </template>
                 <template v-slot:body-cell-status="props">
                   <q-td :props="props">
                     <div class="row justify-around">
@@ -177,7 +191,7 @@
                     <q-separator/>
                   <q-card-section style="max-height: 60vh" class="scroll">
                     <q-form>
-                       <q-input outlined dense v-model="form.tgl" label="Tanggal" class="q-my-sm" mask="date">
+                       <q-input outlined dense v-model="form.tgl" label="Tanggal *" class="q-my-sm" mask="date">
                             <template v-slot:append>
                               <q-icon name="event" class="cursor-pointer">
                                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -190,7 +204,7 @@
                               </q-icon>
                             </template>
                         </q-input>
-                        <q-input outlined dense v-model="form.jam" label="Jam Mulai" mask="time" class="q-my-sm" style="width:200px;" >
+                        <q-input outlined dense v-model="form.jam" label="Jam Mulai *" mask="time" class="q-my-sm" style="width:200px;" >
                             <template v-slot:append>
                               <q-icon name="access_time" class="cursor-pointer">
                                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -203,7 +217,7 @@
                               </q-icon>
                             </template>
                           </q-input>
-                        <q-input outlined dense v-model="form.jam_selesai" label="Jam Selesai" mask="time" class="q-my-sm" style="width:200px;" >
+                        <q-input outlined dense v-model="form.jam_selesai" label="Jam Selesai *" mask="time" class="q-my-sm" style="width:200px;" >
                             <template v-slot:append>
                               <q-icon name="access_time" class="cursor-pointer">
                                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -216,15 +230,86 @@
                               </q-icon>
                             </template>
                           </q-input>
-                          <q-select outlined v-model="form.kelas_id" :options="kelas" emit-value map-options option-value="id" option-label="kelas" label="Kelas" class="q-my-sm" dense/>
-                          <q-select outlined v-model="form.topik_id" :options="katalog" emit-value map-options option-value="id" option-label="topik" label="Topik" dense/>
-                      <q-input outlined v-model="form.pekan" label="Pekan Ke-" class="q-my-sm" color="green-3" dense />
-                    </q-form>
+                           <q-select outlined v-model="form.kelas_id" :options="kelas" emit-value map-options option-value="id" option-label="kelas" label="Kelas *" class="q-my-sm" dense/>
+                           <q-select outlined v-model="form.topik_id" :options="katalog" emit-value map-options option-value="id" option-label="topik" label="Topik *" dense/>
+                           <div class="q-my-sm">
+                             <div class="row items-center justify-between q-mb-xs">
+                               <div class="text-subtitle2 text-grey-8">Pilih LKPD / Modul Praktikum</div>
+                               <q-btn label="Pilih Modul" icon="o_menu_book" color="green-7" dense outline no-caps @click="bukaDialogPilihModul" />
+                             </div>
+                             <div v-if="selectedModulLkpd.length" class="row q-gutter-xs">
+                               <q-chip
+                                 v-for="modul in selectedModulLkpd"
+                                 :key="modul.id"
+                                 removable
+                                 clickable
+                                 dense
+                                 color="green-1"
+                                 text-color="green-10"
+                                 icon="description"
+                                 @click="openModul(modul)"
+                                 @remove="hapusModulTerpilih(modul.id)"
+                               >
+                                 {{ modul.judul }}
+                               </q-chip>
+                             </div>
+                             <div v-else class="text-caption text-grey-7">Belum ada modul dipilih</div>
+                           </div>
+                       <q-input outlined v-model="form.pekan" label="Pekan Ke- *" class="q-my-sm" color="green-3" dense />
+                     </q-form>
                   </q-card-section>
                   <q-separator/>
                   <q-card-actions align="right" class="bg-white">
                     <q-btn label="simpan" color="green-10" @click="simpan"/>
                     <q-btn label="Batal" color="red-10" @click="batal"/>
+                  </q-card-actions>
+                </q-card>
+              </q-dialog>
+              <q-dialog v-model="dialogPilihModul" persistent>
+                <q-card style="min-width: 500px; max-width: 90vw; width: 640px;">
+                  <q-card-section>
+                    <div class="text-h6 text-green-8">Pilih Modul Praktikum</div>
+                    <q-input v-model="modulFilter" dense placeholder="Cari judul modul, nama file, atau uploader..." clearable debounce="300" class="q-mt-sm">
+                      <template v-slot:prepend>
+                        <q-icon name="search" />
+                      </template>
+                    </q-input>
+                  </q-card-section>
+                  <q-card-section class="q-pt-none" style="max-height: 420px; overflow-y: auto;">
+                    <q-list dense separator>
+                      <q-item
+                        v-for="modul in filteredModulLkpdOptions"
+                        :key="modul.id"
+                        clickable
+                        v-ripple
+                        :active="isModulTerpilih(modul.id)"
+                        active-class="bg-green-1 text-green-10"
+                        @click="toggleModulTerpilih(modul)"
+                      >
+                        <q-item-section avatar>
+                          <q-checkbox :model-value="isModulTerpilih(modul.id)" color="green-7" @update:model-value="toggleModulTerpilih(modul)" @click.stop />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ modul.judul }}</q-item-label>
+                          <q-item-label caption>{{ modul.file_name }} · {{ modul.uploader_name || 'Laboran' }}</q-item-label>
+                          <q-item-label caption>
+                            <q-badge :color="modulSourceColor(modul)" text-color="white">{{ modulSourceLabel(modul) }}</q-badge>
+                          </q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-btn flat dense round icon="open_in_new" @click.stop="openModul(modul)" />
+                        </q-item-section>
+                      </q-item>
+                      <q-item v-if="filteredModulLkpdOptions.length === 0">
+                        <q-item-section>
+                          <q-item-label class="text-grey">Tidak ada modul ditemukan</q-item-label>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-card-section>
+                  <q-card-actions align="right">
+                    <q-btn flat label="Batal" color="grey-8" v-close-popup />
+                    <q-btn label="Gunakan Modul Terpilih" color="green-7" unelevated @click="dialogPilihModul=false" />
                   </q-card-actions>
                 </q-card>
               </q-dialog>
@@ -297,10 +382,13 @@ setup(){
         columns,
         rows:ref([]),
         dialogInsert:ref(false),
+        dialogPilihModul:ref(false),
         confirm:ref(false),
         loading:ref(false),
         filter:ref(null),
+        modulFilter:ref(''),
         statusFilter:ref('Semua'),
+        modulLkpdOptions:ref([]),
     }
 },
 data:()=>({
@@ -313,6 +401,7 @@ data:()=>({
         kelas_id:"",
         topik_id:"",
         status:"",
+        modul_lkpd_ids:[],
     }
 }),
 computed:{
@@ -338,6 +427,20 @@ computed:{
         return this.rows;
       }
       return this.rows.filter(row => row.status === this.statusFilter);
+    },
+    selectedModulLkpd() {
+      const selectedIds = this.form.modul_lkpd_ids || [];
+      return (this.modulLkpdOptions || []).filter((modul) => selectedIds.includes(modul.id));
+    },
+    filteredModulLkpdOptions() {
+      const q = (this.modulFilter || '').toString().toLowerCase();
+      if (!q) return this.modulLkpdOptions || [];
+      return (this.modulLkpdOptions || []).filter((modul) => {
+        const judul = (modul.judul || '').toString().toLowerCase();
+        const file = (modul.file_name || '').toString().toLowerCase();
+        const uploader = (modul.uploader_name || '').toString().toLowerCase();
+        return judul.includes(q) || file.includes(q) || uploader.includes(q);
+      });
     }
 },
 watch:{
@@ -363,6 +466,7 @@ methods:{
         this.form.kelas_id=""
         this.form.topik_id=""
         this.form.status=""
+        this.form.modul_lkpd_ids=[]
     },
     konfirmasi($id){
         this.form.id=$id
@@ -375,6 +479,47 @@ methods:{
         }).finally(()=>{
             this.loading=false
         })
+    },
+    async getModulLkpd(){
+        await axios.get("modul/lkpd").then((response)=>{
+            this.modulLkpdOptions=response.data
+        })
+    },
+    modulLkpdLabel(modul){
+      if (!modul) return ''
+      const source = this.modulSourceLabel(modul)
+      return `${modul.judul} - ${source}`
+    },
+    modulSourceLabel(modul){
+      return modul.uploaded_by === this.user.user.id || modul.uploader_name === this.user.user.name ? 'Milik Saya' : 'Disediakan Laboran'
+    },
+    modulSourceColor(modul){
+      return this.modulSourceLabel(modul) === 'Milik Saya' ? 'green-7' : 'blue-7'
+    },
+    modulLkpdLink(modul){
+      if (!modul || !modul.file_path) return '#'
+      if (/^https?:\/\//.test(modul.file_path)) return modul.file_path
+      return this.url + modul.file_path
+    },
+    openModul(modul){
+      window.open(this.modulLkpdLink(modul), '_blank')
+    },
+    bukaDialogPilihModul(){
+      this.modulFilter=''
+      this.dialogPilihModul=true
+    },
+    isModulTerpilih(id){
+      return (this.form.modul_lkpd_ids || []).includes(id)
+    },
+    toggleModulTerpilih(modul){
+      if (this.isModulTerpilih(modul.id)) {
+        this.hapusModulTerpilih(modul.id)
+        return
+      }
+      this.form.modul_lkpd_ids=[...(this.form.modul_lkpd_ids || []), modul.id]
+    },
+    hapusModulTerpilih(id){
+      this.form.modul_lkpd_ids=(this.form.modul_lkpd_ids || []).filter((modulId)=>modulId !== id)
     },
     async simpan(){
         await axios.post("pinjamLab",this.form).then((response)=>{
@@ -404,6 +549,7 @@ methods:{
             this.form.kelas_id=response.data.kelas_id
             this.form.topik_id=response.data.katalog_id
             this.form.status=response.data.status
+            this.form.modul_lkpd_ids=(response.data.modul_lkpd || []).map((modul)=>modul.id)
         })
     },
     async hapus(){
@@ -433,6 +579,7 @@ methods:{
 },
 created(){
 this.getPinjam()
+this.getModulLkpd()
 this.$store.dispatch("kontrol/getKelas")
 this.$store.dispatch("kontrol/getKatalog")
 this.startAutoRefresh()

@@ -507,6 +507,7 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  max-height: 168px;
   box-shadow: 0 8px 32px rgba(27, 94, 32, 0.25);
 }
 
@@ -547,8 +548,9 @@ export default {
 }
 
 .info-body {
-  padding: 16px 20px;
+  padding: 10px 14px;
   flex: 1;
+  overflow: hidden;
 }
 
 .info-tipe-row {
@@ -564,24 +566,32 @@ export default {
 }
 
 .info-judul {
-  font-size: 1.18rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #ffffff;
-  line-height: 1.4;
-  margin-bottom: 8px;
+  line-height: 1.25;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .info-isi {
-  font-size: 0.84rem;
+  font-size: 0.74rem;
   color: rgba(255,255,255,0.72);
-  line-height: 1.6;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .info-footer {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
-  font-size: 0.72rem;
+  padding: 7px 14px;
+  font-size: 0.66rem;
   font-weight: 600;
   color: rgba(255,255,255,0.55);
   letter-spacing: 0.02em;
@@ -597,10 +607,19 @@ export default {
 }
 
 @media (max-width: 599px) {
+  .row.items-center.justify-center.q-mb-md.q-gutter-sm {
+    justify-content: center;
+  }
+
   .hero-lab-title {
     font-size: 18px;
     letter-spacing: 0.04em;
+    text-align: center;
+    margin-left: 0 !important;
+    width: 100%;
+    margin-top: 6px;
   }
+
   .hero-logo {
     width: 65px;
     height: 65px;
@@ -608,6 +627,61 @@ export default {
   .hero-logo-lab {
     width: 65px;
     height: 65px;
+  }
+
+  .info-card-col {
+    margin-top: 12px;
+  }
+
+  .info-stack {
+    gap: 10px;
+  }
+
+  .hero-info-card {
+    max-height: 150px;
+  }
+
+  .info-header {
+    padding: 9px 12px 7px;
+  }
+
+  .info-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+  }
+
+  .info-body {
+    padding: 8px 12px;
+  }
+
+  .info-judul {
+    font-size: 0.86rem;
+    line-height: 1.2;
+  }
+
+  .info-isi {
+    font-size: 0.69rem;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+  }
+
+  .info-footer {
+    padding: 6px 12px;
+    font-size: 0.62rem;
+  }
+
+  .glass-morph {
+    padding: 16px 14px !important;
+  }
+
+  .text-h2 {
+    font-size: 1.5rem !important;
+    line-height: 1.3;
+  }
+
+  .text-h6 {
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
   }
 }
 

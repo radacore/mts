@@ -163,17 +163,32 @@ export default {
       }
 
       await axios.post('informasi-terkini', payload).then(() => {
-        this.$toast.success('Informasi berhasil disimpan. Informasi lain otomatis dinonaktifkan.')
+        this.$toast.success('Informasi berhasil disimpan.')
         this.resetForm()
         this.getData()
-      }).catch(() => {
-        this.$toast.error('Gagal menyimpan informasi')
+      }).catch((err) => {
+        this.$toast.error(err?.response?.data?.message || 'Gagal menyimpan informasi')
       })
     },
     async activateInformasi(row, isOn) {
       if (!isOn) {
-        this.$toast.info('Minimal satu informasi harus aktif.')
-        this.getData()
+        const payload = {
+          id: row.id,
+          judul: row.judul,
+          isi: row.isi,
+          tipe: row.tipe || 'info',
+          status: 'nonaktif',
+          mulai_at: row.mulai_at,
+          selesai_at: row.selesai_at,
+        }
+
+        await axios.post('informasi-terkini', payload).then(() => {
+          this.$toast.success('Informasi dinonaktifkan.')
+          this.getData()
+        }).catch((err) => {
+          this.$toast.error(err?.response?.data?.message || 'Gagal menonaktifkan informasi')
+          this.getData()
+        })
         return
       }
 
@@ -181,15 +196,17 @@ export default {
         id: row.id,
         judul: row.judul,
         isi: row.isi,
-        tipe: 'info',
+        tipe: row.tipe || 'info',
         status: 'aktif',
+        mulai_at: row.mulai_at,
+        selesai_at: row.selesai_at,
       }
 
       await axios.post('informasi-terkini', payload).then(() => {
         this.$toast.success('Informasi aktif berhasil diperbarui.')
         this.getData()
-      }).catch(() => {
-        this.$toast.error('Gagal mengubah informasi aktif')
+      }).catch((err) => {
+        this.$toast.error(err?.response?.data?.message || 'Gagal mengubah informasi aktif')
         this.getData()
       })
     },

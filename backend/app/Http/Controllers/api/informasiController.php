@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 
 class informasiController extends Controller
 {
+    private const MAX_ACTIVE_INFO = 3;
+
     private function authorizeManage(): void
     {
         $user = auth()->user();
@@ -55,11 +57,17 @@ class informasiController extends Controller
             'selesai_at' => 'nullable|date|after_or_equal:mulai_at',
         ]);
 
-        // Hanya 1 informasi yang boleh aktif — nonaktifkan yang lain
         if ($request->status === 'aktif') {
-            informasi_terkini::where('status', 'aktif')
+            $activeCount = informasi_terkini::query()
+                ->where('status', 'aktif')
                 ->when($request->id, fn($q) => $q->where('id', '!=', $request->id))
-                ->update(['status' => 'nonaktif']);
+                ->count();
+
+            if ($activeCount >= self::MAX_ACTIVE_INFO) {
+                return response()->json([
+                    'message' => 'Maksimal 3 informasi aktif. Nonaktifkan salah satu terlebih dahulu.',
+                ], 422);
+            }
         }
 
         $data = informasi_terkini::updateOrCreate(
@@ -98,7 +106,10 @@ class informasiController extends Controller
 
     public function aktif()
     {
-        $data = $this->activeQuery()->latest()->get();
+        $data = $this->activeQuery()
+            ->latest('updated_at')
+            ->limit(self::MAX_ACTIVE_INFO)
+            ->get();
         return response()->json($data);
     }
 }

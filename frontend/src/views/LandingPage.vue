@@ -22,25 +22,27 @@
           <div class="row items-center q-col-gutter-md">
 
             <!-- Informasi Terkini -->
-            <div class="col-12 col-sm-5 self-start info-card-col" v-if="informasiAktif">
-              <div class="hero-info-card">
-                <div class="info-header">
-                  <span class="info-live-dot"></span>
-                  <span class="info-label">INFORMASI TERKINI</span>
-                </div>
-                <div class="info-body">
-                  <div class="info-judul">{{ informasiAktif.judul }}</div>
-                  <div v-if="informasiAktif.isi" class="info-isi">{{ informasiAktif.isi }}</div>
-                </div>
-                <div v-if="informasiAktif.mulai_at || informasiAktif.selesai_at" class="info-footer">
-                  <q-icon name="o_schedule" size="13px" class="q-mr-xs" />
-                  {{ formatPeriodeInfo(informasiAktif) }}
+            <div class="col-12 col-sm-5 self-start info-card-col" v-if="informasiAktifList.length">
+              <div class="info-stack">
+                <div v-for="item in informasiAktifList" :key="item.id" class="hero-info-card">
+                  <div class="info-header">
+                    <span class="info-live-dot"></span>
+                    <span class="info-label">INFORMASI TERKINI</span>
+                  </div>
+                  <div class="info-body">
+                    <div class="info-judul">{{ item.judul }}</div>
+                    <div v-if="item.isi" class="info-isi">{{ item.isi }}</div>
+                  </div>
+                  <div v-if="item.mulai_at || item.selesai_at" class="info-footer">
+                    <q-icon name="o_schedule" size="13px" class="q-mr-xs" />
+                    {{ formatPeriodeInfo(item) }}
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Eksplorasi Sains -->
-            <div :class="informasiAktif ? 'col-12 col-sm-7' : 'col-12'">
+            <div :class="informasiAktifList.length ? 'col-12 col-sm-7' : 'col-12'">
               <div class="glass-morph q-pa-lg rounded-xl">
                 <h1 class="text-h2 text-weight-bolder text-grey-9 q-mb-md leading-tight">
                   Eksplorasi Sains <br>
@@ -265,7 +267,7 @@ export default {
     return {
       slide: ref(0),
       slides: ref([]),
-      informasiAktif: ref(null),
+      informasiAktifList: ref([]),
       stats: ref({
         guru: 0,
         siswa: 0,
@@ -345,9 +347,9 @@ export default {
       try {
         const res = await axios.get('informasi-terkini/aktif');
         const data = res.data || [];
-        this.informasiAktif = data.length > 0 ? data[0] : null;
+        this.informasiAktifList = data.slice(0, 3);
       } catch (e) {
-        this.informasiAktif = null;
+        this.informasiAktifList = [];
       }
     },
     labelTipe(tipe) {
@@ -506,6 +508,12 @@ export default {
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(27, 94, 32, 0.25);
+}
+
+.info-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .info-header {

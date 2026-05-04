@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class pinjam_lab extends Model
@@ -25,5 +24,11 @@ class pinjam_lab extends Model
     public function jumlah_pinjam()
     {
     	return $this->hasOne('App\Models\jumlah_pinjam');
+    }
+
+    public function modulLkpd()
+    {
+        return $this->belongsToMany(ModulLkpd::class, 'pinjam_lab_modul_lkpd', 'pinjam_lab_id', 'modul_lkpd_id')
+            ->withTimestamps();
     }
 }

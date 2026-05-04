@@ -7,7 +7,6 @@ use App\Models\data_katalog;
 use App\Models\jumlah_pinjam;
 use App\Models\jumlah_pinjam_alat;
 use App\Models\informasi_terkini;
-use App\Models\katalog;
 use App\Models\notifikasi_user;
 use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
@@ -22,10 +21,10 @@ class peminjamanController extends Controller
         $user = Auth()->User();
         // Laboran (2) & Admin (1) bisa lihat semua
         if ($user->role_id == 2 || $user->role_id == 1) {
-            $data = pinjam_lab::with(['kelas','katalog','User.bioguru'])->latest()->get();
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader'])->latest()->get();
         } else {
             // Guru/Siswa hanya lihat punya sendiri
-            $data = pinjam_lab::with(['kelas','katalog','User.bioguru'])
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader'])
                 ->where('user_id', $user->id)
                 ->latest()
                 ->get();
@@ -41,6 +40,8 @@ class peminjamanController extends Controller
             'jam'=>'required',
             'jam_selesai'=>'required',
             'pekan'=>'required',
+            'modul_lkpd_ids'=>'nullable|array',
+            'modul_lkpd_ids.*'=>'exists:modul_lkpd,id',
         ]);
 
         $isClosed = informasi_terkini::where('status', 'aktif')
@@ -70,11 +71,12 @@ class peminjamanController extends Controller
             'peminjam'=>Auth()->User()->name,
             'status'=>'diajukan'
         ]);
-        return response()->json($data);
+        $data->modulLkpd()->sync($request->modul_lkpd_ids ?? []);
+        return response()->json($data->load('modulLkpd.uploader'));
     }
     public function pinjamLabEdit($id)
     {
-        $data=pinjam_lab::where('id', $id)->first();
+        $data=pinjam_lab::with('modulLkpd.uploader')->where('id', $id)->first();
         return response()->json($data);
     }
     public function pinjamLabHapus($id)
@@ -87,12 +89,12 @@ class peminjamanController extends Controller
     }
     public function peminjamanLab()
     {
-        $data=pinjam_lab::with(['kelas','katalog','user'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui'])->latest()->get();
+        $data=pinjam_lab::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui'])->latest()->get();
         return response()->json($data);
     }
     public function peminjamanAlat()
     {
-        $data=pinjam_alat::with(['kelas','katalog','user'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','dikembalikan'])->latest()->get();
+        $data=pinjam_alat::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','dikembalikan'])->latest()->get();
         return response()->json($data);
     }
     public function peminjamanLabProses($id,$data)
@@ -347,9 +349,9 @@ class peminjamanController extends Controller
     {
         $user = Auth()->User();
         if ($user->role_id == 2 || $user->role_id == 1) {
-             $data = pinjam_alat::with(['katalog','kelas','user.bioguru'])->latest()->get();
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader'])->latest()->get();
         } else {
-             $data = pinjam_alat::with(['katalog','kelas','user.bioguru'])
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader'])
                 ->where('user_id', $user->id)
                 ->latest()
                 ->get();
@@ -367,6 +369,8 @@ class peminjamanController extends Controller
             'jam_pakai'=>'required',
             'lokasi'=>'required',
             'keperluan'=>'required',
+            'modul_lkpd_ids'=>'nullable|array',
+            'modul_lkpd_ids.*'=>'exists:modul_lkpd,id',
         ]);
         $data=pinjam_alat::updateOrCreate(['id'=>$request->id],[
             'kelas_id'=>$request->kelas_id,
@@ -381,11 +385,12 @@ class peminjamanController extends Controller
             'keperluan'=>$request->keperluan,
             'status'=>'diajukan',
         ]);
-        return response()->json($data);
+        $data->modulLkpd()->sync($request->modul_lkpd_ids ?? []);
+        return response()->json($data->load('modulLkpd.uploader'));
     }
     public function pinjamAlatEdit($id)
     {
-        $data=pinjam_alat::where('id', $id)->first();
+        $data=pinjam_alat::with('modulLkpd.uploader')->where('id', $id)->first();
         return response()->json($data);
     }
     public function pinjamAlatHapus($id)
@@ -514,7 +519,8 @@ class peminjamanController extends Controller
             ];
         }
         jumlah_pinjam::insert($datas);
-        return response()->json($data);
+        $data->modulLkpd()->sync($cek->modulLkpd()->pluck('modul_lkpd.id')->toArray());
+        return response()->json($data->load('modulLkpd.uploader'));
     }
     public function pinjamLainCopy($id)
     {
@@ -562,7 +568,8 @@ class peminjamanController extends Controller
             ];
         }
         jumlah_pinjam_alat::insert($datas);
-        return response()->json($data);
+        $data->modulLkpd()->sync($cek->modulLkpd()->pluck('modul_lkpd.id')->toArray());
+        return response()->json($data->load('modulLkpd.uploader'));
     }
 
 }

@@ -178,7 +178,6 @@
                     <q-td :props="props" v-if="user.user.role_id!=2">
                       <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
                       <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
-                      <lkpd-alat v-if="user.user.role_id==3" :id="props.row.id"/>
                     </q-td>
                   </template>
             </q-table>
@@ -374,7 +373,6 @@ import axios from 'axios';
 import { mapGetters, mapState } from 'vuex';
 import { ref } from '@vue/reactivity';
 import ListAlat from '@/components/ListAlat.vue';
-import LkpdAlat from '@/components/LkpdAlat.vue';
 import KopiAlat from '@/components/KopiAlat.vue';
 import BuktiAlat from '@/components/BuktiAlat.vue';
 import moment from "moment";
@@ -383,7 +381,6 @@ moment.locale("id");
 export default {
 components:{
   ListAlat,
-  LkpdAlat,
   KopiAlat,
   BuktiAlat,
 },

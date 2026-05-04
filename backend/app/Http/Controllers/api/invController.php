@@ -10,6 +10,57 @@ use Illuminate\Support\Facades\DB;
 
 class invController extends Controller
 {
+    private const OUTGOING_MUTATION_TYPES = ['keluar', 'pemutihan'];
+    private const WHITENING_CONDITIONS = ['baik', 'rusak'];
+
+    private function outgoingTypeLabel(string $jenis): string
+    {
+        return $jenis === 'pemutihan' ? 'pemutihan' : 'pemakaian';
+    }
+
+    private function resolveWhiteningCondition(?string $value): string
+    {
+        return in_array($value, self::WHITENING_CONDITIONS, true) ? $value : 'rusak';
+    }
+
+    private function conditionLabel(string $condition): string
+    {
+        return $condition === 'baik' ? 'baik' : 'rusak';
+    }
+
+    private function availableConditionStock(inventaris $inventaris, string $condition): int
+    {
+        return $condition === 'baik'
+            ? (int) $inventaris->konbaik
+            : (int) $inventaris->konrusak;
+    }
+
+    private function availableConditionStockForUpdate(inventaris $inventaris, inventaris_mutation $riwayat, string $condition): int
+    {
+        $available = $this->availableConditionStock($inventaris, $condition);
+
+        if ($riwayat->jenis === 'pemutihan' && $this->resolveWhiteningCondition($riwayat->kondisi_asal ?? null) === $condition) {
+            $available += (int) $riwayat->qty;
+        }
+
+        if ($riwayat->jenis === 'keluar' && $condition === 'baik') {
+            $available += (int) $riwayat->qty;
+        }
+
+        return $available;
+    }
+
+    private function applyConditionDelta(inventaris $inventaris, string $condition, int $delta): void
+    {
+        if ($condition === 'baik') {
+            $inventaris->konbaik = max((int) $inventaris->konbaik + $delta, 0);
+        } else {
+            $inventaris->konrusak = max((int) $inventaris->konrusak + $delta, 0);
+        }
+
+        $inventaris->save();
+    }
+
     private function extractYearFromString(?string $value): int
     {
         if ($value && preg_match('/\b(19|20)\d{2}\b/', $value, $matches)) {
@@ -53,7 +104,7 @@ class invController extends Controller
             ->sum('qty');
 
         $keluar = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-            ->where('jenis', 'keluar')
+            ->whereIn('jenis', self::OUTGOING_MUTATION_TYPES)
             ->sum('qty');
 
         $stok = max($initial + $masuk - $keluar, 0);
@@ -81,7 +132,7 @@ class invController extends Controller
 
         $initial = (clone $baseQuery)->where('jenis', 'initial')->sum('qty');
         $masuk = (clone $baseQuery)->where('jenis', 'masuk')->sum('qty');
-        $keluar = (clone $baseQuery)->where('jenis', 'keluar')->sum('qty');
+        $keluar = (clone $baseQuery)->whereIn('jenis', self::OUTGOING_MUTATION_TYPES)->sum('qty');
 
         return max((int) $initial + (int) $masuk - (int) $keluar, 0);
     }
@@ -104,6 +155,12 @@ class invController extends Controller
 
         if ((int) $request->query('rusak_only', 0) === 1) {
             $query->where('konrusak', '>', 0);
+        }
+
+        if ((int) $request->query('pemutihan_only', 0) === 1) {
+            $query->whereHas('mutations', function ($mq) {
+                $mq->where('jenis', 'pemutihan');
+            });
         }
 
         $stokStatus = $request->query('stok_status');
@@ -274,33 +331,62 @@ class invController extends Controller
         $request->validate([
             'tahun' => 'required|digits:4',
             'qty' => 'required|integer|min:1',
-            'jenis' => 'nullable|in:masuk,keluar',
+            'jenis' => 'nullable|in:masuk,keluar,pemutihan',
             'keterangan' => 'nullable|string|max:255',
+            'kondisi_asal' => 'nullable|in:baik,rusak',
         ]);
 
         $inventaris = inventaris::findOrFail($id);
         $jenis = $request->jenis ?? 'masuk';
+        $kondisiAsal = $jenis === 'pemutihan'
+            ? $this->resolveWhiteningCondition($request->kondisi_asal)
+            : null;
 
-        if ($jenis === 'keluar' && (int) $request->qty > (int) $inventaris->jml) {
+        if ($jenis === 'pemutihan' && blank($request->keterangan)) {
             return response()->json([
-                'message' => 'Qty pemakaian melebihi stok tersedia',
+                'message' => 'Keterangan wajib diisi untuk pemutihan',
             ], 422);
         }
 
-        inventaris_mutation::create([
-            'inventaris_id' => $inventaris->id,
-            'tahun' => (int) $request->tahun,
-            'qty' => (int) $request->qty,
-            'jenis' => $jenis,
-            'keterangan' => $request->keterangan,
-            'created_by' => auth()->id(),
-        ]);
+        if ($jenis === 'pemutihan' && (int) $request->qty > $this->availableConditionStock($inventaris, $kondisiAsal)) {
+            return response()->json([
+                'message' => 'Qty pemutihan melebihi stok ' . $this->conditionLabel($kondisiAsal) . ' tersedia',
+            ], 422);
+        }
 
-        $inventaris = $this->syncStockFromMutations($inventaris);
+        if ($jenis === 'keluar' && (int) $request->qty > (int) $inventaris->jml) {
+            return response()->json([
+                'message' => 'Qty ' . $this->outgoingTypeLabel($jenis) . ' melebihi stok tersedia',
+            ], 422);
+        }
 
-        $message = $jenis === 'keluar'
-            ? 'Riwayat pemakaian berhasil disimpan'
-            : 'Penambahan stok berhasil disimpan';
+        DB::transaction(function () use ($request, $inventaris, $jenis, $kondisiAsal) {
+            inventaris_mutation::create([
+                'inventaris_id' => $inventaris->id,
+                'tahun' => (int) $request->tahun,
+                'qty' => (int) $request->qty,
+                'jenis' => $jenis,
+                'kondisi_asal' => $kondisiAsal,
+                'keterangan' => $request->keterangan,
+                'created_by' => auth()->id(),
+            ]);
+
+            if ($jenis === 'pemutihan') {
+                $this->applyConditionDelta($inventaris, $kondisiAsal, -((int) $request->qty));
+            }
+
+            $this->syncStockFromMutations($inventaris);
+        });
+
+        $inventaris = $inventaris->fresh();
+
+        if ($jenis === 'keluar') {
+            $message = 'Riwayat pemakaian berhasil disimpan';
+        } elseif ($jenis === 'pemutihan') {
+            $message = 'Riwayat pemutihan berhasil disimpan';
+        } else {
+            $message = 'Penambahan stok berhasil disimpan';
+        }
 
         return response()->json([
             'success' => true,
@@ -316,8 +402,9 @@ class invController extends Controller
         $request->validate([
             'tahun' => 'required|digits:4',
             'qty' => 'required|integer|min:1',
-            'jenis' => 'required|in:initial,masuk,keluar',
+            'jenis' => 'required|in:initial,masuk,keluar,pemutihan',
             'keterangan' => 'nullable|string|max:255',
+            'kondisi_asal' => 'nullable|in:baik,rusak',
         ]);
 
         $inventaris = inventaris::findOrFail($id);
@@ -335,22 +422,54 @@ class invController extends Controller
             ], 422);
         }
 
-        if ($request->jenis === 'keluar') {
-            $stokTersedia = $this->availableStockExcludingMutation((int) $id, (int) $riwayatId);
-            if ((int) $request->qty > $stokTersedia) {
+        if ($request->jenis === 'pemutihan' && blank($request->keterangan)) {
+            return response()->json([
+                'message' => 'Keterangan wajib diisi untuk pemutihan',
+            ], 422);
+        }
+
+        $kondisiAsal = $request->jenis === 'pemutihan'
+            ? $this->resolveWhiteningCondition($request->kondisi_asal)
+            : null;
+
+        if ($request->jenis === 'pemutihan') {
+            $stokKondisi = $this->availableConditionStockForUpdate($inventaris, $riwayat, $kondisiAsal);
+            if ((int) $request->qty > $stokKondisi) {
                 return response()->json([
-                    'message' => 'Qty pemakaian melebihi stok tersedia',
+                    'message' => 'Qty pemutihan melebihi stok ' . $this->conditionLabel($kondisiAsal) . ' tersedia',
                 ], 422);
             }
         }
 
-        DB::transaction(function () use ($request, $riwayat, $inventaris) {
+        if ($request->jenis === 'keluar') {
+            $stokTersedia = $this->availableStockExcludingMutation((int) $id, (int) $riwayatId);
+            if ((int) $request->qty > $stokTersedia) {
+                return response()->json([
+                    'message' => 'Qty ' . $this->outgoingTypeLabel($request->jenis) . ' melebihi stok tersedia',
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($request, $riwayat, $inventaris, $kondisiAsal) {
+            if ($riwayat->jenis === 'pemutihan') {
+                $this->applyConditionDelta(
+                    $inventaris,
+                    $this->resolveWhiteningCondition($riwayat->kondisi_asal ?? null),
+                    (int) $riwayat->qty
+                );
+            }
+
             $riwayat->update([
                 'tahun' => (int) $request->tahun,
                 'qty' => (int) $request->qty,
                 'jenis' => $request->jenis,
+                'kondisi_asal' => $kondisiAsal,
                 'keterangan' => $request->keterangan,
             ]);
+
+            if ($request->jenis === 'pemutihan') {
+                $this->applyConditionDelta($inventaris, $kondisiAsal, -((int) $request->qty));
+            }
 
             $this->syncStockFromMutations($inventaris);
         });
@@ -375,6 +494,14 @@ class invController extends Controller
         }
 
         DB::transaction(function () use ($riwayat, $inventaris) {
+            if ($riwayat->jenis === 'pemutihan') {
+                $this->applyConditionDelta(
+                    $inventaris,
+                    $this->resolveWhiteningCondition($riwayat->kondisi_asal ?? null),
+                    (int) $riwayat->qty
+                );
+            }
+
             $riwayat->delete();
             $this->syncStockFromMutations($inventaris);
         });

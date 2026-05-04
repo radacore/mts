@@ -16,6 +16,7 @@ class inventaris_mutation extends Model
         'tahun',
         'qty',
         'jenis',
+        'kondisi_asal',
         'keterangan',
         'created_by',
     ];

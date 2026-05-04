@@ -56,6 +56,13 @@
               class="q-mr-md"
               @update:model-value="getData"
             />
+            <q-toggle
+              v-model="pemutihanOnly"
+              label="Ada Pemutihan"
+              color="red-8"
+              class="q-mr-md"
+              @update:model-value="getData"
+            />
              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
                <template v-slot:append>
                  <q-icon name="search" />
@@ -210,10 +217,10 @@
 
         <q-card-section>
           <div class="row q-col-gutter-md q-mb-md">
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <q-input v-model="formTambahStok.tahun" label="Tahun" dense outlined />
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-2">
               <q-input v-model.number="formTambahStok.qty" type="number" min="1" label="Qty" dense outlined />
             </div>
             <div class="col-12 col-md-2">
@@ -236,9 +243,23 @@
                 label="Jenis"
                 dense
                 outlined
+                @update:model-value="onJenisMutasiChange"
               />
             </div>
-            <div class="col-12 col-md-4">
+            <div v-if="formTambahStok.jenis === 'pemutihan'" class="col-12 col-md-2">
+              <q-select
+                v-model="formTambahStok.kondisi_asal"
+                :options="kondisiPemutihanOptions"
+                emit-value
+                map-options
+                option-value="value"
+                option-label="label"
+                label="Diputihkan dari"
+                dense
+                outlined
+              />
+            </div>
+            <div :class="formTambahStok.jenis === 'pemutihan' ? 'col-12 col-md-4' : 'col-12 col-md-6'">
               <q-input v-model="formTambahStok.keterangan" label="Keterangan" dense outlined />
             </div>
             <div class="col-12 col-md-12 flex justify-end q-gutter-sm">
@@ -259,7 +280,9 @@
           >
             <template v-slot:body-cell-jenis="props">
               <q-td :props="props">
-                {{ labelJenis(props.row.jenis) }}
+                <q-badge :color="badgeJenis(props.row).color" text-color="white">
+                  {{ badgeJenis(props.row).label }}
+                </q-badge>
               </q-td>
             </template>
             <template v-slot:body-cell-aksi_riwayat="props">
@@ -354,6 +377,12 @@ setup(){
     const jenisMutasiOptions = [
       { label: 'Penambahan', value: 'masuk' },
       { label: 'Pemakaian', value: 'keluar' },
+      { label: 'Pemutihan', value: 'pemutihan' },
+    ]
+
+    const kondisiPemutihanOptions = [
+      { label: 'Rusak', value: 'rusak' },
+      { label: 'Baik', value: 'baik' },
     ]
 
     const stokStatusOptions = [
@@ -369,10 +398,12 @@ setup(){
         riwayatColumns,
         jenisBarangOptions,
         jenisMutasiOptions,
+        kondisiPemutihanOptions,
         stokStatusOptions,
         rows:ref([]),
         filter:ref(null),
         rusakOnly:ref(false),
+        pemutihanOnly:ref(false),
         filterTahun:ref(null),
         filterStokStatus:ref(null),
         tahunOptions:ref([]),
@@ -415,6 +446,7 @@ data:()=>({
       tahun: String(new Date().getFullYear()),
       qty: 1,
       jenis: 'masuk',
+      kondisi_asal: 'rusak',
       keterangan: '',
     }
 }),
@@ -478,6 +510,7 @@ methods:{
       this.loading=true
       const query = {}
       if (this.rusakOnly) query.rusak_only = 1
+      if (this.pemutihanOnly) query.pemutihan_only = 1
       if (this.filterTahun) query.tahun = this.filterTahun
       if (this.filterStokStatus) query.stok_status = this.filterStokStatus
       const params = { params: query }
@@ -536,6 +569,7 @@ methods:{
       this.formTambahStok.tahun = String(new Date().getFullYear())
       this.formTambahStok.qty = 1
       this.formTambahStok.jenis = 'masuk'
+      this.formTambahStok.kondisi_asal = 'rusak'
       this.formTambahStok.keterangan = ''
     },
     async getRiwayat(id){
@@ -546,12 +580,21 @@ methods:{
     async tambahStok(){
       if (!this.formTambahStok.inventaris_id) return
 
+      if (this.formTambahStok.jenis === 'pemutihan' && !String(this.formTambahStok.keterangan || '').trim()) {
+        this.$toast.error('Keterangan wajib diisi untuk pemutihan')
+        return
+      }
+
       this.savingStok = true
       const payload = {
         tahun: this.formTambahStok.tahun,
         qty: this.formTambahStok.qty,
         jenis: this.formTambahStok.jenis,
         keterangan: this.formTambahStok.keterangan,
+      }
+
+      if (this.formTambahStok.jenis === 'pemutihan') {
+        payload.kondisi_asal = this.formTambahStok.kondisi_asal || 'rusak'
       }
 
       const request = this.editingRiwayatId
@@ -563,8 +606,8 @@ methods:{
         this.getData()
         this.getRiwayat(this.formTambahStok.inventaris_id)
         this.batalEditRiwayat()
-      }).catch(()=>{
-        this.$toast.error('Gagal menyimpan riwayat')
+      }).catch((error)=>{
+        this.$toast.error(error?.response?.data?.message || 'Gagal menyimpan riwayat')
       }).finally(()=>{
         this.savingStok = false
       })
@@ -574,6 +617,7 @@ methods:{
       this.formTambahStok.tahun = String(item.tahun)
       this.formTambahStok.qty = Number(item.qty)
       this.formTambahStok.jenis = item.jenis
+      this.formTambahStok.kondisi_asal = item.jenis === 'pemutihan' ? (item.kondisi_asal || 'rusak') : 'rusak'
       this.formTambahStok.keterangan = item.keterangan || ''
     },
     batalEditRiwayat(){
@@ -581,6 +625,7 @@ methods:{
       this.formTambahStok.tahun = String(new Date().getFullYear())
       this.formTambahStok.qty = 1
       this.formTambahStok.jenis = 'masuk'
+      this.formTambahStok.kondisi_asal = 'rusak'
       this.formTambahStok.keterangan = ''
     },
     konfirmasiHapusRiwayat(item){
@@ -631,7 +676,25 @@ methods:{
       if (jenis === 'initial') return 'Data Awal'
       if (jenis === 'masuk') return 'Penambahan'
       if (jenis === 'keluar') return 'Pemakaian'
+      if (jenis === 'pemutihan') return 'Pemutihan'
       return jenis
+    },
+    labelKondisiPemutihan(kondisi){
+      return (kondisi || 'rusak') === 'baik' ? 'Baik' : 'Rusak'
+    },
+    badgeJenis(item){
+      const jenis = typeof item === 'string' ? item : item?.jenis
+      const kondisiAsal = typeof item === 'string' ? 'rusak' : item?.kondisi_asal
+      if (jenis === 'initial') return { label: 'Data Awal', color: 'grey-7' }
+      if (jenis === 'masuk') return { label: 'Penambahan', color: 'green-7' }
+      if (jenis === 'keluar') return { label: 'Pemakaian', color: 'orange-8' }
+      if (jenis === 'pemutihan') return { label: `Pemutihan ${this.labelKondisiPemutihan(kondisiAsal)}`, color: 'red-8' }
+      return { label: this.labelJenis(jenis), color: 'blue-grey-7' }
+    },
+    onJenisMutasiChange(jenis){
+      if (jenis === 'pemutihan' && !this.formTambahStok.kondisi_asal) {
+        this.formTambahStok.kondisi_asal = 'rusak'
+      }
     },
     setTahunOptions(){
       const current = new Date().getFullYear()

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\data_katalog;
 use App\Models\jumlah_pinjam;
 use App\Models\jumlah_pinjam_alat;
+use App\Models\classroom;
 use App\Models\informasi_terkini;
 use App\Models\notifikasi_user;
 use App\Models\pinjam_alat;
@@ -16,6 +17,26 @@ use Illuminate\Support\Facades\DB;
 
 class peminjamanController extends Controller
 {
+    private function guruCanUseKelas($kelasId): bool
+    {
+        $user = Auth()->User();
+
+        if (!$user || (int) $user->role_id !== 3) {
+            return true;
+        }
+
+        return classroom::where('user_id', $user->id)
+            ->where('kelas_id', $kelasId)
+            ->exists();
+    }
+
+    private function rejectUnauthorizedGuruKelas()
+    {
+        return response()->json([
+            'message' => 'Kelas tidak tersedia di Ruang Praktikum Anda.',
+        ], 422);
+    }
+
     public function index()
     {
         $user = Auth()->User();
@@ -43,6 +64,10 @@ class peminjamanController extends Controller
             'modul_lkpd_ids'=>'nullable|array',
             'modul_lkpd_ids.*'=>'exists:modul_lkpd,id',
         ]);
+
+        if (!$this->guruCanUseKelas($request->kelas_id)) {
+            return $this->rejectUnauthorizedGuruKelas();
+        }
 
         $isClosed = informasi_terkini::where('status', 'aktif')
             ->where('tipe', 'penutupan_lab')
@@ -372,6 +397,11 @@ class peminjamanController extends Controller
             'modul_lkpd_ids'=>'nullable|array',
             'modul_lkpd_ids.*'=>'exists:modul_lkpd,id',
         ]);
+
+        if (!$this->guruCanUseKelas($request->kelas_id)) {
+            return $this->rejectUnauthorizedGuruKelas();
+        }
+
         $data=pinjam_alat::updateOrCreate(['id'=>$request->id],[
             'kelas_id'=>$request->kelas_id,
             'katalog_id'=>$request->katalog_id,

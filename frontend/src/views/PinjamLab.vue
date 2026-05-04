@@ -230,8 +230,21 @@
                               </q-icon>
                             </template>
                           </q-input>
-                           <q-select outlined v-model="form.kelas_id" :options="kelas" emit-value map-options option-value="id" option-label="kelas" label="Kelas *" class="q-my-sm" dense/>
-                           <q-select outlined v-model="form.topik_id" :options="katalog" emit-value map-options option-value="id" option-label="topik" label="Topik *" dense/>
+                           <q-select outlined v-model="form.kelas_id" :options="kelasOptions" emit-value map-options option-value="id" option-label="kelas" label="Kelas *" class="q-my-sm" dense/>
+                           <q-select
+                             outlined
+                             v-model="form.topik_id"
+                             :options="katalogOptions"
+                             emit-value
+                             map-options
+                             option-value="id"
+                             option-label="topik"
+                             label="Topik *"
+                             dense
+                             use-input
+                             input-debounce="0"
+                             @filter="filterKatalogOptions"
+                           />
                            <div class="q-my-sm">
                              <div class="row items-center justify-between q-mb-xs">
                                <div class="text-subtitle2 text-grey-8">Pilih LKPD / Modul Praktikum</div>
@@ -389,6 +402,8 @@ setup(){
         modulFilter:ref(''),
         statusFilter:ref('Semua'),
         modulLkpdOptions:ref([]),
+        guruClassrooms:ref([]),
+        katalogOptions:ref([]),
     }
 },
 data:()=>({
@@ -427,6 +442,19 @@ computed:{
         return this.rows;
       }
       return this.rows.filter(row => row.status === this.statusFilter);
+    },
+    kelasOptions() {
+      if (this.user.user.role_id !== 3) {
+        return this.kelas;
+      }
+
+      const byId = new Map();
+      (this.guruClassrooms || []).forEach((item) => {
+        if (item.kelas && !byId.has(item.kelas.id)) {
+          byId.set(item.kelas.id, item.kelas);
+        }
+      });
+      return Array.from(byId.values());
     },
     selectedModulLkpd() {
       const selectedIds = this.form.modul_lkpd_ids || [];
@@ -484,6 +512,24 @@ methods:{
         await axios.get("modul/lkpd").then((response)=>{
             this.modulLkpdOptions=response.data
         })
+    },
+    async getGuruClassrooms(){
+        if (this.user.user.role_id !== 3) return
+        await axios.get("classroom").then((response)=>{
+            this.guruClassrooms=response.data
+        })
+    },
+    resetKatalogOptions(){
+      this.katalogOptions=this.katalog || []
+    },
+    filterKatalogOptions(val, update){
+      update(() => {
+        const needle = (val || '').toString().toLowerCase()
+        const source = this.katalog || []
+        this.katalogOptions = needle
+          ? source.filter((item) => (item.topik || '').toString().toLowerCase().includes(needle))
+          : source
+      })
     },
     modulLkpdLabel(modul){
       if (!modul) return ''
@@ -580,8 +626,9 @@ methods:{
 created(){
 this.getPinjam()
 this.getModulLkpd()
+this.getGuruClassrooms()
 this.$store.dispatch("kontrol/getKelas")
-this.$store.dispatch("kontrol/getKatalog")
+this.$store.dispatch("kontrol/getKatalog").then(()=>this.resetKatalogOptions())
 this.startAutoRefresh()
 },
 beforeUnmount() {

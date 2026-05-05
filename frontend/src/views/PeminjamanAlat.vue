@@ -88,8 +88,11 @@
             </template>
             <template v-slot:body-cell-status="props">
               <q-td :props="props">
-               <div class="row justify-around">
+               <div class="column q-gutter-xs">
                   <q-chip v-if="props.row.status=='disetujui'" color="green-7" text-color="white" icon="o_check_circle" dense>
+                      {{props.row.status}}
+                  </q-chip>
+                  <q-chip v-else-if="props.row.status=='ditolak'" color="red-7" text-color="white" icon="cancel" dense>
                       {{props.row.status}}
                   </q-chip>
                   <q-chip v-else-if="props.row.status=='dikembalikan'" color="grey" text-color="white" icon="o_check_circle" dense>
@@ -98,7 +101,10 @@
                   <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
                       {{props.row.status}}
                   </q-chip>
-               </div>
+                  <q-item-label v-if="props.row.status==='ditolak'" caption class="text-red-9" style="max-width:260px;white-space:normal;line-height:1.2;">
+                    {{ alasanPenolakanLabel(props.row.alasan_penolakan) }}
+                  </q-item-label>
+                </div>
               </q-td>
             </template>
             <template v-slot:body-cell-alba="props">
@@ -118,7 +124,7 @@
                         </q-item-section>
                       </q-item>
               
-                      <q-item v-if="props.row.status=='diajukan'" clickable v-close-popup @click="proses(props.row.id,'ditolak')">
+                      <q-item v-if="props.row.status=='diajukan'" clickable v-close-popup @click="bukaDialogPenolakan(props.row.id)">
                         <q-item-section>
                           <q-item-label>Ditolak</q-item-label>
                         </q-item-section>
@@ -135,6 +141,30 @@
           </q-table>
         </q-card-section>
       </q-card>
+
+      <q-dialog v-model="dialogAlasanPenolakan" persistent>
+        <q-card style="width: 460px; max-width: 90vw;">
+          <q-card-section>
+            <div class="text-subtitle1 text-red-8">Alasan Penolakan Peminjaman Alat</div>
+            <q-input
+              v-model="alasanPenolakanInput"
+              type="textarea"
+              autogrow
+              outlined
+              dense
+              class="q-mt-md"
+              maxlength="2000"
+              counter
+              label="Alasan Penolakan *"
+              placeholder="Tuliskan alasan kenapa pengajuan ditolak"
+            />
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn flat label="Batal" color="grey-7" @click="tutupDialogPenolakan" />
+            <q-btn label="Simpan Penolakan" color="red-7" unelevated @click="kirimPenolakan" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </div>    
   </q-page>
 </template>
@@ -176,6 +206,9 @@ setup(){
     loading:ref(false),
     filter:ref(null),
     rows:ref([]),
+    dialogAlasanPenolakan:ref(false),
+    prosesRowId:ref(null),
+    alasanPenolakanInput:ref(''),
   }
 },
 computed:{
@@ -189,6 +222,10 @@ methods:{
   dateTime(value) {
       return moment(value).format('LL');
     },
+  alasanPenolakanLabel(alasan) {
+      const value = (alasan || '').toString().trim()
+      return value || 'Tidak ada alasan (data lama)'
+    },
   async getData(){
     this.loading=true
         await axios.get("peminjaman/alat").then((response)=>{
@@ -197,10 +234,39 @@ methods:{
             this.loading=false
         })
   },
-  async proses($id,$data){
-        await axios.put("peminjaman/alat/"+$id+"/"+$data).then((response)=>{
+  bukaDialogPenolakan($id){
+      this.prosesRowId=$id
+      this.alasanPenolakanInput=''
+      this.dialogAlasanPenolakan=true
+    },
+  tutupDialogPenolakan(){
+      this.dialogAlasanPenolakan=false
+      this.prosesRowId=null
+      this.alasanPenolakanInput=''
+    },
+  async kirimPenolakan(){
+      const alasan = (this.alasanPenolakanInput || '').toString().trim()
+      if (!alasan) {
+        this.$toast.error('Alasan penolakan wajib diisi')
+        return
+      }
+
+      await this.proses(this.prosesRowId,'ditolak', alasan)
+      this.tutupDialogPenolakan()
+    },
+  async proses($id,$data,$alasanPenolakan=null){
+        const payload = $data === 'ditolak'
+          ? { alasan_penolakan: ($alasanPenolakan || '').toString().trim() }
+          : {}
+
+        await axios.put("peminjaman/alat/"+$id+"/"+$data, payload).then((response)=>{
             this.getData();
+            this.$toast.success('Status peminjaman berhasil diperbarui')
             return response
+        }).catch((error)=>{
+            const msg = error.response?.data?.message || 'Gagal memperbarui status peminjaman'
+            this.$toast.error(msg)
+            return error
         })
     }
 },
@@ -209,4 +275,3 @@ this.getData();
 }
 }
 </script>
-

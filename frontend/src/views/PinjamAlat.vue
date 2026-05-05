@@ -94,7 +94,13 @@
                         <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
                             {{props.row.status}}
                         </q-chip>
-                   </div>
+                      </div>
+                      <div
+                        v-if="props.row.status==='ditolak'"
+                        class="text-caption text-negative q-mt-xs"
+                      >
+                        Alasan: {{ alasanPenolakanLabel(props.row.alasan_penolakan) }}
+                      </div>
                     </q-td>
                   </template>
                   <template v-slot:body-cell-proses="props">
@@ -505,6 +511,10 @@ methods:{
       if (status === 'ditolak') return 'red-7'
       if (status === 'dikembalikan') return 'blue-7'
       return 'yellow-8'
+    },
+    alasanPenolakanLabel(reason){
+      if (!reason) return 'Tidak ada alasan (data lama)'
+      return reason
     },
     batal(){
         this.dialogInsert=false

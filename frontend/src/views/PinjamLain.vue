@@ -66,7 +66,13 @@
             <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
                 {{props.row.status}}
             </q-chip>
-      </div>
+          </div>
+          <div
+            v-if="props.row.status==='ditolak'"
+            class="text-caption text-negative q-mt-xs"
+          >
+            Alasan: {{ alasanPenolakanLabel(props.row.alasan_penolakan) }}
+          </div>
         </q-td>
       </template>
       <template v-slot:body-cell-proses="props">
@@ -267,6 +273,10 @@ methods:{
     },
   hari(value) {
       return moment(value).format('dddd');
+    },
+  alasanPenolakanLabel(reason){
+      if (!reason) return 'Tidak ada alasan (data lama)'
+      return reason
     },
   
   batal(){

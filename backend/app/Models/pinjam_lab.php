@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class pinjam_lab extends Model
 {
     protected $table ="pinjam_labs";
-    public $fillable = ['kelas_id','katalog_id','tgl','peminjam','pekan','jam','jam_selesai','status','user_id','lkpd'];
+    public $fillable = ['kelas_id','katalog_id','tgl','peminjam','pekan','jam','jam_selesai','status','alasan_penolakan','user_id','lkpd'];
 
     public function kelas()
     {

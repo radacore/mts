@@ -17,6 +17,38 @@ use Illuminate\Support\Facades\DB;
 
 class peminjamanController extends Controller
 {
+    private function normalizeAlasanPenolakan(?string $alasan): ?string
+    {
+        if ($alasan === null) {
+            return null;
+        }
+
+        $trimmed = trim($alasan);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function validateAlasanPenolakan(string $status, ?string $alasan)
+    {
+        if ($status !== 'ditolak') {
+            return null;
+        }
+
+        if ($alasan === null) {
+            return response()->json([
+                'message' => 'Alasan penolakan wajib diisi saat status ditolak.',
+            ], 422);
+        }
+
+        if (mb_strlen($alasan) > 2000) {
+            return response()->json([
+                'message' => 'Alasan penolakan maksimal 2000 karakter.',
+            ], 422);
+        }
+
+        return null;
+    }
+
     private function guruCanUseKelas($kelasId): bool
     {
         $user = Auth()->User();
@@ -94,7 +126,8 @@ class peminjamanController extends Controller
             'jam_selesai'=>$request->jam_selesai,
             'pekan'=>$request->pekan,
             'peminjam'=>Auth()->User()->name,
-            'status'=>'diajukan'
+            'status'=>'diajukan',
+            'alasan_penolakan' => null,
         ]);
         $data->modulLkpd()->sync($request->modul_lkpd_ids ?? []);
         return response()->json($data->load('modulLkpd.uploader'));
@@ -114,12 +147,12 @@ class peminjamanController extends Controller
     }
     public function peminjamanLab()
     {
-        $data=pinjam_lab::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui'])->latest()->get();
+        $data=pinjam_lab::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak'])->latest()->get();
         return response()->json($data);
     }
     public function peminjamanAlat()
     {
-        $data=pinjam_alat::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','dikembalikan'])->latest()->get();
+        $data=pinjam_alat::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak','dikembalikan'])->latest()->get();
         return response()->json($data);
     }
     public function peminjamanLabProses($id,$data)
@@ -137,22 +170,40 @@ class peminjamanController extends Controller
             ], 422);
         }
 
+        $alasanPenolakan = $this->normalizeAlasanPenolakan(request('alasan_penolakan'));
+        if ($error = $this->validateAlasanPenolakan($data, $alasanPenolakan)) {
+            return $error;
+        }
+
         if($id){
             $proses=pinjam_lab::find($id);
+            if (!$proses) {
+                return response()->json([
+                    'message' => 'Data peminjaman lab tidak ditemukan.',
+                ], 404);
+            }
+
             $proses->update([
-                'status'=> $data
+                'status'=> $data,
+                'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
             ]);
+
+            $pesan = 'Pengajuan peminjaman lab Anda telah ' . $data . '.';
+            if ($data === 'ditolak' && $alasanPenolakan) {
+                $pesan .= ' Alasan: ' . $alasanPenolakan;
+            }
 
             if ($proses && $proses->user_id) {
                 notifikasi_user::create([
                     'user_id' => $proses->user_id,
                     'judul' => 'Update Status Peminjaman Lab',
-                    'pesan' => 'Pengajuan peminjaman lab Anda telah ' . $data . '.',
+                    'pesan' => $pesan,
                     'tipe' => 'pinjam_lab_status',
                     'tautan' => '/pinjam-lab',
                     'meta' => [
                         'pinjam_lab_id' => $proses->id,
                         'status' => $data,
+                        'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
                     ],
                     'dibaca' => false,
                 ]);
@@ -175,22 +226,40 @@ class peminjamanController extends Controller
             ], 422);
         }
 
+        $alasanPenolakan = $this->normalizeAlasanPenolakan(request('alasan_penolakan'));
+        if ($error = $this->validateAlasanPenolakan($data, $alasanPenolakan)) {
+            return $error;
+        }
+
         if($id){
             $proses=pinjam_alat::find($id);
+            if (!$proses) {
+                return response()->json([
+                    'message' => 'Data peminjaman alat tidak ditemukan.',
+                ], 404);
+            }
+
             $proses->update([
-                'status'=> $data
+                'status'=> $data,
+                'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
             ]);
+
+            $pesan = 'Pengajuan peminjaman alat Anda telah ' . $data . '.';
+            if ($data === 'ditolak' && $alasanPenolakan) {
+                $pesan .= ' Alasan: ' . $alasanPenolakan;
+            }
 
             if ($proses && $proses->user_id) {
                 notifikasi_user::create([
                     'user_id' => $proses->user_id,
                     'judul' => 'Update Status Peminjaman Alat',
-                    'pesan' => 'Pengajuan peminjaman alat Anda telah ' . $data . '.',
+                    'pesan' => $pesan,
                     'tipe' => 'pinjam_alat_status',
                     'tautan' => '/pinjam-alat',
                     'meta' => [
                         'pinjam_alat_id' => $proses->id,
                         'status' => $data,
+                        'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
                     ],
                     'dibaca' => false,
                 ]);
@@ -414,6 +483,7 @@ class peminjamanController extends Controller
             'lokasi'=>$request->lokasi,
             'keperluan'=>$request->keperluan,
             'status'=>'diajukan',
+            'alasan_penolakan' => null,
         ]);
         $data->modulLkpd()->sync($request->modul_lkpd_ids ?? []);
         return response()->json($data->load('modulLkpd.uploader'));
@@ -458,6 +528,7 @@ class peminjamanController extends Controller
             'selesai'=>$request->selesai,
             'kegiatan'=>$request->kegiatan,
             'status'=>'diajukan',
+            'alasan_penolakan' => null,
             'user_id'=>Auth()->User()->id
         ]);
         return response()->json($data);
@@ -477,7 +548,7 @@ class peminjamanController extends Controller
     }
     public function peminjamanLain()
     {
-        $data=pinjam_lain::with('user')->whereIn('status',['diajukan','disetujui'])->latest()->get();
+        $data=pinjam_lain::with('user')->whereIn('status',['diajukan','disetujui','ditolak'])->latest()->get();
         return response()->json($data);
     }
     public function pinjamLainClient()
@@ -500,22 +571,40 @@ class peminjamanController extends Controller
             ], 422);
         }
 
+        $alasanPenolakan = $this->normalizeAlasanPenolakan(request('alasan_penolakan'));
+        if ($error = $this->validateAlasanPenolakan($data, $alasanPenolakan)) {
+            return $error;
+        }
+
         if($id){
             $proses=pinjam_lain::find($id);
+            if (!$proses) {
+                return response()->json([
+                    'message' => 'Data peminjaman kegiatan lain tidak ditemukan.',
+                ], 404);
+            }
+
             $proses->update([
-                'status'=> $data
+                'status'=> $data,
+                'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
             ]);
+
+            $pesan = 'Pengajuan kegiatan lain Anda telah ' . $data . '.';
+            if ($data === 'ditolak' && $alasanPenolakan) {
+                $pesan .= ' Alasan: ' . $alasanPenolakan;
+            }
 
             if ($proses && $proses->user_id) {
                 notifikasi_user::create([
                     'user_id' => $proses->user_id,
                     'judul' => 'Update Status Peminjaman Kegiatan Lain',
-                    'pesan' => 'Pengajuan kegiatan lain Anda telah ' . $data . '.',
+                    'pesan' => $pesan,
                     'tipe' => 'pinjam_lain_status',
                     'tautan' => '/pinjam-lain',
                     'meta' => [
                         'pinjam_lain_id' => $proses->id,
                         'status' => $data,
+                        'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
                     ],
                     'dibaca' => false,
                 ]);
@@ -536,6 +625,7 @@ class peminjamanController extends Controller
             'pekan'=>$cek->pekan,
             'jam'=>$cek->jam,
             'status'=>'diajukan',
+            'alasan_penolakan' => null,
             'jam_selesai'=>$cek->jam_selesai,
             'user_id'=>Auth()->User()->id,
 
@@ -567,6 +657,7 @@ class peminjamanController extends Controller
             'selesai' => $cek->selesai,
             'kegiatan' => $cek->kegiatan,
             'status' => 'diajukan',
+            'alasan_penolakan' => null,
         ]);
 
         return response()->json($data);
@@ -588,6 +679,7 @@ class peminjamanController extends Controller
             'lokasi'=>$cek->lokasi,
             'keperluan'=>$cek->keperluan,
             'status'=>'diajukan',
+            'alasan_penolakan' => null,
         ]);
         foreach($jml as $row){
             $datas[]=[

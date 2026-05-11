@@ -37,7 +37,7 @@
                       <q-icon name="search" />
                     </template>
                   </q-input>
-                  <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
+                  <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="bukaTambah" />
                 </template>
                 <template v-slot:header-cell-copy="props">
                   <q-th :props="props">
@@ -211,7 +211,7 @@
                             <template v-slot:append>
                               <q-icon name="access_time" class="cursor-pointer">
                                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                  <q-time v-model="form.jam" color="green-7">
+                                  <q-time v-model="form.jam" color="green-7" format24h>
                                     <div class="row items-center justify-end">
                                       <q-btn v-close-popup label="Close" color="green-7" flat />
                                     </div>
@@ -224,7 +224,7 @@
                             <template v-slot:append>
                               <q-icon name="access_time" class="cursor-pointer">
                                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                                  <q-time v-model="form.jam_selesai" color="green-7">
+                                  <q-time v-model="form.jam_selesai" color="green-7" format24h>
                                     <div class="row items-center justify-end">
                                       <q-btn v-close-popup label="Close" color="green-7" flat />
                                     </div>
@@ -400,7 +400,7 @@ setup(){
         { name: 'peminjam', align: 'left', label: 'peminjam', field: 'peminjam', sortable: true },
         { name: 'hari', align: 'left', label: 'hari', field: 'tgl', sortable: true },
         { name: 'jam', align: 'left', label: 'jam', field:'jam', sortable: true },
-        { name: 'jam_selesai', align: 'left', label: 'jam Selesai', field:'jam_selesai', sortable: true },
+        { name: 'jam_selesai', align: 'left', label: 'jam Selesai', field:'jam_selesai', format: val => val ? String(val).slice(0, 5) : '', sortable: true },
         { name: 'pekan', align: 'left', label: 'Pekan Ke-', field:'pekan', sortable: true },
         { name: 'kelas', align: 'left', label: 'Kelas', field:'kelas', sortable: true },
         { name: 'topik', align: 'left', label: 'Topik', field:'topik', sortable: true },
@@ -514,6 +514,14 @@ methods:{
     alasanPenolakanLabel(reason){
       if (!reason) return 'Tidak ada alasan (data lama)'
       return reason
+    },
+    tanggalHariIni(){
+        return moment().format('YYYY/MM/DD')
+    },
+    bukaTambah(){
+        this.batal()
+        this.form.tgl=this.tanggalHariIni()
+        this.dialogInsert=true
     },
     batal(){
         this.dialogInsert=false

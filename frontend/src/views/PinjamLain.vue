@@ -37,7 +37,7 @@
             <q-icon name="search" />
           </template>
         </q-input>
-        <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
+        <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="bukaTambah" />
       </template>
       <template v-slot:header-cell-copy="props">
         <q-th :props="props">
@@ -117,7 +117,7 @@
           <q-separator/>
         <q-card-section style="max-height: 60vh" class="scroll">
           <q-form>
-              <q-input outlined dense v-model="form.tgl" label="Tanggal Pemakaian" class="q-my-sm" mask="date" style="width:250px;">
+              <q-input outlined dense v-model="form.tgl" label="Tanggal Pemakaian *" class="q-my-sm" mask="date" style="width:250px;">
                   <template v-slot:append>
                     <q-icon name="event" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
@@ -130,11 +130,11 @@
                     </q-icon>
                   </template>
               </q-input>
-              <q-input outlined dense v-model="form.mulai" label="Jam pemakaian" mask="time" class="q-my-sm" style="width:200px;" >
+              <q-input outlined dense v-model="form.mulai" label="Jam Mulai *" mask="time" class="q-my-sm" style="width:200px;" >
                   <template v-slot:append>
                     <q-icon name="access_time" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-time v-model="form.mulai" color="green-7">
+                        <q-time v-model="form.mulai" color="green-7" format24h>
                           <div class="row items-center justify-end">
                             <q-btn v-close-popup label="Close" color="green-7" flat />
                           </div>
@@ -143,11 +143,11 @@
                     </q-icon>
                   </template>
               </q-input>
-              <q-input outlined dense v-model="form.selesai" label="Jam selesai" mask="time" class="q-my-sm" style="width:200px;" >
+              <q-input outlined dense v-model="form.selesai" label="Jam Selesai *" mask="time" class="q-my-sm" style="width:200px;" >
                   <template v-slot:append>
                     <q-icon name="access_time" class="cursor-pointer">
                       <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                        <q-time v-model="form.selesai" color="green-7">
+                        <q-time v-model="form.selesai" color="green-7" format24h>
                           <div class="row items-center justify-end">
                             <q-btn v-close-popup label="Close" color="green-7" flat />
                           </div>
@@ -156,7 +156,7 @@
                     </q-icon>
                   </template>
               </q-input>
-              <q-input outlined v-model="form.kegiatan" label="Keperluan" class="q-my-sm" color="green-3" autogrow dense />
+              <q-input outlined v-model="form.kegiatan" label="Keperluan *" class="q-my-sm" color="green-3" autogrow dense />
           </q-form>
         </q-card-section>
         <q-separator/>
@@ -231,8 +231,8 @@ setup(){
     { name: 'copy', align: 'left', label: 'kopi', sortable: true },
     { name: 'tgl', align: 'left', label: 'Tanggal Pinjam', field: 'tgl', sortable: true },
     { name: 'peminjam', align: 'left', label: 'peminjam', field: row => row.user.name, sortable: true },
-    { name: 'mulai', align: 'left', label: 'Jam Mulai', field:'mulai', sortable: true },
-    { name: 'selesai', align: 'left', label: 'Jam Selesai', field:'selesai', sortable: true },
+    { name: 'mulai', align: 'left', label: 'Jam Mulai', field:'mulai', format: val => val ? String(val).slice(0, 5) : '', sortable: true },
+    { name: 'selesai', align: 'left', label: 'Jam Selesai', field:'selesai', format: val => val ? String(val).slice(0, 5) : '', sortable: true },
     { name: 'kegiatan', align: 'left', label: 'Kegiatan', field:'kegiatan', sortable: true },
     { name: 'status', align: 'left', label: 'Status', field: 'status', sortable: true },
     { name: 'proses', align: 'left', label: 'Proses', sortable: false },
@@ -304,6 +304,14 @@ methods:{
       return reason
     },
   
+  tanggalHariIni(){
+    return moment().format('YYYY/MM/DD')
+  },
+  bukaTambah(){
+    this.batal()
+    this.form.tgl=this.tanggalHariIni()
+    this.dialogInsert=true
+  },
   batal(){
     this.dialogInsert=false
     this.confirm=false

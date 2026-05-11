@@ -20,6 +20,7 @@
 /.roo/
 /.run/
 /skills-lock.json
+**/.pi-lens/
 
 # Local dev scripts & notes (do not push)
 /start-all.sh

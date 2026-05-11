@@ -95,6 +95,68 @@ class peminjamanController extends Controller
         ], 422);
     }
 
+    /**
+     * Validasi bentrok jadwal pada tabel peminjaman tertentu.
+     *
+     * Rule overlap: start_baru < selesai_lama DAN selesai_baru > start_lama.
+     * Hanya cek status aktif: 'diajukan' & 'disetujui'. Status 'ditolak'
+     * tidak dihitung agar slot kembali bebas.
+     *
+     * @param  string $model       FQCN model (mis. pinjam_lab::class)
+     * @param  string $kolomTgl    nama kolom tanggal (mis. 'tgl')
+     * @param  string $kolomMulai  nama kolom jam mulai (mis. 'jam' atau 'mulai')
+     * @param  string $kolomSelesai nama kolom jam selesai
+     * @param  string $tgl         nilai tanggal request
+     * @param  string $jamMulai    nilai jam mulai request
+     * @param  string $jamSelesai  nilai jam selesai request
+     * @param  int|null $ignoreId  id record yang sedang diedit (skip dirinya sendiri)
+     * @return \Illuminate\Http\JsonResponse|null  null bila aman; JsonResponse 409 bila bentrok
+     */
+    private function cekBentrokJadwal(
+        string $model,
+        string $kolomTgl,
+        string $kolomMulai,
+        string $kolomSelesai,
+        string $tgl,
+        string $jamMulai,
+        string $jamSelesai,
+        $ignoreId = null
+    ) {
+        if ($jamMulai >= $jamSelesai) {
+            return response()->json([
+                'message' => 'Jam selesai harus lebih besar dari jam mulai.',
+            ], 422);
+        }
+
+        $query = $model::where($kolomTgl, $tgl)
+            ->whereIn('status', ['diajukan', 'disetujui'])
+            ->where($kolomMulai, '<', $jamSelesai)
+            ->where($kolomSelesai, '>', $jamMulai);
+
+        if (!empty($ignoreId)) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        $bentrok = $query->first();
+
+        if ($bentrok) {
+            $mulai = substr((string) $bentrok->{$kolomMulai}, 0, 5);
+            $selesai = substr((string) $bentrok->{$kolomSelesai}, 0, 5);
+            return response()->json([
+                'message' => "Jadwal bentrok dengan peminjaman lain pada tanggal {$tgl} jam {$mulai}-{$selesai} (status: {$bentrok->status}).",
+                'bentrok' => [
+                    'id' => $bentrok->id,
+                    'tgl' => $tgl,
+                    'mulai' => $mulai,
+                    'selesai' => $selesai,
+                    'status' => $bentrok->status,
+                ],
+            ], 409);
+        }
+
+        return null;
+    }
+
     public function index()
     {
         $user = Auth()->User();
@@ -141,6 +203,19 @@ class peminjamanController extends Controller
             return response()->json([
                 'message' => 'Peminjaman lab ditutup sementara karena ada informasi kegiatan aktif.',
             ], 422);
+        }
+
+        if ($error = $this->cekBentrokJadwal(
+            pinjam_lab::class,
+            'tgl',
+            'jam',
+            'jam_selesai',
+            $request->tgl,
+            $request->jam,
+            $request->jam_selesai,
+            $request->id
+        )) {
+            return $error;
         }
 
         $data=pinjam_lab::updateOrCreate(['id'=>$request->id],[
@@ -570,6 +645,20 @@ class peminjamanController extends Controller
             'selesai'=>'required',
             'kegiatan'=>'required',
         ]);
+
+        if ($error = $this->cekBentrokJadwal(
+            pinjam_lain::class,
+            'tgl',
+            'mulai',
+            'selesai',
+            $request->tgl,
+            $request->mulai,
+            $request->selesai,
+            $request->id
+        )) {
+            return $error;
+        }
+
         $data=pinjam_lain::updateOrCreate(['id'=>$request->id],[
             'tgl'=>$request->tgl,
             'mulai'=>$request->mulai,

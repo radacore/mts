@@ -340,9 +340,10 @@ methods:{
       this.getData()
       return response
     }).catch((error)=>{
-      this.$toast.error(`Gagal, Mohon Cek kebali`,{
+      const msg = error.response?.data?.message || `Gagal, Mohon Cek kembali`
+      this.$toast.error(msg,{
             position: "top",
-            duration:2000,
+            duration:3000,
             dismissible:true
          });
             return error

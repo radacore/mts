@@ -110,20 +110,20 @@
                         dense
                         unelevated
                         color="green-7"
-                        label="Proses"
+                        :label="props.row.status === 'disetujui' ? 'Pengembalian' : (props.row.status === 'diajukan' ? 'Proses' : 'Final')"
+                        :disable="props.row.status === 'ditolak' || props.row.status === 'dikembalikan'"
                         no-caps
                       >
                         <q-list dense>
-                          <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'diajukan')">
-                            <q-item-section>diajukan</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'disetujui')">
-                            <q-item-section>disetujui</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="bukaDialogPenolakan(props.row.id)">
-                            <q-item-section>ditolak</q-item-section>
-                          </q-item>
-                          <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'dikembalikan')">
+                          <template v-if="props.row.status === 'diajukan'">
+                            <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'disetujui')">
+                              <q-item-section>disetujui</q-item-section>
+                            </q-item>
+                            <q-item clickable v-close-popup @click="bukaDialogPenolakan(props.row.id)">
+                              <q-item-section>ditolak</q-item-section>
+                            </q-item>
+                          </template>
+                          <q-item v-if="props.row.status === 'disetujui'" clickable v-close-popup @click="ubahStatus(props.row.id,'dikembalikan')">
                             <q-item-section>dikembalikan</q-item-section>
                           </q-item>
                         </q-list>

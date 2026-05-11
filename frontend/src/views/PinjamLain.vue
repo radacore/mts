@@ -82,13 +82,11 @@
             dense
             unelevated
             color="green-7"
-            label="Proses"
+            :label="props.row.status === 'diajukan' ? 'Proses' : 'Final'"
+            :disable="props.row.status !== 'diajukan'"
             no-caps
           >
             <q-list dense>
-              <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'diajukan')">
-                <q-item-section>diajukan</q-item-section>
-              </q-item>
               <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'disetujui')">
                 <q-item-section>disetujui</q-item-section>
               </q-item>

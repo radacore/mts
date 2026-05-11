@@ -49,6 +49,32 @@ class peminjamanController extends Controller
         return null;
     }
 
+    private function validateTransisiStatusPeminjaman(string $jenis, ?string $statusSaatIni, string $statusBaru)
+    {
+        $statusSaatIni = $statusSaatIni ?: 'diajukan';
+
+        $transisi = [
+            'lab' => [
+                'diajukan' => ['disetujui', 'ditolak'],
+            ],
+            'alat' => [
+                'diajukan' => ['disetujui', 'ditolak'],
+                'disetujui' => ['dikembalikan'],
+            ],
+            'lain' => [
+                'diajukan' => ['disetujui', 'ditolak'],
+            ],
+        ];
+
+        if (in_array($statusBaru, $transisi[$jenis][$statusSaatIni] ?? [], true)) {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'Status peminjaman sudah final atau transisi status tidak valid.',
+        ], 422);
+    }
+
     private function guruCanUseKelas($kelasId): bool
     {
         $user = Auth()->User();
@@ -183,6 +209,10 @@ class peminjamanController extends Controller
                 ], 404);
             }
 
+            if ($error = $this->validateTransisiStatusPeminjaman('lab', $proses->status, $data)) {
+                return $error;
+            }
+
             $proses->update([
                 'status'=> $data,
                 'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
@@ -237,6 +267,10 @@ class peminjamanController extends Controller
                 return response()->json([
                     'message' => 'Data peminjaman alat tidak ditemukan.',
                 ], 404);
+            }
+
+            if ($error = $this->validateTransisiStatusPeminjaman('alat', $proses->status, $data)) {
+                return $error;
             }
 
             $proses->update([
@@ -582,6 +616,10 @@ class peminjamanController extends Controller
                 return response()->json([
                     'message' => 'Data peminjaman kegiatan lain tidak ditemukan.',
                 ], 404);
+            }
+
+            if ($error = $this->validateTransisiStatusPeminjaman('lain', $proses->status, $data)) {
+                return $error;
             }
 
             $proses->update([

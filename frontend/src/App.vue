@@ -213,13 +213,13 @@
         </q-list>
       </q-expansion-item>
       <q-expansion-item
-      v-if="user.user.role_id==2"
+      v-if="user.user.role_id==1 || user.user.role_id==2"
       icon="o_event_note"
       label="Peminjaman"
       class="text-body2 text-weight-regular"
     >
     <q-list class="q-pl-lg">
-      <q-item v-if="user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-lab">
+      <q-item v-if="user.user.role_id==1 || user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-lab">
         <q-item-section avatar>
           <q-icon name="o_biotech"/>
         </q-item-section>
@@ -227,7 +227,7 @@
           <q-item-label>Penggunaan Lab</q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if="user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-alat">
+      <q-item v-if="user.user.role_id==1 || user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-alat">
         <q-item-section avatar>
           <q-icon name="o_history_edu"/>
         </q-item-section>
@@ -235,7 +235,7 @@
           <q-item-label>Peminjaman Alat</q-item-label>
         </q-item-section>
       </q-item>
-      <q-item v-if="user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-lain">
+      <q-item v-if="user.user.role_id==1 || user.user.role_id==2"  active-class="my-menu-link" class="linkmenu" to="/pinjam-lain">
         <q-item-section avatar>
           <q-icon name="o_alt_route"/>
         </q-item-section>
@@ -245,7 +245,7 @@
       </q-item>
     </q-list>
     </q-expansion-item>
-    <q-item v-if="user.user.role_id==2"  clickable to="/modul-lkpd"  active-class="my-menu-link" class="linkmenu">
+    <q-item v-if="user.user.role_id==1 || user.user.role_id==2"  clickable to="/modul-lkpd"  active-class="my-menu-link" class="linkmenu">
       <q-item-section avatar>
         <q-icon name="o_collections_bookmark" />
       </q-item-section>

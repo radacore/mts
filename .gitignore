@@ -13,3 +13,25 @@
 /template_import_siswa.csv
 /template_import_siswa.xlsx
 /template_import_siswa (1).csv
+
+# Local AI/agent tooling (private, do not push)
+/.agents/
+/.playwright-mcp/
+/.roo/
+/.run/
+/skills-lock.json
+
+# Local dev scripts & notes (do not push)
+/start-all.sh
+/strukturdanalurnya.md
+
+# Local screenshots/dev assets (hanya di root project, aset di frontend/siswa/backend tetap di-track)
+/hero-mobile-after-spacing.png
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+
+# macOS
+.DS_Store
+**/.DS_Store

@@ -1,6 +1,18 @@
 <template>
     <div>
-      <q-btn round icon="fact_check" color="primary" text-color="white" @click="modal=true" size="sm"/>
+      <q-btn
+        round
+        icon="fact_check"
+        color="primary"
+        text-color="white"
+        @click="modal=true"
+        size="sm"
+        :disable="isGuruFinal"
+      >
+        <q-tooltip v-if="isGuruFinal">
+          Pengajuan sudah diproses, alat tidak dapat diubah
+        </q-tooltip>
+      </q-btn>
       <q-dialog v-model="modal">
       <q-card style="width: 700px; max-width: 80vw;">
         <q-card-section>
@@ -128,7 +140,7 @@
     SaveJumlahAlat,
     SaveJumlahAlat2,
   },
-  props:["paid","kat_id"],
+  props:["paid","kat_id","status"],
   setup(){
       const columns=[
           { name: 'nabar', label: 'Alat/Bahan', align:'left' },
@@ -153,6 +165,9 @@
   ...mapState("kontrol",["triger"]),
   displayedColumns() {
     return this.columns.filter(col => col.name !== 'aksi')
+  },
+  isGuruFinal() {
+    return this.user?.user?.role_id === 3 && this.status !== 'diajukan'
   },
   filteredDatas() {
     const roleId = this.user?.user?.role_id

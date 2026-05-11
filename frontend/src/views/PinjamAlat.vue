@@ -133,7 +133,7 @@
                   <template v-slot:body-cell-alba="props">
                     <q-td :props="props">
                       <div class="row justify-center">
-                      <list-alat :paid="props.row.id" :kat_id="props.row.katalog_id"/>
+                      <list-alat :paid="props.row.id" :kat_id="props.row.katalog_id" :status="props.row.status"/>
                   </div>
                     </q-td>
                   </template>

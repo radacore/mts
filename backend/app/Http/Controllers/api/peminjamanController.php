@@ -380,6 +380,20 @@ class peminjamanController extends Controller
                 ], 404);
             }
 
+            $pinjamAlat = pinjam_alat::find($update->pinjam_alat_id);
+            if (!$pinjamAlat) {
+                return response()->json([
+                    'message' => 'Data peminjaman alat tidak ditemukan.'
+                ], 404);
+            }
+
+            $user = auth()->user();
+            if ((int) $user->role_id === 3 && $pinjamAlat->status !== 'diajukan') {
+                return response()->json([
+                    'message' => 'Pengajuan sudah diproses, jumlah alat tidak dapat diubah.'
+                ], 422);
+            }
+
             $minta = (int) $request->minta;
             $stokTersedia = (int) DB::table('data_katalogs as dakat')
                 ->leftJoin('inventaris as inv', 'dakat.inventaris_id', '=', 'inv.id')

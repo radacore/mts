@@ -37,7 +37,7 @@
                         <q-icon name="search" />
                       </template>
                     </q-input>
-                    <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
+                    <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="bukaTambah" />
                   </template>
                   <template v-slot:header-cell-copy="props">
                     <q-th :props="props">
@@ -232,7 +232,7 @@
                     <template v-slot:append>
                       <q-icon name="access_time" class="cursor-pointer">
                         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-time v-model="form.jam_pakai" color="green-7">
+                          <q-time v-model="form.jam_pakai" color="green-7" format24h>
                             <div class="row items-center justify-end">
                               <q-btn v-close-popup label="Close" color="green-7" flat />
                             </div>
@@ -258,7 +258,7 @@
                     <template v-slot:append>
                       <q-icon name="access_time" class="cursor-pointer">
                         <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                          <q-time v-model="form.jam_kembali" color="green-7">
+                          <q-time v-model="form.jam_kembali" color="green-7" format24h>
                             <div class="row items-center justify-end">
                               <q-btn v-close-popup label="Close" color="green-7" flat />
                             </div>
@@ -542,6 +542,15 @@ methods:{
     alasanPenolakanLabel(reason){
       if (!reason) return 'Tidak ada alasan (data lama)'
       return reason
+    },
+    tanggalHariIni(){
+        return moment().format('YYYY/MM/DD')
+    },
+    bukaTambah(){
+        this.batal()
+        this.form.tgl_pakai=this.tanggalHariIni()
+        this.form.tgl_kembali=this.tanggalHariIni()
+        this.dialogInsert=true
     },
     batal(){
         this.dialogInsert=false

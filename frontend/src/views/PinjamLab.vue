@@ -135,7 +135,7 @@
                         <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'disetujui')">
                           <q-item-section>disetujui</q-item-section>
                         </q-item>
-                        <q-item clickable v-close-popup @click="ubahStatus(props.row.id,'ditolak')">
+                        <q-item clickable v-close-popup @click="bukaDialogPenolakan(props.row.id)">
                           <q-item-section>ditolak</q-item-section>
                         </q-item>
                       </q-list>
@@ -352,6 +352,30 @@
                   </q-card-actions>
                 </q-card>
               </q-dialog>
+
+              <q-dialog v-model="dialogAlasanPenolakan" persistent>
+                <q-card style="width: 460px; max-width: 90vw;">
+                  <q-card-section>
+                    <div class="text-subtitle1 text-red-8">Alasan Penolakan Peminjaman Lab</div>
+                    <q-input
+                      v-model="alasanPenolakanInput"
+                      type="textarea"
+                      autogrow
+                      outlined
+                      dense
+                      class="q-mt-md"
+                      maxlength="2000"
+                      counter
+                      label="Alasan Penolakan *"
+                      placeholder="Tuliskan alasan kenapa pengajuan ditolak"
+                    />
+                  </q-card-section>
+                  <q-card-actions align="right">
+                    <q-btn flat label="Batal" color="grey-7" @click="tutupDialogPenolakan" />
+                    <q-btn label="Simpan Penolakan" color="red-7" unelevated @click="kirimPenolakan" />
+                  </q-card-actions>
+                </q-card>
+              </q-dialog>
               </div>
       </q-page>
 </template>
@@ -407,6 +431,9 @@ setup(){
         modulLkpdOptions:ref([]),
         guruClassrooms:ref([]),
         katalogOptions:ref([]),
+        dialogAlasanPenolakan:ref(false),
+        prosesRowId:ref(null),
+        alasanPenolakanInput:ref(''),
     }
 },
 data:()=>({
@@ -613,8 +640,32 @@ methods:{
             return response
         })
     },
-    async ubahStatus(id, status){
-      await axios.put(`peminjaman/lab/${id}/${status}`).then(()=>{
+    bukaDialogPenolakan(id){
+      this.prosesRowId = id
+      this.alasanPenolakanInput = ''
+      this.dialogAlasanPenolakan = true
+    },
+    tutupDialogPenolakan(){
+      this.dialogAlasanPenolakan = false
+      this.prosesRowId = null
+      this.alasanPenolakanInput = ''
+    },
+    async kirimPenolakan(){
+      const alasan = (this.alasanPenolakanInput || '').toString().trim()
+      if (!alasan) {
+        this.$toast.error('Alasan penolakan wajib diisi')
+        return
+      }
+
+      await this.ubahStatus(this.prosesRowId, 'ditolak', alasan)
+      this.tutupDialogPenolakan()
+    },
+    async ubahStatus(id, status, alasanPenolakan = null){
+      const payload = status === 'ditolak'
+        ? { alasan_penolakan: (alasanPenolakan || '').toString().trim() }
+        : {}
+
+      await axios.put(`peminjaman/lab/${id}/${status}`, payload).then(()=>{
         this.$toast.success('Status berhasil diperbarui')
         this.getPinjam()
       }).catch((error)=>{

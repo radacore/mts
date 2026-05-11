@@ -5,13 +5,28 @@
       <q-card style="width: 700px; max-width: 80vw;">
         <q-card-section>
           <q-table
-          :rows="datas"
+          :rows="filteredDatas"
           :columns="displayedColumns"
           :loading="loading"
           row-key="name"
           dense
           flat
         >
+        <template v-slot:top-right>
+          <q-input
+            v-model="filterAlat"
+            borderless
+            dense
+            debounce="300"
+            placeholder="Cari alat"
+            clearable
+            style="min-width: 220px"
+          >
+            <template v-slot:append>
+              <q-icon name="search" />
+            </template>
+          </q-input>
+        </template>
         <template v-slot:loading>
           <q-inner-loading showing>
               <q-spinner-ios size="30px" color="green-7" />
@@ -128,6 +143,7 @@
           loading:ref(false),
           datas:ref([]),
           angka:ref(""),
+          filterAlat:ref(""),
       }
   },
   computed:{
@@ -137,6 +153,24 @@
   ...mapState("kontrol",["triger"]),
   displayedColumns() {
     return this.columns.filter(col => col.name !== 'aksi')
+  },
+  filteredDatas() {
+    const roleId = this.user?.user?.role_id
+    const keyword = (this.filterAlat || '').toString().toLowerCase().trim()
+    let rows = this.datas || []
+
+    if (roleId === 1 || roleId === 2) {
+      rows = rows.filter((row) => Number(row.minta || 0) > 0 || Number(row.diberi || 0) > 0)
+    }
+
+    if (!keyword) {
+      return rows
+    }
+
+    return rows.filter((row) => {
+      return ['nabar', 'kode', 'kode_barang', 'lokasi', 'satuan', 'merk', 'spesifikasi']
+        .some((field) => (row[field] || '').toString().toLowerCase().includes(keyword))
+    })
   }
   },
   watch:{

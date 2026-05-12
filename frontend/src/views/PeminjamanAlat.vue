@@ -129,7 +129,7 @@
                           <q-item-label>Ditolak</q-item-label>
                         </q-item-section>
                       </q-item>
-                      <q-item v-if="props.row.status =='disetujui'" clickable v-close-popup @click="proses(props.row.id,'dikembalikan')">
+                      <q-item v-if="props.row.status =='disetujui'" clickable v-close-popup @click="bukaDialogPengembalian(props.row)">
                         <q-item-section>
                           <q-item-label>Dikembalikan</q-item-label>
                         </q-item-section>
@@ -141,6 +141,74 @@
           </q-table>
         </q-card-section>
       </q-card>
+
+      <q-dialog v-model="dialogPengembalian" persistent>
+        <q-card style="width: 720px; max-width: 95vw;">
+          <q-card-section>
+            <div class="text-subtitle1 text-green-8">Pengembalian Alat - Peminjaman #{{ pengembalianRowId }}</div>
+            <div class="text-caption text-grey-7">
+              Isi jumlah <b>rusak</b> dan <b>hilang</b> per item (sisanya dianggap utuh).
+              Khusus barang habis pakai tidak perlu diisi (stok sudah berkurang saat disetujui).
+            </div>
+          </q-card-section>
+          <q-separator/>
+          <q-card-section style="max-height: 60vh" class="scroll">
+            <q-table
+              :rows="pengembalianItems"
+              :columns="pengembalianColumns"
+              row-key="jpid"
+              dense flat hide-bottom
+              :pagination="{ rowsPerPage: 0 }"
+              :loading="loadingPengembalian"
+              no-data-label="Tidak ada item yang diberikan."
+            >
+              <template v-slot:body-cell-nabar="props">
+                <q-td :props="props">
+                  {{ props.row.nabar }}
+                  <q-chip v-if="props.row.jenis_barang === 'habis_pakai'" dense size="sm" color="orange-3" text-color="orange-10">habis pakai</q-chip>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-rusak="props">
+                <q-td :props="props">
+                  <q-input
+                    v-if="props.row.jenis_barang !== 'habis_pakai'"
+                    v-model.number="props.row.rusak"
+                    type="number" dense outlined
+                    :min="0" :max="props.row.diberi"
+                    style="width:90px;"
+                  />
+                  <span v-else class="text-grey-6">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-hilang="props">
+                <q-td :props="props">
+                  <q-input
+                    v-if="props.row.jenis_barang !== 'habis_pakai'"
+                    v-model.number="props.row.hilang"
+                    type="number" dense outlined
+                    :min="0" :max="Math.max(props.row.diberi - (Number(props.row.rusak)||0), 0)"
+                    style="width:90px;"
+                  />
+                  <span v-else class="text-grey-6">-</span>
+                </q-td>
+              </template>
+              <template v-slot:body-cell-utuh="props">
+                <q-td :props="props">
+                  <span v-if="props.row.jenis_barang !== 'habis_pakai'">
+                    {{ Math.max(props.row.diberi - (Number(props.row.rusak)||0) - (Number(props.row.hilang)||0), 0) }}
+                  </span>
+                  <span v-else class="text-grey-6">-</span>
+                </q-td>
+              </template>
+            </q-table>
+          </q-card-section>
+          <q-separator/>
+          <q-card-actions align="right">
+            <q-btn flat label="Batal" color="grey-7" @click="tutupDialogPengembalian" />
+            <q-btn label="Simpan Pengembalian" color="green-7" unelevated @click="kirimPengembalian" />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
 
       <q-dialog v-model="dialogAlasanPenolakan" persistent>
         <q-card style="width: 460px; max-width: 90vw;">
@@ -209,6 +277,18 @@ setup(){
     dialogAlasanPenolakan:ref(false),
     prosesRowId:ref(null),
     alasanPenolakanInput:ref(''),
+    dialogPengembalian:ref(false),
+    pengembalianRowId:ref(null),
+    pengembalianRowKatalogId:ref(null),
+    pengembalianItems:ref([]),
+    loadingPengembalian:ref(false),
+    pengembalianColumns:[
+      { name: 'nabar', label: 'Nama Alat', field: 'nabar', align: 'left' },
+      { name: 'diberi', label: 'Diberikan', field: 'diberi', align: 'center' },
+      { name: 'rusak', label: 'Rusak', align: 'center' },
+      { name: 'hilang', label: 'Hilang', align: 'center' },
+      { name: 'utuh', label: 'Utuh', align: 'center' },
+    ],
   }
 },
 computed:{
@@ -253,6 +333,58 @@ methods:{
 
       await this.proses(this.prosesRowId,'ditolak', alasan)
       this.tutupDialogPenolakan()
+    },
+  async bukaDialogPengembalian(row){
+      this.pengembalianRowId = row.id
+      this.pengembalianRowKatalogId = row.katalog_id
+      this.pengembalianItems = []
+      this.loadingPengembalian = true
+      this.dialogPengembalian = true
+      try {
+        const res = await axios.get(`filterTopikAlat/${row.katalog_id}/${row.id}`)
+        this.pengembalianItems = (res.data || [])
+          .filter(r => Number(r.diberi) > 0)
+          .map(r => ({ ...r, rusak: 0, hilang: 0 }))
+      } catch (e) {
+        this.$toast.error('Gagal memuat item pengembalian')
+      } finally {
+        this.loadingPengembalian = false
+      }
+    },
+  tutupDialogPengembalian(){
+      this.dialogPengembalian = false
+      this.pengembalianRowId = null
+      this.pengembalianRowKatalogId = null
+      this.pengembalianItems = []
+    },
+  async kirimPengembalian(){
+      const bermasalah = this.pengembalianItems.find(r =>
+        r.jenis_barang !== 'habis_pakai' &&
+        ((Number(r.rusak)||0) + (Number(r.hilang)||0)) > Number(r.diberi)
+      )
+      if (bermasalah) {
+        this.$toast.error(`Total rusak + hilang tidak boleh melebihi diberikan (${bermasalah.nabar})`)
+        return
+      }
+      const payload = this.pengembalianItems
+        .filter(r => r.jenis_barang !== 'habis_pakai')
+        .map(r => ({
+          jpa_id: r.jpid,
+          rusak: Number(r.rusak) || 0,
+          hilang: Number(r.hilang) || 0,
+        }))
+      try {
+        await axios.put(
+          `peminjaman/alat/${this.pengembalianRowId}/dikembalikan`,
+          { pengembalian: payload }
+        )
+        this.$toast.success('Pengembalian alat dicatat')
+        this.tutupDialogPengembalian()
+        this.getData()
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Gagal mencatat pengembalian'
+        this.$toast.error(msg)
+      }
     },
   async proses($id,$data,$alasanPenolakan=null){
         const payload = $data === 'ditolak'

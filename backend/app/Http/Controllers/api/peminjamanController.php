@@ -8,6 +8,8 @@ use App\Models\jumlah_pinjam;
 use App\Models\jumlah_pinjam_alat;
 use App\Models\classroom;
 use App\Models\informasi_terkini;
+use App\Models\inventaris;
+use App\Models\inventaris_mutation;
 use App\Models\notifikasi_user;
 use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
@@ -96,6 +98,71 @@ class peminjamanController extends Controller
     }
 
     /**
+     * Hitung stok efektif untuk satu inventaris pada rentang waktu peminjaman alat.
+     *
+     * Stok efektif = inventaris.jml - SUM(diberi) dari peminjaman aset
+     * yang berstatus 'disetujui' (belum 'dikembalikan'), pada katalog yang
+     * memuat inventaris ini, dan rentang waktunya overlap dengan rentang baru.
+     *
+     * Untuk barang habis_pakai, reservasi tidak dihitung — stok mereka dikurangi
+     * permanen lewat inventaris_mutations saat disetujui (lihat Tahap 3).
+     *
+     * @param  int    $inventarisId
+     * @param  string $tglPakai     YYYY-MM-DD
+     * @param  string $jamPakai     HH:mm[:ss]
+     * @param  string $tglKembali   YYYY-MM-DD
+     * @param  string $jamKembali   HH:mm[:ss]
+     * @param  int|null $ignorePinjamAlatId  id pinjam_alat yang sedang diedit
+     * @return int    stok yang masih bisa dipinjam pada rentang itu (min 0)
+     */
+    private function stokEfektifInventaris(
+        int $inventarisId,
+        string $tglPakai,
+        string $jamPakai,
+        string $tglKembali,
+        string $jamKembali,
+        $ignorePinjamAlatId = null
+    ): int {
+        $inv = inventaris::find($inventarisId);
+        if (!$inv) {
+            return 0;
+        }
+        $stokTotal = (int) $inv->jml;
+
+        // Untuk barang habis_pakai, stok tidak direservasi; jadi pakai stok total.
+        if (($inv->jenis_barang ?? 'aset') === 'habis_pakai') {
+            return max($stokTotal, 0);
+        }
+
+        $mulaiBaru = $tglPakai . ' ' . $jamPakai;
+        $selesaiBaru = $tglKembali . ' ' . $jamKembali;
+
+        // Cari semua data_katalog yang merujuk inventaris ini
+        $dataKatalogIds = DB::table('data_katalogs')
+            ->where('inventaris_id', $inventarisId)
+            ->pluck('id');
+
+        if ($dataKatalogIds->isEmpty()) {
+            return max($stokTotal, 0);
+        }
+
+        $query = DB::table('jumlah_pinjam_alats as jpa')
+            ->join('pinjam_alats as pa', 'jpa.pinjam_alat_id', '=', 'pa.id')
+            ->whereIn('jpa.data_katalog_id', $dataKatalogIds)
+            ->where('pa.status', 'disetujui')
+            ->whereRaw("CONCAT(pa.tgl_pakai, ' ', pa.jam_pakai) < ?", [$selesaiBaru])
+            ->whereRaw("CONCAT(pa.tgl_kembali, ' ', pa.jam_kembali) > ?", [$mulaiBaru]);
+
+        if (!empty($ignorePinjamAlatId)) {
+            $query->where('pa.id', '!=', $ignorePinjamAlatId);
+        }
+
+        $terpakai = (int) $query->sum('jpa.diberi');
+
+        return max($stokTotal - $terpakai, 0);
+    }
+
+    /**
      * Validasi bentrok jadwal pada tabel peminjaman tertentu.
      *
      * Rule overlap: start_baru < selesai_lama DAN selesai_baru > start_lama.
@@ -155,6 +222,115 @@ class peminjamanController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Saat peminjaman alat disetujui:
+     * - Untuk barang habis_pakai → catat mutasi 'keluar' (stok berkurang permanen).
+     * - Untuk aset → tidak ada mutasi (reservasi virtual via stok efektif).
+     *
+     * Idempotent: melewati item yang sudah pernah dicatat (cek keterangan).
+     */
+    private function prosesMutasiAlatDisetujui(pinjam_alat $proses): void
+    {
+        $items = jumlah_pinjam_alat::with('data_katalog.inventaris')
+            ->where('pinjam_alat_id', $proses->id)
+            ->where('diberi', '>', 0)
+            ->get();
+
+        foreach ($items as $jpa) {
+            $inv = optional($jpa->data_katalog)->inventaris;
+            if (!$inv) {
+                continue;
+            }
+            if (($inv->jenis_barang ?? 'aset') !== 'habis_pakai') {
+                continue;
+            }
+
+            $keterangan = "Peminjaman alat #{$proses->id} disetujui (consumable)";
+            $sudahDicatat = inventaris_mutation::where('inventaris_id', $inv->id)
+                ->where('jenis', 'keluar')
+                ->where('keterangan', $keterangan)
+                ->exists();
+            if ($sudahDicatat) {
+                continue;
+            }
+
+            inventaris_mutation::create([
+                'inventaris_id' => $inv->id,
+                'tahun' => (int) date('Y'),
+                'qty' => (int) $jpa->diberi,
+                'jenis' => 'keluar',
+                'keterangan' => $keterangan,
+                'created_by' => auth()->id(),
+            ]);
+        }
+    }
+
+    /**
+     * Saat peminjaman alat dikembalikan:
+     * - Terima opsional payload 'pengembalian' (array) berisi kondisi per item:
+     *   [{ jpa_id, rusak, hilang }]. Sisa (utuh) dihitung otomatis.
+     * - Untuk aset: rusak + hilang → mutasi 'keluar' (stok berkurang permanen).
+     *   Yang utuh → reservasi otomatis dilepas (cuma status berubah, tidak ada mutasi).
+     * - Untuk consumable: pengembalian tidak relevan (sudah jadi mutasi keluar saat disetujui).
+     *
+     * Jika payload tidak dikirim, default semua utuh.
+     */
+    private function prosesMutasiAlatDikembalikan(pinjam_alat $proses, array $payload = []): void
+    {
+        $byJpaId = [];
+        foreach ($payload as $row) {
+            if (!empty($row['jpa_id'])) {
+                $byJpaId[(int) $row['jpa_id']] = $row;
+            }
+        }
+
+        $items = jumlah_pinjam_alat::with('data_katalog.inventaris')
+            ->where('pinjam_alat_id', $proses->id)
+            ->where('diberi', '>', 0)
+            ->get();
+
+        foreach ($items as $jpa) {
+            $inv = optional($jpa->data_katalog)->inventaris;
+            if (!$inv) {
+                continue;
+            }
+            // Consumable tidak diproses kembali (sudah keluar permanen)
+            if (($inv->jenis_barang ?? 'aset') === 'habis_pakai') {
+                continue;
+            }
+
+            $diberi = (int) $jpa->diberi;
+            $info = $byJpaId[$jpa->id] ?? [];
+            $rusak = max(0, (int) ($info['rusak'] ?? 0));
+            $hilang = max(0, (int) ($info['hilang'] ?? 0));
+            $rusak = min($rusak, $diberi);
+            $hilang = min($hilang, max($diberi - $rusak, 0));
+            $keluarPermanen = $rusak + $hilang;
+
+            if ($keluarPermanen <= 0) {
+                continue;
+            }
+
+            $keterangan = "Peminjaman alat #{$proses->id} dikembalikan - rusak: {$rusak}, hilang: {$hilang}";
+            $sudahDicatat = inventaris_mutation::where('inventaris_id', $inv->id)
+                ->where('jenis', 'keluar')
+                ->where('keterangan', $keterangan)
+                ->exists();
+            if ($sudahDicatat) {
+                continue;
+            }
+
+            inventaris_mutation::create([
+                'inventaris_id' => $inv->id,
+                'tahun' => (int) date('Y'),
+                'qty' => $keluarPermanen,
+                'jenis' => 'keluar',
+                'keterangan' => $keterangan,
+                'created_by' => auth()->id(),
+            ]);
+        }
     }
 
     public function index()
@@ -353,6 +529,20 @@ class peminjamanController extends Controller
                 'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
             ]);
 
+            // Trigger mutasi stok inventaris sesuai transisi status.
+            // - disetujui: catat 'keluar' untuk barang habis_pakai
+            // - dikembalikan: catat 'keluar' untuk aset yang rusak/hilang
+            // Untuk aset yang utuh, reservasi virtual dilepas otomatis lewat status.
+            if ($data === 'disetujui') {
+                $this->prosesMutasiAlatDisetujui($proses);
+            } elseif ($data === 'dikembalikan') {
+                $payload = request('pengembalian');
+                $this->prosesMutasiAlatDikembalikan(
+                    $proses,
+                    is_array($payload) ? $payload : []
+                );
+            }
+
             $pesan = 'Pengajuan peminjaman alat Anda telah ' . $data . '.';
             if ($data === 'ditolak' && $alasanPenolakan) {
                 $pesan .= ' Alasan: ' . $alasanPenolakan;
@@ -429,10 +619,46 @@ class peminjamanController extends Controller
         $data=DB::table('data_katalogs as dakat')
         ->leftJoin('inventaris as inv','dakat.inventaris_id','=','inv.id')
         ->leftJoin('jumlah_pinjam_alats as jp','dakat.id','=','jp.data_katalog_id')
-        ->select('dakat.*','inv.nabar','inv.jml','inv.noreg','jp.minta','jp.diberi','jp.id as jpid')
+        ->select(
+            'dakat.*',
+            'inv.id as inventaris_id',
+            'inv.nabar',
+            'inv.jml as jml_total',
+            'inv.jenis_barang',
+            'inv.noreg',
+            'jp.minta',
+            'jp.diberi',
+            'jp.id as jpid'
+        )
         ->where('dakat.katalog_id',$id)
         ->where('jp.pinjam_alat_id',$paid)
         ->get();
+
+        // Hitung stok efektif berdasarkan rentang waktu pengajuan ini
+        $pinjamAlat = pinjam_alat::find($paid);
+        if ($pinjamAlat && $pinjamAlat->tgl_pakai && $pinjamAlat->jam_pakai
+            && $pinjamAlat->tgl_kembali && $pinjamAlat->jam_kembali) {
+            foreach ($data as $row) {
+                if (empty($row->inventaris_id)) {
+                    $row->jml = (int) ($row->jml_total ?? 0);
+                    continue;
+                }
+                $row->jml = $this->stokEfektifInventaris(
+                    (int) $row->inventaris_id,
+                    $pinjamAlat->tgl_pakai,
+                    $pinjamAlat->jam_pakai,
+                    $pinjamAlat->tgl_kembali,
+                    $pinjamAlat->jam_kembali,
+                    $paid
+                );
+            }
+        } else {
+            // Fallback bila rentang waktu belum lengkap: pakai stok total
+            foreach ($data as $row) {
+                $row->jml = (int) ($row->jml_total ?? 0);
+            }
+        }
+
         return response()->json($data);
     }
     public function jumlahPinjamPost(Request $request)
@@ -470,20 +696,32 @@ class peminjamanController extends Controller
             }
 
             $minta = (int) $request->minta;
-            $stokTersedia = (int) DB::table('data_katalogs as dakat')
-                ->leftJoin('inventaris as inv', 'dakat.inventaris_id', '=', 'inv.id')
-                ->where('dakat.id', $update->data_katalog_id)
-                ->value('inv.jml');
-
             if ($minta < 0) {
                 return response()->json([
                     'message' => 'Jumlah diajukan tidak boleh kurang dari 0.'
                 ], 422);
             }
 
+            // Stok efektif: dihitung pada rentang waktu pengajuan ini
+            // (memperhitungkan reservasi peminjaman lain yang masih 'disetujui').
+            $inventarisId = (int) DB::table('data_katalogs')
+                ->where('id', $update->data_katalog_id)
+                ->value('inventaris_id');
+
+            $stokTersedia = $inventarisId
+                ? $this->stokEfektifInventaris(
+                    $inventarisId,
+                    $pinjamAlat->tgl_pakai,
+                    $pinjamAlat->jam_pakai,
+                    $pinjamAlat->tgl_kembali,
+                    $pinjamAlat->jam_kembali,
+                    $pinjamAlat->id
+                )
+                : 0;
+
             if ($minta > $stokTersedia) {
                 return response()->json([
-                    'message' => 'Jumlah diajukan tidak boleh melebihi jumlah tersedia.'
+                    'message' => "Jumlah diajukan ({$minta}) melebihi stok yang tersedia pada rentang waktu tersebut ({$stokTersedia})."
                 ], 422);
             }
 
@@ -526,6 +764,30 @@ class peminjamanController extends Controller
                 return response()->json([
                     'message' => 'Jumlah diberikan tidak boleh melebihi jumlah diajukan.'
                 ], 422);
+            }
+
+            // Validasi stok efektif agar laboran tidak memberi lebih dari yang tersedia
+            // pada rentang waktu pengajuan ini.
+            $pinjamAlat = pinjam_alat::find($update->pinjam_alat_id);
+            if ($pinjamAlat) {
+                $inventarisId = (int) DB::table('data_katalogs')
+                    ->where('id', $update->data_katalog_id)
+                    ->value('inventaris_id');
+                if ($inventarisId) {
+                    $stokTersedia = $this->stokEfektifInventaris(
+                        $inventarisId,
+                        $pinjamAlat->tgl_pakai,
+                        $pinjamAlat->jam_pakai,
+                        $pinjamAlat->tgl_kembali,
+                        $pinjamAlat->jam_kembali,
+                        $pinjamAlat->id
+                    );
+                    if ($diberi > $stokTersedia) {
+                        return response()->json([
+                            'message' => "Jumlah diberikan ({$diberi}) melebihi stok yang tersedia pada rentang waktu tersebut ({$stokTersedia})."
+                        ], 422);
+                    }
+                }
             }
 
             $update->update([
@@ -592,6 +854,18 @@ class peminjamanController extends Controller
 
         if (!$this->guruCanUseKelas($request->kelas_id)) {
             return $this->rejectUnauthorizedGuruKelas();
+        }
+
+        // Validasi rentang tanggal & jam pakai-kembali logis.
+        $mulai = $request->tgl_pakai . ' ' . $request->jam_pakai;
+        $selesai = $request->tgl_kembali . ' ' . $request->jam_kembali;
+        if (strtotime($selesai) <= strtotime($mulai)) {
+            $sameDay = $request->tgl_pakai === $request->tgl_kembali;
+            return response()->json([
+                'message' => $sameDay
+                    ? 'Jam kembali harus lebih besar dari jam pakai.'
+                    : 'Tanggal/jam kembali harus setelah tanggal/jam pakai.',
+            ], 422);
         }
 
         $data=pinjam_alat::updateOrCreate(['id'=>$request->id],[

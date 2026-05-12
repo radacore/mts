@@ -37,7 +37,7 @@
                         <q-icon name="search" />
                       </template>
                     </q-input>
-                    <q-btn label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="bukaTambah" />
+                    <q-btn v-if="user.user.role_id==3" label="Input" class="q-ml-md" icon="o_add" color="green-7" @click="bukaTambah" />
                   </template>
                   <template v-slot:header-cell-copy="props">
                     <q-th :props="props">

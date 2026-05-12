@@ -296,10 +296,7 @@ class peminjamanController extends Controller
             if (!$inv) {
                 continue;
             }
-            // Consumable tidak diproses kembali (sudah keluar permanen)
-            if (($inv->jenis_barang ?? 'aset') === 'habis_pakai') {
-                continue;
-            }
+            $isHabisPakai = (($inv->jenis_barang ?? 'aset') === 'habis_pakai');
 
             $diberi = (int) $jpa->diberi;
             $info = $byJpaId[$jpa->id] ?? [];
@@ -307,8 +304,20 @@ class peminjamanController extends Controller
             $hilang = max(0, (int) ($info['hilang'] ?? 0));
             $rusak = min($rusak, $diberi);
             $hilang = min($hilang, max($diberi - $rusak, 0));
-            $keluarPermanen = $rusak + $hilang;
 
+            // Simpan kondisi pengembalian ke jumlah_pinjam_alats (audit per-peminjaman).
+            // Untuk habis_pakai: rusak/hilang dipaksa 0 (sudah keluar permanen saat disetujui).
+            $jpa->update([
+                'rusak' => $isHabisPakai ? 0 : $rusak,
+                'hilang' => $isHabisPakai ? 0 : $hilang,
+            ]);
+
+            // Consumable tidak buat mutasi tambahan (sudah keluar saat disetujui)
+            if ($isHabisPakai) {
+                continue;
+            }
+
+            $keluarPermanen = $rusak + $hilang;
             if ($keluarPermanen <= 0) {
                 continue;
             }
@@ -331,6 +340,27 @@ class peminjamanController extends Controller
                 'created_by' => auth()->id(),
             ]);
         }
+    }
+
+    /**
+     * Tambahkan field ringkasan kondisi pengembalian agar bisa ditampilkan
+     * di list view (chip status):
+     * - total_diberi, total_rusak, total_hilang
+     * - has_kerusakan (bool)
+     */
+    private function appendRingkasanKondisi($pinjamAlat): void
+    {
+        $items = $pinjamAlat->jumlahPinjamAlats ?? collect();
+        $totalDiberi = 0; $totalRusak = 0; $totalHilang = 0;
+        foreach ($items as $jp) {
+            $totalDiberi += (int) ($jp->diberi ?? 0);
+            $totalRusak += (int) ($jp->rusak ?? 0);
+            $totalHilang += (int) ($jp->hilang ?? 0);
+        }
+        $pinjamAlat->total_diberi = $totalDiberi;
+        $pinjamAlat->total_rusak = $totalRusak;
+        $pinjamAlat->total_hilang = $totalHilang;
+        $pinjamAlat->has_kerusakan = ($totalRusak + $totalHilang) > 0;
     }
 
     public function index()
@@ -429,7 +459,8 @@ class peminjamanController extends Controller
     }
     public function peminjamanAlat()
     {
-        $data=pinjam_alat::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak','dikembalikan'])->latest()->get();
+        $data=pinjam_alat::with(['kelas','katalog','user','modulLkpd.uploader','jumlahPinjamAlats'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak','dikembalikan'])->latest()->get();
+        $data->each(function ($row) { $this->appendRingkasanKondisi($row); });
         return response()->json($data);
     }
     public function peminjamanLabProses($id,$data)
@@ -628,6 +659,8 @@ class peminjamanController extends Controller
             'inv.noreg',
             'jp.minta',
             'jp.diberi',
+            'jp.rusak',
+            'jp.hilang',
             'jp.id as jpid'
         )
         ->where('dakat.katalog_id',$id)
@@ -828,13 +861,14 @@ class peminjamanController extends Controller
     {
         $user = Auth()->User();
         if ($user->role_id == 2 || $user->role_id == 1) {
-             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader'])->latest()->get();
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader','jumlahPinjamAlats'])->latest()->get();
         } else {
-             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader'])
+             $data = pinjam_alat::with(['katalog','kelas','user.bioguru','modulLkpd.uploader','jumlahPinjamAlats'])
                 ->where('user_id', $user->id)
                 ->latest()
                 ->get();
         }
+        $data->each(function ($row) { $this->appendRingkasanKondisi($row); });
         return response()->json($data);
     }
     public function pinjamAlatPost(Request $request)

@@ -26,6 +26,15 @@ class pinjam_alat extends Model
     	return $this->hasOne('App\Models\jumlah_pinjam_alat');
     }
 
+    /**
+     * Semua item dalam pengajuan (data per data_katalog).
+     * Berbeda dengan jumlah_pinjam_alat() (hasOne legacy), ini hasMany.
+     */
+    public function jumlahPinjamAlats()
+    {
+        return $this->hasMany(jumlah_pinjam_alat::class, 'pinjam_alat_id', 'id');
+    }
+
     public function modulLkpd()
     {
         return $this->belongsToMany(ModulLkpd::class, 'pinjam_alat_modul_lkpd', 'pinjam_alat_id', 'modul_lkpd_id')

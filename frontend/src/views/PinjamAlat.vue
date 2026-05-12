@@ -96,6 +96,13 @@
                         </q-chip>
                       </div>
                       <div
+                        v-if="props.row.status === 'dikembalikan' && props.row.has_kerusakan"
+                        class="text-caption text-orange-9 q-mt-xs text-center"
+                      >
+                        <q-icon name="warning" size="14px" class="q-mr-xs" />
+                        {{ props.row.total_rusak || 0 }} rusak, {{ props.row.total_hilang || 0 }} hilang
+                      </div>
+                      <div
                         v-if="props.row.status==='ditolak'"
                         class="text-caption text-negative q-mt-xs"
                       >
@@ -123,7 +130,7 @@
                               <q-item-section>ditolak</q-item-section>
                             </q-item>
                           </template>
-                          <q-item v-if="props.row.status === 'disetujui'" clickable v-close-popup @click="ubahStatus(props.row.id,'dikembalikan')">
+                          <q-item v-if="props.row.status === 'disetujui'" clickable v-close-popup @click="bukaDialogPengembalian(props.row)">
                             <q-item-section>dikembalikan</q-item-section>
                           </q-item>
                         </q-list>
@@ -395,6 +402,13 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
+
+      <DialogPengembalianAlat
+        v-model="dialogPengembalian"
+        :pinjam-alat-id="pengembalianPaid"
+        :katalog-id="pengembalianKatalogId"
+        @submitted="onPengembalianSubmitted"
+      />
   </q-page>
 </template>
 
@@ -405,6 +419,7 @@ import { ref } from '@vue/reactivity';
 import ListAlat from '@/components/ListAlat.vue';
 import KopiAlat from '@/components/KopiAlat.vue';
 import BuktiAlat from '@/components/BuktiAlat.vue';
+import DialogPengembalianAlat from '@/components/DialogPengembalianAlat.vue';
 import moment from "moment";
 import "moment/locale/id";
 moment.locale("id");
@@ -413,6 +428,7 @@ components:{
   ListAlat,
   KopiAlat,
   BuktiAlat,
+  DialogPengembalianAlat,
 },
 setup(){
     const columns = [
@@ -455,6 +471,9 @@ setup(){
         dialogAlasanPenolakan:ref(false),
         prosesRowId:ref(null),
         alasanPenolakanInput:ref(''),
+        dialogPengembalian:ref(false),
+        pengembalianPaid:ref(null),
+        pengembalianKatalogId:ref(null),
     }
 },
 data:()=>({
@@ -678,6 +697,15 @@ methods:{
       this.prosesRowId = id
       this.alasanPenolakanInput = ''
       this.dialogAlasanPenolakan = true
+    },
+    bukaDialogPengembalian(row){
+      this.pengembalianPaid = row.id
+      this.pengembalianKatalogId = row.katalog_id
+      this.dialogPengembalian = true
+    },
+    onPengembalianSubmitted(){
+      this.dialogPengembalian = false
+      this.getPinjamAlat()
     },
     tutupDialogPenolakan(){
       this.dialogAlasanPenolakan = false

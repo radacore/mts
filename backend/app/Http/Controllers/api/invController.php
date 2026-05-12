@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 class invController extends Controller
 {
     private const OUTGOING_MUTATION_TYPES = ['keluar', 'pemutihan'];
+    private const DAMAGE_MUTATION_TYPE = 'rusak';
     private const WHITENING_CONDITIONS = ['baik', 'rusak'];
 
     private function outgoingTypeLabel(string $jenis): string
@@ -58,6 +59,13 @@ class invController extends Controller
             $inventaris->konrusak = max((int) $inventaris->konrusak + $delta, 0);
         }
 
+        $inventaris->save();
+    }
+
+    private function applyDamageDelta(inventaris $inventaris, int $delta): void
+    {
+        $inventaris->konbaik = max((int) $inventaris->konbaik - $delta, 0);
+        $inventaris->konrusak = max((int) $inventaris->konrusak + $delta, 0);
         $inventaris->save();
     }
 
@@ -114,6 +122,15 @@ class invController extends Controller
             $inventaris->konrusak = 0;
             $inventaris->konbaik = $stok;
         } else {
+            $rusak = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
+                ->where('jenis', self::DAMAGE_MUTATION_TYPE)
+                ->sum('qty');
+            $pemutihanRusak = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
+                ->where('jenis', 'pemutihan')
+                ->where('kondisi_asal', 'rusak')
+                ->sum('qty');
+
+            $inventaris->konrusak = max($rusak - $pemutihanRusak, 0);
             $inventaris->konbaik = max($stok - (int) $inventaris->konrusak, 0);
         }
 
@@ -331,7 +348,7 @@ class invController extends Controller
         $request->validate([
             'tahun' => 'required|digits:4',
             'qty' => 'required|integer|min:1',
-            'jenis' => 'nullable|in:masuk,keluar,pemutihan',
+            'jenis' => 'nullable|in:masuk,keluar,pemutihan,rusak',
             'keterangan' => 'nullable|string|max:255',
             'kondisi_asal' => 'nullable|in:baik,rusak',
         ]);
@@ -354,6 +371,12 @@ class invController extends Controller
             ], 422);
         }
 
+        if ($jenis === self::DAMAGE_MUTATION_TYPE && (int) $request->qty > (int) $inventaris->konbaik) {
+            return response()->json([
+                'message' => 'Qty rusak melebihi stok baik tersedia',
+            ], 422);
+        }
+
         if ($jenis === 'keluar' && (int) $request->qty > (int) $inventaris->jml) {
             return response()->json([
                 'message' => 'Qty ' . $this->outgoingTypeLabel($jenis) . ' melebihi stok tersedia',
@@ -373,6 +396,8 @@ class invController extends Controller
 
             if ($jenis === 'pemutihan') {
                 $this->applyConditionDelta($inventaris, $kondisiAsal, -((int) $request->qty));
+            } elseif ($jenis === self::DAMAGE_MUTATION_TYPE) {
+                $this->applyDamageDelta($inventaris, (int) $request->qty);
             }
 
             $this->syncStockFromMutations($inventaris);
@@ -384,6 +409,8 @@ class invController extends Controller
             $message = 'Riwayat pemakaian berhasil disimpan';
         } elseif ($jenis === 'pemutihan') {
             $message = 'Riwayat pemutihan berhasil disimpan';
+        } elseif ($jenis === self::DAMAGE_MUTATION_TYPE) {
+            $message = 'Riwayat kerusakan berhasil disimpan';
         } else {
             $message = 'Penambahan stok berhasil disimpan';
         }
@@ -402,7 +429,7 @@ class invController extends Controller
         $request->validate([
             'tahun' => 'required|digits:4',
             'qty' => 'required|integer|min:1',
-            'jenis' => 'required|in:initial,masuk,keluar,pemutihan',
+            'jenis' => 'required|in:initial,masuk,keluar,pemutihan,rusak',
             'keterangan' => 'nullable|string|max:255',
             'kondisi_asal' => 'nullable|in:baik,rusak',
         ]);
@@ -441,6 +468,18 @@ class invController extends Controller
             }
         }
 
+        if ($request->jenis === self::DAMAGE_MUTATION_TYPE) {
+            $stokBaik = (int) $inventaris->konbaik;
+            if ($riwayat->jenis === self::DAMAGE_MUTATION_TYPE) {
+                $stokBaik += (int) $riwayat->qty;
+            }
+            if ((int) $request->qty > $stokBaik) {
+                return response()->json([
+                    'message' => 'Qty rusak melebihi stok baik tersedia',
+                ], 422);
+            }
+        }
+
         if ($request->jenis === 'keluar') {
             $stokTersedia = $this->availableStockExcludingMutation((int) $id, (int) $riwayatId);
             if ((int) $request->qty > $stokTersedia) {
@@ -457,6 +496,8 @@ class invController extends Controller
                     $this->resolveWhiteningCondition($riwayat->kondisi_asal ?? null),
                     (int) $riwayat->qty
                 );
+            } elseif ($riwayat->jenis === self::DAMAGE_MUTATION_TYPE) {
+                $this->applyDamageDelta($inventaris, -((int) $riwayat->qty));
             }
 
             $riwayat->update([
@@ -469,6 +510,8 @@ class invController extends Controller
 
             if ($request->jenis === 'pemutihan') {
                 $this->applyConditionDelta($inventaris, $kondisiAsal, -((int) $request->qty));
+            } elseif ($request->jenis === self::DAMAGE_MUTATION_TYPE) {
+                $this->applyDamageDelta($inventaris, (int) $request->qty);
             }
 
             $this->syncStockFromMutations($inventaris);
@@ -500,6 +543,8 @@ class invController extends Controller
                     $this->resolveWhiteningCondition($riwayat->kondisi_asal ?? null),
                     (int) $riwayat->qty
                 );
+            } elseif ($riwayat->jenis === self::DAMAGE_MUTATION_TYPE) {
+                $this->applyDamageDelta($inventaris, -((int) $riwayat->qty));
             }
 
             $riwayat->delete();

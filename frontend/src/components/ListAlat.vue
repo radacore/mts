@@ -60,7 +60,7 @@
                   {{props.row.minta}}
               </q-avatar>
               <q-popup-edit
-                v-if="user.user.role_id==1 || user.user.role_id==3"
+                v-if="canEditMinta"
                 v-model="props.row.minta"
                 title="diajukan"
                 buttons
@@ -90,7 +90,7 @@
                   {{props.row.diberi}}
               </q-avatar>
               <q-popup-edit
-                v-if="user.user.role_id==2 || user.user.role_id==1"
+                v-if="canEditDiberi"
                 v-model="props.row.diberi"
                 title="diberikan"
                 buttons
@@ -168,6 +168,12 @@
   },
   isGuruFinal() {
     return this.user?.user?.role_id === 3 && this.status !== 'diajukan'
+  },
+  canEditMinta() {
+    return this.user?.user?.role_id === 3 && this.status === 'diajukan'
+  },
+  canEditDiberi() {
+    return [1, 2].includes(this.user?.user?.role_id) && this.status === 'diajukan'
   },
   filteredDatas() {
     const roleId = this.user?.user?.role_id

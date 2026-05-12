@@ -377,6 +377,7 @@ setup(){
     const jenisMutasiOptions = [
       { label: 'Penambahan', value: 'masuk' },
       { label: 'Pemakaian', value: 'keluar' },
+      { label: 'Rusak', value: 'rusak' },
       { label: 'Pemutihan', value: 'pemutihan' },
     ]
 
@@ -676,6 +677,7 @@ methods:{
       if (jenis === 'initial') return 'Data Awal'
       if (jenis === 'masuk') return 'Penambahan'
       if (jenis === 'keluar') return 'Pemakaian'
+      if (jenis === 'rusak') return 'Rusak'
       if (jenis === 'pemutihan') return 'Pemutihan'
       return jenis
     },
@@ -688,6 +690,7 @@ methods:{
       if (jenis === 'initial') return { label: 'Data Awal', color: 'grey-7' }
       if (jenis === 'masuk') return { label: 'Penambahan', color: 'green-7' }
       if (jenis === 'keluar') return { label: 'Pemakaian', color: 'orange-8' }
+      if (jenis === 'rusak') return { label: 'Rusak', color: 'deep-orange-7' }
       if (jenis === 'pemutihan') return { label: `Pemutihan ${this.labelKondisiPemutihan(kondisiAsal)}`, color: 'red-8' }
       return { label: this.labelJenis(jenis), color: 'blue-grey-7' }
     },

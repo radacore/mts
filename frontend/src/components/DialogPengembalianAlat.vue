@@ -5,7 +5,7 @@
         <div>
           <div class="text-subtitle1 text-green-8">Pengembalian Alat - Peminjaman #{{ pinjamAlatId }}</div>
           <div class="text-caption text-grey-7">
-            Isi jumlah <b>rusak</b> dan <b>hilang</b> per item. Sisanya otomatis dianggap utuh.
+            Isi jumlah <b>rusak</b> per item. Sisanya otomatis dianggap utuh.
           </div>
         </div>
       </q-card-section>
@@ -25,8 +25,14 @@
           dense flat hide-bottom
           :pagination="{ rowsPerPage: 0 }"
           :loading="loading"
-          no-data-label="Tidak ada item yang diberikan."
+          no-data-label="Tidak ada data alat pada topik ini."
         >
+          <template v-slot:no-data>
+            <div class="full-width row flex-center text-grey-7 q-gutter-sm q-pa-md">
+              <q-icon name="info" size="sm" />
+              <span>Tidak ada data alat pada topik ini.</span>
+            </div>
+          </template>
           <template v-slot:body-cell-nabar="props">
             <q-td :props="props">
               <div class="row items-center q-gutter-xs">
@@ -45,19 +51,6 @@
                 v-model.number="props.row.rusak"
                 type="number" dense outlined
                 :min="0" :max="props.row.diberi"
-                style="width:90px;"
-                @update:model-value="clampRow(props.row)"
-              />
-              <span v-else class="text-grey-6">—</span>
-            </q-td>
-          </template>
-          <template v-slot:body-cell-hilang="props">
-            <q-td :props="props">
-              <q-input
-                v-if="props.row.jenis_barang !== 'habis_pakai'"
-                v-model.number="props.row.hilang"
-                type="number" dense outlined
-                :min="0" :max="Math.max(props.row.diberi - (Number(props.row.rusak)||0), 0)"
                 style="width:90px;"
                 @update:model-value="clampRow(props.row)"
               />
@@ -104,7 +97,6 @@ export default {
         { name: 'nabar', label: 'Nama Alat', field: 'nabar', align: 'left' },
         { name: 'diberi', label: 'Diberikan', field: 'diberi', align: 'center' },
         { name: 'rusak', label: 'Rusak', align: 'center' },
-        { name: 'hilang', label: 'Hilang', align: 'center' },
         { name: 'utuh', label: 'Utuh', align: 'center' },
       ],
     }
@@ -127,16 +119,14 @@ export default {
   methods: {
     utuhRow(row) {
       return Math.max(
-        Number(row.diberi || 0) - (Number(row.rusak) || 0) - (Number(row.hilang) || 0),
+        Number(row.diberi || 0) - (Number(row.rusak) || 0),
         0
       )
     },
     clampRow(row) {
-      // Pastikan rusak & hilang non-negatif dan jumlahnya tidak melebihi diberi
+      // Pastikan rusak non-negatif dan tidak melebihi jumlah diberikan
       const diberi = Number(row.diberi || 0)
       row.rusak = Math.max(0, Math.min(Number(row.rusak) || 0, diberi))
-      const sisaUntukHilang = Math.max(diberi - row.rusak, 0)
-      row.hilang = Math.max(0, Math.min(Number(row.hilang) || 0, sisaUntukHilang))
     },
     async muatItems() {
       if (!this.pinjamAlatId || !this.katalogId) return
@@ -144,12 +134,16 @@ export default {
       try {
         const res = await axios.get(`filterTopikAlat/${this.katalogId}/${this.pinjamAlatId}`)
         this.items = (res.data || [])
+          .map(r => {
+            const diberi = Number(r.diberi_asli ?? r.diberi ?? 0)
+            return {
+              ...r,
+              nabar: r.nabar || r.nama_barang || r.nama_alat || '-',
+              diberi,
+              rusak: Number(r.rusak) || 0,
+            }
+          })
           .filter(r => Number(r.diberi) > 0)
-          .map(r => ({
-            ...r,
-            rusak: Number(r.rusak) || 0,
-            hilang: Number(r.hilang) || 0,
-          }))
       } catch (e) {
         this.$toast?.error?.('Gagal memuat item pengembalian')
       } finally {
@@ -160,13 +154,13 @@ export default {
       this.show = false
     },
     async kirim() {
-      // Validasi: rusak + hilang <= diberi (sudah di-clamp tapi double-check)
+      // Validasi: rusak <= diberi (sudah di-clamp tapi double-check)
       const bermasalah = this.items.find(r =>
         r.jenis_barang !== 'habis_pakai' &&
-        ((Number(r.rusak) || 0) + (Number(r.hilang) || 0)) > Number(r.diberi)
+        (Number(r.rusak) || 0) > Number(r.diberi)
       )
       if (bermasalah) {
-        this.$toast?.error?.(`Total rusak + hilang tidak boleh melebihi diberikan (${bermasalah.nabar})`)
+        this.$toast?.error?.(`Jumlah rusak tidak boleh melebihi diberikan (${bermasalah.nabar})`)
         return
       }
       const payload = this.items
@@ -174,7 +168,6 @@ export default {
         .map(r => ({
           jpa_id: r.jpid,
           rusak: Number(r.rusak) || 0,
-          hilang: Number(r.hilang) || 0,
         }))
       this.submitting = true
       try {

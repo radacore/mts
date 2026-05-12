@@ -270,8 +270,8 @@ class peminjamanController extends Controller
     /**
      * Saat peminjaman alat dikembalikan:
      * - Terima opsional payload 'pengembalian' (array) berisi kondisi per item:
-     *   [{ jpa_id, rusak, hilang }]. Sisa (utuh) dihitung otomatis.
-     * - Untuk aset: rusak + hilang → mutasi 'keluar' (stok berkurang permanen).
+     *   [{ jpa_id, rusak }]. Sisa (utuh) dihitung otomatis.
+     * - Untuk aset: rusak memindahkan kondisi baik → rusak tanpa mengurangi total stok.
      *   Yang utuh → reservasi otomatis dilepas (cuma status berubah, tidak ada mutasi).
      * - Untuk consumable: pengembalian tidak relevan (sudah jadi mutasi keluar saat disetujui).
      *
@@ -288,7 +288,15 @@ class peminjamanController extends Controller
 
         $items = jumlah_pinjam_alat::with('data_katalog.inventaris')
             ->where('pinjam_alat_id', $proses->id)
-            ->where('diberi', '>', 0)
+            ->where(function ($query) {
+                $query->where('diberi', '>', 0)
+                    ->orWhere(function ($q) {
+                        $q->where(function ($qq) {
+                                $qq->whereNull('diberi')->orWhere('diberi', 0);
+                            })
+                            ->where('minta', '>', 0);
+                    });
+            })
             ->get();
 
         foreach ($items as $jpa) {
@@ -298,18 +306,17 @@ class peminjamanController extends Controller
             }
             $isHabisPakai = (($inv->jenis_barang ?? 'aset') === 'habis_pakai');
 
-            $diberi = (int) $jpa->diberi;
+            $diberi = $this->jumlahDiberikanAlat($jpa);
             $info = $byJpaId[$jpa->id] ?? [];
             $rusak = max(0, (int) ($info['rusak'] ?? 0));
-            $hilang = max(0, (int) ($info['hilang'] ?? 0));
             $rusak = min($rusak, $diberi);
-            $hilang = min($hilang, max($diberi - $rusak, 0));
 
             // Simpan kondisi pengembalian ke jumlah_pinjam_alats (audit per-peminjaman).
-            // Untuk habis_pakai: rusak/hilang dipaksa 0 (sudah keluar permanen saat disetujui).
+            // Untuk habis_pakai: rusak dipaksa 0 (sudah keluar permanen saat disetujui).
+            // Field hilang tidak digunakan lagi dan selalu di-reset 0 untuk pengembalian baru.
             $jpa->update([
                 'rusak' => $isHabisPakai ? 0 : $rusak,
-                'hilang' => $isHabisPakai ? 0 : $hilang,
+                'hilang' => 0,
             ]);
 
             // Consumable tidak buat mutasi tambahan (sudah keluar saat disetujui)
@@ -317,28 +324,29 @@ class peminjamanController extends Controller
                 continue;
             }
 
-            $keluarPermanen = $rusak + $hilang;
-            if ($keluarPermanen <= 0) {
-                continue;
-            }
+            if ($rusak > 0) {
+                $keteranganRusak = "Peminjaman alat #{$proses->id} dikembalikan - rusak: {$rusak}";
+                $sudahDicatatRusak = inventaris_mutation::where('inventaris_id', $inv->id)
+                    ->where('jenis', 'rusak')
+                    ->where('keterangan', $keteranganRusak)
+                    ->exists();
 
-            $keterangan = "Peminjaman alat #{$proses->id} dikembalikan - rusak: {$rusak}, hilang: {$hilang}";
-            $sudahDicatat = inventaris_mutation::where('inventaris_id', $inv->id)
-                ->where('jenis', 'keluar')
-                ->where('keterangan', $keterangan)
-                ->exists();
-            if ($sudahDicatat) {
-                continue;
-            }
+                if (!$sudahDicatatRusak) {
+                    inventaris_mutation::create([
+                        'inventaris_id' => $inv->id,
+                        'tahun' => (int) date('Y'),
+                        'qty' => $rusak,
+                        'jenis' => 'rusak',
+                        'kondisi_asal' => 'baik',
+                        'keterangan' => $keteranganRusak,
+                        'created_by' => auth()->id(),
+                    ]);
 
-            inventaris_mutation::create([
-                'inventaris_id' => $inv->id,
-                'tahun' => (int) date('Y'),
-                'qty' => $keluarPermanen,
-                'jenis' => 'keluar',
-                'keterangan' => $keterangan,
-                'created_by' => auth()->id(),
-            ]);
+                    $inv->konbaik = max((int) $inv->konbaik - $rusak, 0);
+                    $inv->konrusak = (int) $inv->konrusak + $rusak;
+                    $inv->save();
+                }
+            }
         }
     }
 
@@ -353,7 +361,7 @@ class peminjamanController extends Controller
         $items = $pinjamAlat->jumlahPinjamAlats ?? collect();
         $totalDiberi = 0; $totalRusak = 0; $totalHilang = 0;
         foreach ($items as $jp) {
-            $totalDiberi += (int) ($jp->diberi ?? 0);
+            $totalDiberi += $this->jumlahDiberikanAlat($jp);
             $totalRusak += (int) ($jp->rusak ?? 0);
             $totalHilang += (int) ($jp->hilang ?? 0);
         }
@@ -361,6 +369,20 @@ class peminjamanController extends Controller
         $pinjamAlat->total_rusak = $totalRusak;
         $pinjamAlat->total_hilang = $totalHilang;
         $pinjamAlat->has_kerusakan = ($totalRusak + $totalHilang) > 0;
+    }
+
+    /**
+     * Pastikan pengembalian lama tetap menampilkan item walaupun kolom
+     * `diberi` belum pernah diisi. Data lama memakai `minta` sebagai dasar.
+     */
+    private function jumlahDiberikanAlat($row): int
+    {
+        $diberi = (int) ($row->diberi ?? 0);
+        if ($diberi > 0) {
+            return $diberi;
+        }
+
+        return (int) ($row->minta ?? 0);
     }
 
     public function index()
@@ -562,7 +584,7 @@ class peminjamanController extends Controller
 
             // Trigger mutasi stok inventaris sesuai transisi status.
             // - disetujui: catat 'keluar' untuk barang habis_pakai
-            // - dikembalikan: catat 'keluar' untuk aset yang rusak/hilang
+            // - dikembalikan: catat perubahan kondisi untuk aset yang rusak
             // Untuk aset yang utuh, reservasi virtual dilepas otomatis lewat status.
             if ($data === 'disetujui') {
                 $this->prosesMutasiAlatDisetujui($proses);
@@ -658,7 +680,8 @@ class peminjamanController extends Controller
             'inv.jenis_barang',
             'inv.noreg',
             'jp.minta',
-            'jp.diberi',
+            DB::raw('CASE WHEN COALESCE(jp.diberi, 0) > 0 THEN jp.diberi ELSE COALESCE(jp.minta, 0) END as diberi'),
+            'jp.diberi as diberi_asli',
             'jp.rusak',
             'jp.hilang',
             'jp.id as jpid'
@@ -722,9 +745,15 @@ class peminjamanController extends Controller
             }
 
             $user = auth()->user();
-            if ((int) $user->role_id === 3 && $pinjamAlat->status !== 'diajukan') {
+            if ((int) $user->role_id !== 3) {
                 return response()->json([
-                    'message' => 'Pengajuan sudah diproses, jumlah alat tidak dapat diubah.'
+                    'message' => 'Hanya guru yang dapat mengubah jumlah diajukan.'
+                ], 403);
+            }
+
+            if ($pinjamAlat->status !== 'diajukan') {
+                return response()->json([
+                    'message' => 'Pengajuan sudah diproses, jumlah diajukan tidak dapat diubah.'
                 ], 422);
             }
 
@@ -784,6 +813,26 @@ class peminjamanController extends Controller
                 ], 404);
             }
 
+            $pinjamAlat = pinjam_alat::find($update->pinjam_alat_id);
+            if (!$pinjamAlat) {
+                return response()->json([
+                    'message' => 'Data peminjaman alat tidak ditemukan.'
+                ], 404);
+            }
+
+            $user = auth()->user();
+            if (!in_array((int) $user->role_id, [1, 2], true)) {
+                return response()->json([
+                    'message' => 'Hanya admin atau laboran yang dapat mengubah jumlah diberikan.'
+                ], 403);
+            }
+
+            if ($pinjamAlat->status !== 'diajukan') {
+                return response()->json([
+                    'message' => 'Pengajuan sudah diproses, jumlah diberikan tidak dapat diubah.'
+                ], 422);
+            }
+
             $diberi = (int) $request->diberi;
             $minta = (int) $update->minta;
 
@@ -801,7 +850,6 @@ class peminjamanController extends Controller
 
             // Validasi stok efektif agar laboran tidak memberi lebih dari yang tersedia
             // pada rentang waktu pengajuan ini.
-            $pinjamAlat = pinjam_alat::find($update->pinjam_alat_id);
             if ($pinjamAlat) {
                 $inventarisId = (int) DB::table('data_katalogs')
                     ->where('id', $update->data_katalog_id)

@@ -687,7 +687,7 @@ class peminjamanController extends Controller
             'inv.jenis_barang',
             'inv.noreg',
             'jp.minta',
-            DB::raw('CASE WHEN COALESCE(jp.diberi, 0) > 0 THEN jp.diberi ELSE COALESCE(jp.minta, 0) END as diberi'),
+            DB::raw('COALESCE(jp.diberi, 0) as diberi'),
             'jp.diberi as diberi_asli',
             'jp.rusak',
             'jp.hilang',

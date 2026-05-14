@@ -93,10 +93,18 @@
                class="q-mr-md"
                @update:model-value="getData"
              />
-             <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-               <template v-slot:append>
-                 <q-icon name="search" />
-               </template>
+              <q-input
+                v-model="filter"
+                label="Search"
+                debounce="300"
+                clearable
+                dense
+                outlined
+                style="min-width: 220px"
+              >
+                <template v-slot:append>
+                  <q-icon name="search" />
+                </template>
              </q-input>
             <q-btn label="Insert" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
           </template>

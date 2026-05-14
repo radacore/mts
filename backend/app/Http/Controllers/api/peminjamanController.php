@@ -14,6 +14,7 @@ use App\Models\notifikasi_user;
 use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
 use App\Models\pinjam_lain;
+use App\Services\InventoryStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -247,23 +248,27 @@ class peminjamanController extends Controller
                 continue;
             }
 
+            $stockService = app(InventoryStockService::class);
+            $stockService->ensureConsumableInitialStock($inv, (int) date('Y'), auth()->id());
+
             $keterangan = "Peminjaman alat #{$proses->id} disetujui (consumable)";
             $sudahDicatat = inventaris_mutation::where('inventaris_id', $inv->id)
                 ->where('jenis', 'keluar')
                 ->where('keterangan', $keterangan)
                 ->exists();
-            if ($sudahDicatat) {
-                continue;
+
+            if (!$sudahDicatat) {
+                inventaris_mutation::create([
+                    'inventaris_id' => $inv->id,
+                    'tahun' => (int) date('Y'),
+                    'qty' => (int) $jpa->diberi,
+                    'jenis' => 'keluar',
+                    'keterangan' => $keterangan,
+                    'created_by' => auth()->id(),
+                ]);
             }
 
-            inventaris_mutation::create([
-                'inventaris_id' => $inv->id,
-                'tahun' => (int) date('Y'),
-                'qty' => (int) $jpa->diberi,
-                'jenis' => 'keluar',
-                'keterangan' => $keterangan,
-                'created_by' => auth()->id(),
-            ]);
+            $stockService->sync($inv->fresh());
         }
     }
 
@@ -577,24 +582,26 @@ class peminjamanController extends Controller
                 return $error;
             }
 
-            $proses->update([
-                'status'=> $data,
-                'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
-            ]);
+            DB::transaction(function () use ($proses, $data, $alasanPenolakan) {
+                $proses->update([
+                    'status'=> $data,
+                    'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
+                ]);
 
-            // Trigger mutasi stok inventaris sesuai transisi status.
-            // - disetujui: catat 'keluar' untuk barang habis_pakai
-            // - dikembalikan: catat perubahan kondisi untuk aset yang rusak
-            // Untuk aset yang utuh, reservasi virtual dilepas otomatis lewat status.
-            if ($data === 'disetujui') {
-                $this->prosesMutasiAlatDisetujui($proses);
-            } elseif ($data === 'dikembalikan') {
-                $payload = request('pengembalian');
-                $this->prosesMutasiAlatDikembalikan(
-                    $proses,
-                    is_array($payload) ? $payload : []
-                );
-            }
+                // Trigger mutasi stok inventaris sesuai transisi status.
+                // - disetujui: catat 'keluar' untuk barang habis_pakai
+                // - dikembalikan: catat perubahan kondisi untuk aset yang rusak
+                // Untuk aset yang utuh, reservasi virtual dilepas otomatis lewat status.
+                if ($data === 'disetujui') {
+                    $this->prosesMutasiAlatDisetujui($proses);
+                } elseif ($data === 'dikembalikan') {
+                    $payload = request('pengembalian');
+                    $this->prosesMutasiAlatDikembalikan(
+                        $proses,
+                        is_array($payload) ? $payload : []
+                    );
+                }
+            });
 
             $pesan = 'Pengajuan peminjaman alat Anda telah ' . $data . '.';
             if ($data === 'ditolak' && $alasanPenolakan) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api;
 use App\Http\Controllers\Controller;
 use App\Models\inventaris;
 use App\Models\inventaris_mutation;
+use App\Services\InventoryStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -103,40 +104,7 @@ class invController extends Controller
 
     private function syncStockFromMutations(inventaris $inventaris): inventaris
     {
-        $initial = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-            ->where('jenis', 'initial')
-            ->sum('qty');
-
-        $masuk = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-            ->where('jenis', 'masuk')
-            ->sum('qty');
-
-        $keluar = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-            ->whereIn('jenis', self::OUTGOING_MUTATION_TYPES)
-            ->sum('qty');
-
-        $stok = max($initial + $masuk - $keluar, 0);
-        $inventaris->jml = $stok;
-
-        if (($inventaris->jenis_barang ?? 'aset') === 'habis_pakai') {
-            $inventaris->konrusak = 0;
-            $inventaris->konbaik = $stok;
-        } else {
-            $rusak = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-                ->where('jenis', self::DAMAGE_MUTATION_TYPE)
-                ->sum('qty');
-            $pemutihanRusak = (int) inventaris_mutation::where('inventaris_id', $inventaris->id)
-                ->where('jenis', 'pemutihan')
-                ->where('kondisi_asal', 'rusak')
-                ->sum('qty');
-
-            $inventaris->konrusak = max($rusak - $pemutihanRusak, 0);
-            $inventaris->konbaik = max($stok - (int) $inventaris->konrusak, 0);
-        }
-
-        $inventaris->save();
-
-        return $inventaris->fresh();
+        return app(InventoryStockService::class)->sync($inventaris);
     }
 
     private function availableStockExcludingMutation(int $inventarisId, ?int $excludeMutationId = null): int

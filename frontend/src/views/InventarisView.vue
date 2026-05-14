@@ -5,7 +5,7 @@
         <q-card-section>
            <q-table
               title="Inventaris"
-              :rows="rows"
+              :rows="filteredRows"
               :columns="columns"
               :filter="filter"
               :pagination="pagination"
@@ -34,8 +34,8 @@
               class="q-mr-md"
               @update:model-value="getData"
             />
-            <q-select
-              v-model="filterStokStatus"
+             <q-select
+               v-model="filterStokStatus"
               :options="stokStatusOptions"
               label="Filter Stok"
               emit-value
@@ -47,22 +47,52 @@
               outlined
               style="min-width: 160px"
               class="q-mr-md"
-              @update:model-value="getData"
-            />
-            <q-toggle
-              v-model="rusakOnly"
-              label="Hanya Rusak"
-              color="red"
-              class="q-mr-md"
-              @update:model-value="getData"
-            />
-            <q-toggle
-              v-model="pemutihanOnly"
-              label="Ada Pemutihan"
-              color="red-8"
-              class="q-mr-md"
-              @update:model-value="getData"
-            />
+               @update:model-value="getData"
+             />
+             <q-select
+               v-model="filterJenisBarang"
+               :options="filterJenisBarangOptions"
+               label="Jenis Barang"
+               emit-value
+               map-options
+               option-value="value"
+               option-label="label"
+               clearable
+               dense
+               outlined
+               style="min-width: 150px"
+               class="q-mr-md"
+             />
+             <q-select
+               v-model="rusakOnly"
+               :options="rusakOnlyOptions"
+               label="Filter Rusak"
+               emit-value
+               map-options
+               option-value="value"
+               option-label="label"
+               clearable
+               dense
+               outlined
+               style="min-width: 150px"
+               class="q-mr-md"
+               @update:model-value="getData"
+             />
+             <q-select
+               v-model="pemutihanOnly"
+               :options="pemutihanOnlyOptions"
+               label="Filter Pemutihan"
+               emit-value
+               map-options
+               option-value="value"
+               option-label="label"
+               clearable
+               dense
+               outlined
+               style="min-width: 170px"
+               class="q-mr-md"
+               @update:model-value="getData"
+             />
              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
                <template v-slot:append>
                  <q-icon name="search" />
@@ -70,32 +100,23 @@
              </q-input>
             <q-btn label="Insert" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
           </template>
-          <template v-slot:body-cell-spec="props">
-            <q-td :props="props">
-              <p v-html="props.row.spec"/>
-            </q-td>
-          </template>
           <template v-slot:body-cell-albah="props">
             <q-td :props="props">
               <div class="column">
                 <div>{{ props.row.nabar }}</div>
                 <div class="q-mt-xs q-gutter-xs" v-if="isNeedActionStock(props.row)">
-                  <q-badge :color="statusStok(props.row).color" text-color="white">
+                  <q-badge v-if="isNeedActionStock(props.row)" :color="statusStok(props.row).color" text-color="white">
                     {{ statusStok(props.row).label }}
                   </q-badge>
                 </div>
               </div>
             </q-td>
           </template>
-          <template v-slot:body-cell-foto="props">
-            <q-td :props="props">
-              <div class="images" v-viewer>
-              <q-img :src="url+props.row.foto" style="max-width:50px; height:50px" class="rounded-borders"/>
-              </div>
-            </q-td>
-          </template>
           <template v-slot:body-cell-aksi="props">
             <q-td :props="props">
+              <q-btn @click="bukaDetail(props.row)" round icon="o_visibility" color="blue-grey-7" size="xs" flat>
+                <q-tooltip>Detail Inventaris</q-tooltip>
+              </q-btn>
               <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
               <q-btn @click="bukaRiwayat(props.row)" round icon="o_timeline" color="blue-8" size="xs" flat>
                 <q-tooltip>Riwayat Stok Tahunan</q-tooltip>
@@ -106,7 +127,9 @@
           </template>
           <template v-slot:body-cell-jenis_barang="props">
             <q-td :props="props">
-              {{ labelJenisBarang(props.row.jenis_barang) }}
+              <q-badge :color="badgeJenisBarang(props.row.jenis_barang).color" text-color="white">
+                {{ badgeJenisBarang(props.row.jenis_barang).label }}
+              </q-badge>
             </q-td>
           </template>
            </q-table>
@@ -180,6 +203,133 @@
         <q-card-actions align="right" class="bg-white">
           <q-btn label="simpan" color="green-10" @click="simpan"/>
           <q-btn label="Batal" color="red-10" @click="batal"/>
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="dialogDetail">
+      <q-card style="width: 760px; max-width: 95vw;">
+        <q-toolbar>
+          <q-toolbar-title class="text-blue-grey-8">
+            Detail Inventaris - {{ detailTerpilih.nabar || '-' }}
+          </q-toolbar-title>
+          <q-btn flat round dense icon="close" v-close-popup @click="tutupDetail" />
+        </q-toolbar>
+        <q-separator />
+        <q-card-section style="max-height: 70vh" class="scroll">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-4">
+              <div v-if="detailTerpilih.foto" class="images" v-viewer>
+                <q-img
+                  :src="url + detailTerpilih.foto"
+                  class="rounded-borders"
+                  style="width: 100%; max-width: 260px"
+                />
+              </div>
+              <q-banner v-else dense rounded class="bg-grey-2 text-grey-8">
+                Foto belum tersedia
+              </q-banner>
+            </div>
+            <div class="col-12 col-md-8">
+              <q-list dense bordered separator>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Nomor REG</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.noreg) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Katalog</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.katalog) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Nama Alat/Bahan</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.nabar) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Jenis Barang</q-item-label>
+                    <q-item-label>
+                      <q-badge :color="badgeJenisBarang(detailTerpilih.jenis_barang).color" text-color="white">
+                        {{ badgeJenisBarang(detailTerpilih.jenis_barang).label }}
+                      </q-badge>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Tahun Masuk / Tahun Pakai</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.thn_masuk) }} / {{ tampilDetail(detailTerpilih.thn_pakai) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Jumlah / Baik / Rusak</q-item-label>
+                    <q-item-label>
+                      {{ tampilDetail(detailTerpilih.jml) }} / {{ tampilDetail(detailTerpilih.konbaik) }} / {{ tampilDetail(detailTerpilih.konrusak) }}
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Stok Minimum</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.stok_minimum) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Lokasi</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.lokasi) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+            <div class="col-12">
+              <q-list dense bordered separator>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Spesifikasi</q-item-label>
+                    <q-item-label>
+                      <div v-if="detailTerpilih.spec" v-html="detailTerpilih.spec" />
+                      <span v-else>-</span>
+                    </q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Satuan / Volume</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.satuan) }} / {{ tampilDetail(detailTerpilih.vol) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Merek / Tipe</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.merek) }} / {{ tampilDetail(detailTerpilih.tipe) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item>
+                  <q-item-section>
+                    <q-item-label caption>Produsen / Asal</q-item-label>
+                    <q-item-label>{{ tampilDetail(detailTerpilih.produsen) }} / {{ tampilDetail(detailTerpilih.asal) }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+                <q-item v-if="detailTerpilih.ket">
+                  <q-item-section>
+                    <q-item-label caption>Keterangan</q-item-label>
+                    <q-item-label>{{ detailTerpilih.ket }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </div>
+        </q-card-section>
+        <q-separator />
+        <q-card-actions align="right" class="bg-white">
+          <q-btn label="Tutup" color="blue-grey-8" @click="tutupDetail" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -343,13 +493,6 @@ setup(){
       {name: "noreg",label: "Nomor REG",align: "left",field:"noreg",sortable: true},
       {name: "katalog",label: "Katalog",align: "left",field:"katalog",sortable: true},
       {name: "albah",label: "Nama Alat/Bahan",align: "left",field:"nabar",sortable: true},
-      {name: "spec",label: "Spesifikasi",align: "left",field:"spec",sortable: true},
-      {name: "satuan",label: "Satuan",align: "left",field:"satuan",sortable: true},
-      {name: "vol",label: "Volume",align: "left",field:"vol",sortable: true},
-      {name: "merek",label: "Merek",align: "left",field:"merek",sortable: true},
-      {name: "tipe",label: "Tipe",align: "left",field:"tipe",sortable: true},
-      {name: "produsen",label: "Produsen",align: "left",field:"produsen",sortable: true},
-      {name: "asal",label: "Asal",align: "left",field:"asal",sortable: true},
       {name: "thn_masuk",label: "Tahun Masuk",align: "left",field:"thn_masuk",sortable: true},
       {name: "thn_pakai",label: "Tahun Pakai",align: "left",field:"thn_pakai",sortable: true},
       {name: "jenis_barang",label: "Jenis Barang",align: "left",field:"jenis_barang",sortable: true},
@@ -357,7 +500,6 @@ setup(){
       {name: "baik",label: "Baik",align: "left",field:"konbaik",sortable: true},
       {name: "rusak",label: "Rusak",align: "left",field:"konrusak",sortable: true},
       {name: "lokasi",label: "Lokasi",align: "left",field:"lokasi",sortable: true},
-      {name: "foto",label: "Photo",align: "left",field:"foto",sortable: true},
       {name: "aksi",align: "left", label:"aksi"},
     ];
 
@@ -372,6 +514,11 @@ setup(){
     const jenisBarangOptions = [
       { label: 'Aset', value: 'aset' },
       { label: 'Habis Pakai', value: 'habis_pakai' },
+    ]
+
+    const filterJenisBarangOptions = [
+      { label: 'Aset', value: 'aset' },
+      { label: 'Barang Sekali Pakai', value: 'habis_pakai' },
     ]
 
     const jenisMutasiOptions = [
@@ -391,6 +538,14 @@ setup(){
       { label: 'Habis', value: 'habis' },
     ]
 
+    const rusakOnlyOptions = [
+      { label: 'Hanya Rusak', value: 1 },
+    ]
+
+    const pemutihanOnlyOptions = [
+      { label: 'Ada Pemutihan', value: 1 },
+    ]
+
     return{
       pagination: {
           rowsPerPage: 10
@@ -398,22 +553,28 @@ setup(){
         columns,
         riwayatColumns,
         jenisBarangOptions,
+        filterJenisBarangOptions,
         jenisMutasiOptions,
         kondisiPemutihanOptions,
         stokStatusOptions,
+        rusakOnlyOptions,
+        pemutihanOnlyOptions,
         rows:ref([]),
         filter:ref(null),
-        rusakOnly:ref(false),
-        pemutihanOnly:ref(false),
+        filterJenisBarang:ref(null),
+        rusakOnly:ref(null),
+        pemutihanOnly:ref(null),
         filterTahun:ref(null),
         filterStokStatus:ref(null),
         tahunOptions:ref([]),
         dialogInsert:ref(false),
+        dialogDetail:ref(false),
         confirm:ref(false),
         dialogRiwayat:ref(false),
         confirmHapusRiwayat:ref(false),
         loading:ref(false),
         riwayatHeader:ref({}),
+        detailTerpilih:ref({}),
         riwayatItems:ref([]),
         savingStok:ref(false),
         editingRiwayatId:ref(null),
@@ -458,6 +619,10 @@ computed:{
       authenticated: "auth/authenticated",
       user: "auth/user",
     }),
+    filteredRows(){
+      if (!this.filterJenisBarang) return this.rows
+      return this.rows.filter(row => (row.jenis_barang || 'aset') === this.filterJenisBarang)
+    },
 },
 watch:{
  triger(){
@@ -491,6 +656,17 @@ methods:{
     konfirmasi($id){
       this.form.id=$id
       this.confirm=true
+    },
+    bukaDetail(row){
+      this.detailTerpilih = row
+      this.dialogDetail = true
+    },
+    tutupDetail(){
+      this.dialogDetail = false
+      this.detailTerpilih = {}
+    },
+    tampilDetail(value){
+      return value === null || value === undefined || value === '' ? '-' : value
     },
     async simpan(){
       await axios.post("inventaris", this.form).then((response)=>{
@@ -669,6 +845,14 @@ methods:{
     isNeedActionStock(row){
       const label = this.statusStok(row).label
       return label === 'Habis' || label === 'Menipis'
+    },
+    isBarangSekaliPakai(row){
+      return row.jenis_barang === 'habis_pakai'
+    },
+    badgeJenisBarang(jenis){
+      return (jenis || 'aset') === 'habis_pakai'
+        ? { label: 'Barang Sekali Pakai', color: 'blue-8' }
+        : { label: 'Aset', color: 'green-7' }
     },
     labelJenisBarang(jenis){
       return (jenis || 'aset') === 'habis_pakai' ? 'Habis Pakai' : 'Aset'

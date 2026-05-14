@@ -9,18 +9,27 @@
             :rows="rows"
             :columns="columns"
             row-key="name"
-            :filter="filter"
-            :loading="loading"
-            hide-header
-            dense
-          >
+             :filter="filter"
+             :loading="loading"
+             v-model:pagination="pagination"
+             hide-header
+             dense
+           >
           <template v-slot:loading>
             <q-inner-loading showing>
                 <q-spinner-ios size="30px" color="green-7" />
             </q-inner-loading>
           </template>
             <template v-slot:top-right>
-              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+              <q-input
+                v-model="filter"
+                label="Search"
+                debounce="300"
+                clearable
+                dense
+                outlined
+                style="min-width: 220px"
+              >
                 <template v-slot:append>
                   <q-icon name="search" />
                 </template>
@@ -30,21 +39,35 @@
       
             <template v-slot:item="props">
               <div class="q-pa-xs col-xs-12 col-sm-6 col-md-4">
-                <q-card class="bayangan">
-                  <q-card-section class="text-center">
-                    <div class="row justify-between">
-                    <div>
-                        <span class="text-green-7 text-weight-bold">Topik:</span> <strong>{{ props.row.topik }}</strong>
-                    </div>
-                    <div>
-                        <q-icon name="edit_square" size="xs" color="green" @click="edit(props.row.id)"/>
-                        <q-icon name="delete" size="xs" color="red" @click="konfirmasi(props.row.id)"/>
-                    </div>
+                  <q-card class="bayangan">
+                  <q-card-section>
+                    <div class="row items-start justify-between no-wrap">
+                      <div class="col q-pr-sm">
+                        <div class="text-caption text-green-7 text-weight-bold">Topik</div>
+                        <div class="text-subtitle1 text-weight-bold text-green-10">{{ props.row.topik }}</div>
+                      </div>
+                      <div class="col-auto">
+                        <q-btn @click="edit(props.row.id)" round icon="edit_square" color="green" size="xs" flat>
+                          <q-tooltip>Edit Katalog</q-tooltip>
+                        </q-btn>
+                        <q-btn @click="konfirmasi(props.row.id)" round icon="delete" color="red" size="xs" flat>
+                          <q-tooltip>Hapus Katalog</q-tooltip>
+                        </q-btn>
+                      </div>
                     </div>
                   </q-card-section>
                   <q-separator />
-                  <q-card-section class="flex">
-                    <data-katalog :katalog_id="props.row.id"/>
+                  <q-card-section>
+                    <q-btn
+                      label="Kelola Alat & Bahan"
+                      icon="o_visibility"
+                      color="blue-grey-7"
+                      outline
+                      dense
+                      no-caps
+                      class="full-width"
+                      @click="bukaDataKatalog(props.row)"
+                    />
                   </q-card-section>
                 </q-card>
               </div>
@@ -81,6 +104,24 @@
           <q-card-actions align="right" class="bg-white">
             <q-btn label="simpan" color="green-10" @click="simpan"/>
             <q-btn label="Batal" color="red-10" @click="batal"/>
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
+      <q-dialog v-model="dialogDataKatalog" @hide="tutupDataKatalog">
+        <q-card style="width: 760px; max-width: 95vw;">
+          <q-toolbar>
+            <q-toolbar-title class="text-blue-grey-8">
+              Alat & Bahan - {{ katalogTerpilih.topik || '-' }}
+            </q-toolbar-title>
+            <q-btn flat round dense icon="close" v-close-popup @click="tutupDataKatalog" />
+          </q-toolbar>
+          <q-separator />
+          <q-card-section style="max-height: 70vh" class="scroll">
+            <data-katalog v-if="katalogTerpilih.id" :katalog_id="katalogTerpilih.id" />
+          </q-card-section>
+          <q-separator />
+          <q-card-actions align="right" class="bg-white">
+            <q-btn label="Tutup" color="blue-grey-7" dense v-close-popup @click="tutupDataKatalog" />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -126,10 +167,15 @@ setup(){
         filter:ref(null),
         columns,
         rows:ref([]),
+        pagination:ref({
+            rowsPerPage:12,
+        }),
         dialogInsert:ref(false),
+        dialogDataKatalog:ref(false),
         confirm:ref(false),
         id:ref(""),
         topik:ref(""),
+        katalogTerpilih:ref({}),
         loading:ref(false),
     }
 },
@@ -155,6 +201,14 @@ methods:{
     konfirmasi($id){
         this.id=$id
         this.confirm=true
+    },
+    bukaDataKatalog(row){
+        this.katalogTerpilih=row
+        this.dialogDataKatalog=true
+    },
+    tutupDataKatalog(){
+        this.dialogDataKatalog=false
+        this.katalogTerpilih={}
     },
     async simpan(){
         const form=new FormData

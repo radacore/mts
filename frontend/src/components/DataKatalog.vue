@@ -54,7 +54,15 @@
             dense
           >
           <template v-slot:top-right>
-            <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+            <q-input
+              v-model="filter"
+              label="Search"
+              debounce="300"
+              clearable
+              dense
+              outlined
+              style="min-width: 220px"
+            >
               <template v-slot:append>
                 <q-icon name="search" />
               </template>
@@ -150,4 +158,3 @@ this.getKatalog();
 }
 }
 </script>
-

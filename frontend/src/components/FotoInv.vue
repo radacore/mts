@@ -1,5 +1,7 @@
 <template>
-    <q-btn @click="dialogUpload=true" round icon="far fa-image" color="cyan-7" size="xs" flat=""/>
+    <q-btn @click="dialogUpload=true" round icon="far fa-image" color="cyan-7" size="xs" flat>
+      <q-tooltip>{{ tooltip }}</q-tooltip>
+    </q-btn>
     <q-dialog v-model="dialogUpload" persistent position="top">
         <q-card style="min-width: 350px">
           <q-card-section>
@@ -29,7 +31,15 @@
 import { ref } from '@vue/reactivity'
 import axios from 'axios'
 export default {
-props:["id"],
+    props:{
+      id:{
+        required:true
+      },
+      tooltip:{
+        type:String,
+        default:'Upload Foto'
+      }
+    },
 setup(){
     return{
         dialogUpload:ref(false),
@@ -62,4 +72,3 @@ created(){
 }
 }
 </script>
-

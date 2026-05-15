@@ -125,12 +125,16 @@
               <q-btn @click="bukaDetail(props.row)" round icon="o_visibility" color="blue-grey-7" size="xs" flat>
                 <q-tooltip>Detail Inventaris</q-tooltip>
               </q-btn>
-              <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
+              <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat>
+                <q-tooltip>Edit Inventaris</q-tooltip>
+              </q-btn>
               <q-btn @click="bukaRiwayat(props.row)" round icon="o_timeline" color="blue-8" size="xs" flat>
                 <q-tooltip>Riwayat Stok Tahunan</q-tooltip>
               </q-btn>
-              <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
-              <FotoInv :id="props.row.id"/>
+              <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat>
+                <q-tooltip>Hapus Inventaris</q-tooltip>
+              </q-btn>
+              <FotoInv :id="props.row.id" tooltip="Upload Foto Inventaris"/>
             </q-td>
           </template>
           <template v-slot:body-cell-jenis_barang="props">
@@ -556,7 +560,7 @@ setup(){
 
     return{
       pagination: {
-          rowsPerPage: 10
+          rowsPerPage: 15
          },
         columns,
         riwayatColumns,

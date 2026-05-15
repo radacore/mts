@@ -9,6 +9,7 @@
                 :columns="columns"
                 :filter="filter"
                 :loading="loading"
+                :pagination="pagination"
                 separator="cell"
                 row-key="name"
                 flat
@@ -21,19 +22,31 @@
               </q-inner-loading>
             </template>
              <template v-slot:top-right>
-              <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
-                <template v-slot:append>
-                  <q-icon name="search" />
-                </template>
-              </q-input>
+               <q-input
+                 v-model="filter"
+                 label="Search"
+                 debounce="300"
+                 clearable
+                 dense
+                 outlined
+                 style="min-width: 220px"
+               >
+                 <template v-slot:append>
+                   <q-icon name="search" />
+                 </template>
+               </q-input>
               <q-btn label="Insert" class="q-ml-md" icon="o_add" color="green-7" @click="dialogInsert=true" />
             </template>
-            <template v-slot:body-cell-aksi="props">
-              <q-td :props="props">
-                <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
-                <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
-              </q-td>
-            </template>
+             <template v-slot:body-cell-aksi="props">
+               <q-td :props="props" class="q-gutter-xs">
+                 <q-btn @click="edit(props.row.id)" round icon="edit_square" color="green-7" size="xs" flat>
+                   <q-tooltip>Edit Rombel</q-tooltip>
+                 </q-btn>
+                 <q-btn @click="konfirmasi(props.row.id)" round icon="delete" color="red" size="xs" flat>
+                   <q-tooltip>Hapus Rombel</q-tooltip>
+                 </q-btn>
+               </q-td>
+             </template>
              </q-table>
           </q-card-section>
          </q-card>
@@ -49,25 +62,37 @@
           </q-banner>
          </q-card>
           <!-- DIALOG -->
-          <q-dialog v-model="dialogInsert">
-            <q-card style="width: 500px; max-width: 80vw;">
-              <q-toolbar>
-                  <q-toolbar-title class="text-green-7"><span class="text-weight-medium">Data</span>Ruangan Belajar</q-toolbar-title>
-                  <q-btn flat round dense icon="close" v-close-popup />
-                </q-toolbar>
-                <q-separator/>
-              <q-card-section style="max-height: 60vh" class="scroll">
-                <q-form>
-                  <q-input outlined v-model="kelas" label="Kelas" class="q-my-sm" color="green-3" dense />
-                </q-form>
-              </q-card-section>
-              <q-separator/>
-              <q-card-actions align="right" class="bg-white">
-                <q-btn label="simpan" color="green-10" @click="simpan"/>
-                <q-btn label="Batal" color="red-10" @click="batal"/>
-              </q-card-actions>
-            </q-card>
-          </q-dialog>
+           <q-dialog v-model="dialogInsert">
+             <q-card style="width: 500px; max-width: 80vw;">
+               <q-toolbar class="q-px-md q-pt-sm">
+                   <q-toolbar-title class="text-green-7">
+                     <div class="text-subtitle1 text-weight-bold">Rombel / Ruang Belajar</div>
+                     <div class="text-caption text-grey-7">Kelola nama rombel yang digunakan pada data kelas.</div>
+                   </q-toolbar-title>
+                   <q-btn flat round dense icon="close" v-close-popup />
+                 </q-toolbar>
+                 <q-separator/>
+               <q-card-section style="max-height: 60vh" class="scroll q-pt-md">
+                 <q-form>
+                   <q-input
+                     outlined
+                     v-model="kelas"
+                     label="Nama Rombel"
+                     hint="Contoh: Kelas VII A atau Ruang Belajar IPA"
+                     persistent-hint
+                     class="q-my-sm"
+                     color="green-3"
+                     dense
+                   />
+                 </q-form>
+               </q-card-section>
+               <q-separator/>
+               <q-card-actions align="right" class="bg-white q-pa-md q-gutter-sm">
+                 <q-btn label="Batal" color="blue-grey-7" flat no-caps @click="batal"/>
+                 <q-btn label="Simpan" icon="save" color="green-7" unelevated no-caps @click="simpan"/>
+               </q-card-actions>
+             </q-card>
+           </q-dialog>
            <!-- KONFIRMASI -->
            <q-dialog v-model="confirm" persistent>
             <q-card>
@@ -77,15 +102,15 @@
                     <q-icon color="red" name="fas fa-exclamation-circle" />
                   </q-item-section>
                   <q-item-section>
-                    <q-item-label class="text-subtitle2">Apakah Anda Ingin Menghapus Data ini?</q-item-label>
-                    <q-item-label caption lines="2">Data Inventaris</q-item-label>
+                    <q-item-label class="text-subtitle2">Hapus Rombel ini?</q-item-label>
+                    <q-item-label caption lines="2">Data Ruang Belajar yang dipilih akan dihapus.</q-item-label>
                   </q-item-section>
                 </q-item>
               </q-card-section>
         
               <q-card-actions align="right">
-                <q-btn label="No" color="primary" @click="batal" dense />
-                <q-btn label="Yes" color="red" @click="hapus" dense />
+                <q-btn label="Batal" color="primary" @click="batal" dense />
+                <q-btn label="Hapus" color="red" @click="hapus" dense />
               </q-card-actions>
             </q-card>
           </q-dialog>
@@ -110,6 +135,9 @@ setup(){
         confirm:ref(false),
         loading:ref(false),
         filter:ref(null),
+        pagination:ref({
+            rowsPerPage:15,
+        }),
         rows:ref([]),
         id:ref(""),
         kelas:ref(""),
@@ -185,4 +213,3 @@ this.getData()
 .q-table thead tr th
     background: rgb(248, 249, 251)
 </style>
-

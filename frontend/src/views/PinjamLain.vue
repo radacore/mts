@@ -32,7 +32,15 @@
             class="q-mx-md"
             style="min-width: 150px"
           />
-        <q-input borderless dense debounce="300" v-model="filter" placeholder="Search">
+        <q-input
+          v-model="filter"
+          label="Search"
+          debounce="300"
+          clearable
+          dense
+          outlined
+          style="min-width: 220px"
+        >
           <template v-slot:append>
             <q-icon name="search" />
           </template>
@@ -272,6 +280,9 @@ computed:{
     }),
     ...mapState("kontrol", ["triger"]),
     displayedColumns() {
+      if (this.user.user.role_id === 1) {
+        return this.columns.filter(col => col.name !== 'copy')
+      }
       if (this.user.user.role_id === 2) {
         return this.columns.filter(col => col.name !== 'aksi' && col.name !== 'copy')
       }

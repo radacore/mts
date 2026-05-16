@@ -54,11 +54,22 @@ methods:{
         if (user && user.user && user.user.role_id === 4) {
           // Jika siswa (role_id=4), redirect ke siswa app dengan token
           const token = this.$store.state.auth.token;
+          const siswaAppUrl = process.env.VUE_APP_SISWA_URL;
+
+          if (!siswaAppUrl) {
+            this.$toast.error('URL aplikasi siswa belum dikonfigurasi', {
+              position: "top",
+              duration: 2000,
+              dismissible: true
+            });
+            return;
+          }
+
           // Logout dari frontend (bersihkan state)
           this.$store.commit('auth/SET_TOKEN', null);
           this.$store.commit('auth/SET_USER', null);
           // Redirect ke siswa app
-          window.location.href = `http://localhost:8082/auto-login?token=${token}`;
+          window.location.href = `${siswaAppUrl.replace(/\/$/, '')}/auto-login?token=${encodeURIComponent(token)}`;
         } else {
           // Role lainnya tetap di frontend
           this.$router.replace({

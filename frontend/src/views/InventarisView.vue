@@ -168,21 +168,25 @@
           <q-separator/>
         <q-card-section style="max-height: 60vh" class="scroll">
           <q-form>
-            <q-input outlined v-model="form.noreg" label="No Reg*" class="q-my-sm" color="green-3" dense style="max-width:300px" />
             <q-input outlined v-model="form.katalog" label="Katalog*" class="q-my-sm" color="green-3" dense />
             <q-input outlined v-model="form.nabar" label="Nama Alat/Bahan*" class="q-my-sm" color="green-3" dense />
             <q-editor v-model="form.spec" min-height="5rem" placeholder="Spesifikasi" />
-            <q-input outlined v-model="form.satuan" label="Satuan*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.vol" label="Volume*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.merek" label="Merek" class="q-my-sm" color="green-3" dense />
-            <q-input outlined v-model="form.tipe" label="Tipe" class="q-my-sm" color="green-3" dense />
-            <q-input outlined v-model="form.produsen" label="Produsen" class="q-my-sm" color="green-3" dense />
-            <q-input outlined v-model="form.asal" label="Asal" class="q-my-sm" color="green-3" dense />
-            <q-input outlined v-model="form.thn_masuk" label="Tahun Masuk*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.thn_pakai" label="Tahun Pakai*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.konbaik" label="Kodisi Baik" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.konrusak" label="Kodisi Rusak" class="q-my-sm" color="green-3" dense style="max-width:250px" />
-            <q-input outlined v-model="form.jml" label="Jumlah*" class="q-my-sm" color="green-3" dense style="max-width:250px" />
+            <div class="row q-col-gutter-sm q-my-sm">
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.satuan" label="Satuan*" color="green-3" dense />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.vol" label="Volume*" color="green-3" dense />
+              </div>
+            </div>
+            <div class="row q-col-gutter-sm q-my-sm">
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.thn_masuk" label="Tahun Masuk*" color="green-3" dense />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.thn_pakai" label="Tahun Pakai*" color="green-3" dense />
+              </div>
+            </div>
             <q-select
               outlined
               v-model="form.jenis_barang"
@@ -195,8 +199,52 @@
               class="q-my-sm"
               color="green-3"
               dense
-              style="max-width:250px"
             />
+            <q-banner v-if="isHabisPakaiForm" dense rounded class="bg-blue-1 text-blue-10 q-my-sm">
+              <template v-slot:avatar>
+                <q-icon name="info" />
+              </template>
+              Barang habis pakai tidak membutuhkan input kondisi. Kondisi baik akan mengikuti jumlah stok dan rusak otomatis 0.
+            </q-banner>
+            <q-input outlined v-model="form.noreg" label="No Reg*" class="q-my-sm" color="green-3" dense />
+            <div class="row q-col-gutter-sm q-my-sm">
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.merek" label="Merek" color="green-3" dense />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.tipe" label="Tipe" color="green-3" dense />
+              </div>
+            </div>
+            <div class="row q-col-gutter-sm q-my-sm">
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.produsen" label="Produsen" color="green-3" dense />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input outlined v-model="form.asal" label="Asal" color="green-3" dense />
+              </div>
+            </div>
+            <q-input outlined :model-value="form.jml" @update:model-value="ubahJumlah" type="number" min="0" label="Jumlah*" class="q-my-sm" color="green-3" dense />
+            <div v-if="!isHabisPakaiForm" class="row q-col-gutter-sm q-my-sm">
+              <div class="col-12 col-sm-6">
+                <q-input outlined :model-value="form.konbaik" type="number" min="0" label="Kondisi Baik" color="green-3" dense readonly />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-input
+                  ref="konrusakInput"
+                  outlined
+                  :model-value="form.konrusak"
+                  @update:model-value="ubahKondisiRusak"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  min="0"
+                  :max="formNumber(form.jml)"
+                  label="Kondisi Rusak"
+                  color="green-3"
+                  dense
+                />
+              </div>
+            </div>
             <q-input
               outlined
               v-model.number="form.stok_minimum"
@@ -206,7 +254,6 @@
               class="q-my-sm"
               color="green-3"
               dense
-              style="max-width:250px"
             />
             <q-input outlined v-model="form.lokasi" autogrow label="Lokasi*" class="q-my-sm" color="green-3" dense />
           </q-form>
@@ -635,10 +682,22 @@ computed:{
       if (!this.filterJenisBarang) return this.rows
       return this.rows.filter(row => (row.jenis_barang || 'aset') === this.filterJenisBarang)
     },
+    isHabisPakaiForm(){
+      return this.form.jenis_barang === 'habis_pakai'
+    },
 },
 watch:{
  triger(){
   this.getData();
+ },
+ 'form.jml'(){
+   this.syncKondisiAset()
+ },
+ 'form.konrusak'(){
+   this.syncKondisiAset()
+ },
+ 'form.jenis_barang'(){
+   this.syncKondisiAset()
  }
 },
 methods:{
@@ -680,8 +739,63 @@ methods:{
     tampilDetail(value){
       return value === null || value === undefined || value === '' ? '-' : value
     },
+    formNumber(value){
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    },
+    hitungKondisiBaik(jml = this.form.jml, konrusak = this.form.konrusak){
+      return Math.max(this.formNumber(jml) - this.formNumber(konrusak), 0)
+    },
+    batasiKondisiRusak(){
+      const jumlah = this.formNumber(this.form.jml)
+      const rusak = this.formNumber(this.form.konrusak)
+      if (rusak > jumlah) {
+        this.form.konrusak = jumlah
+      }
+    },
+    ubahJumlah(value){
+      this.form.jml = this.formNumber(value)
+      this.batasiKondisiRusak()
+      this.syncKondisiAset()
+    },
+    ubahKondisiRusak(value){
+      const jumlah = this.formNumber(this.form.jml)
+      const nilaiBersih = String(value ?? '').replace(/\D/g, '')
+      if (nilaiBersih === '') {
+        this.form.konrusak = ''
+        this.form.konbaik = this.hitungKondisiBaik(this.form.jml, 0)
+        return
+      }
+
+      const nilaiInput = this.formNumber(nilaiBersih)
+      const rusak = Math.min(nilaiInput, jumlah)
+      this.form.konrusak = rusak
+      this.form.konbaik = this.hitungKondisiBaik(this.form.jml, rusak)
+      if (nilaiInput > jumlah) {
+        this.$nextTick(() => {
+          const input = this.$refs.konrusakInput?.$el?.querySelector('input')
+          if (!input) return
+          input.value = String(rusak)
+          input.select()
+        })
+      }
+    },
+    syncKondisiAset(){
+      if (this.isHabisPakaiForm) return
+      this.batasiKondisiRusak()
+      this.form.konbaik = this.hitungKondisiBaik()
+    },
     async simpan(){
-      await axios.post("inventaris", this.form).then((response)=>{
+      const payload = { ...this.form }
+      if (payload.jenis_barang === 'habis_pakai') {
+        payload.konbaik = payload.jml
+        payload.konrusak = 0
+      } else {
+        payload.konrusak = Math.min(this.formNumber(payload.konrusak), this.formNumber(payload.jml))
+        payload.konbaik = this.hitungKondisiBaik(payload.jml, payload.konrusak)
+      }
+
+      await axios.post("inventaris", payload).then((response)=>{
         this.batal()
         this.getData()
         this.$toast.success(`berhasil tersimpan`)

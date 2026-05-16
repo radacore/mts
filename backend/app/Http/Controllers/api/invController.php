@@ -175,13 +175,17 @@ class invController extends Controller
             'jml'=>'required|numeric',
             'lokasi'=>'required',
             'spec'=>'required',
-            'konbaik'=>'required|numeric',
-            'konrusak'=>'required|numeric',
+            'konbaik'=>'required_unless:jenis_barang,habis_pakai|numeric',
+            'konrusak'=>'required_unless:jenis_barang,habis_pakai|numeric',
             'jenis_barang' => 'nullable|in:aset,habis_pakai',
             'stok_minimum' => 'nullable|integer|min:0',
         ]);
 
         $isCreate = empty($request->id);
+        $jenisBarang = $request->jenis_barang ?? 'aset';
+        $jumlah = (int) $request->jml;
+        $konrusak = $jenisBarang === 'habis_pakai' ? 0 : min((int) $request->konrusak, $jumlah);
+        $konbaik = $jenisBarang === 'habis_pakai' ? $jumlah : max($jumlah - $konrusak, 0);
 
         $data=inventaris::updateOrCreate(['id'=>$request->id],[
             'noreg'=>$request->noreg,
@@ -195,13 +199,13 @@ class invController extends Controller
             'asal'=>$request->asal,
             'thn_masuk'=>$request->thn_masuk,
             'thn_pakai'=>$request->thn_pakai,
-            'jml'=>$request->jml,
-            'kondisi'=>$request->jml,
-            'konbaik'=>$request->konbaik,
-            'konrusak'=>$request->konrusak,
+            'jml'=>$jumlah,
+            'kondisi'=>$jumlah,
+            'konbaik'=>$konbaik,
+            'konrusak'=>$konrusak,
             'lokasi'=>$request->lokasi,
             'spec'=>$request->spec,
-            'jenis_barang' => $request->jenis_barang ?? 'aset',
+            'jenis_barang' => $jenisBarang,
             'stok_minimum' => $request->stok_minimum,
         ]);
 

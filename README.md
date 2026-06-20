@@ -7,8 +7,8 @@ Arsitekturnya terdiri dari **3 service terpisah** yang berkomunikasi via REST AP
 | Service     | Tech                      | Port   | Audiens                      |
 | ----------- | ------------------------- | ------ | ---------------------------- |
 | `backend/`  | Laravel 9 + Passport      | `8000` | API untuk semua client       |
-| `frontend/` | Vue 3 + Quasar 2 + Vuex 4 | `8080` | Dashboard admin/laboran/guru |
-| `siswa/`    | Vue 3 + Quasar 2 + Vuex 4 | `8081` | Portal terpisah untuk siswa  |
+| `frontend/` | Vue 3 + Quasar 2 + Vuex 4 | `8081` | Dashboard admin/laboran/guru |
+| `siswa/`    | Vue 3 + Quasar 2 + Vuex 4 | `8082` | Portal terpisah untuk siswa  |
 
 ---
 
@@ -40,7 +40,7 @@ Arsitekturnya terdiri dari **3 service terpisah** yang berkomunikasi via REST AP
 ┌──────────────────────┐     ┌──────────────────────┐
 │  Dashboard           │     │  Portal Siswa        │
 │  Vue 3 + Quasar 2    │     │  Vue 3 + Quasar 2    │
-│  http://:8080        │     │  http://:8081        │
+│  http://:8081        │     │  http://:8082        │
 └──────────┬───────────┘     └──────────┬───────────┘
            │ axios + Bearer token                  │
            └───────────────┬───────────────────────┘
@@ -57,7 +57,7 @@ Arsitekturnya terdiri dari **3 service terpisah** yang berkomunikasi via REST AP
               └─────────────────────────┘
 ```
 
-**SSO antar aplikasi**: ketika user dengan `role_id=4` (siswa) login lewat dashboard `frontend/`, token Passport otomatis di-passing ke `siswa/` via redirect `http://localhost:8081/auto-login?token=...` sehingga siswa tidak perlu login dua kali.
+**SSO antar aplikasi**: ketika user dengan `role_id=4` (siswa) login lewat dashboard `frontend/`, token Passport otomatis di-passing ke `siswa/` via redirect `http://localhost:8082/auto-login?token=...` sehingga siswa tidak perlu login dua kali.
 
 ---
 
@@ -184,7 +184,7 @@ Saat siswa salah login di `frontend/`, sistem mendeteksi `role_id=4` dan otomati
 
 ### 👨‍🎓 Siswa (Portal Terpisah)
 
-- Login lewat `siswa/` (port 8081) atau lewat SSO dari `frontend/`
+- Login lewat `siswa/` (port 8082) atau lewat SSO dari `frontend/`
 - Join classroom guru
 - Lihat **Materi Ajar** & **Modul/LKPD**
 - Kumpul **tugas** sesuai tipe submission
@@ -381,8 +381,8 @@ DB_DATABASE=mts_db
 DB_USERNAME=root
 DB_PASSWORD=
 
-# CORS — agar :8080 & :8081 bisa hit :8000
-SANCTUM_STATEFUL_DOMAINS=localhost:8080,localhost:8081,127.0.0.1:8080,127.0.0.1:8081
+# CORS — agar :8081 & :8082 bisa hit :8000
+SANCTUM_STATEFUL_DOMAINS=localhost:8081,localhost:8082,127.0.0.1:8081,127.0.0.1:8082
 ```
 
 ### Frontend (`frontend/src/main.js`)
@@ -418,7 +418,7 @@ php artisan serve
 ```bash
 cd frontend
 npm run serve
-# → http://localhost:8080
+# → http://localhost:8081
 ```
 
 **Terminal 3 — Portal Siswa**
@@ -426,7 +426,7 @@ npm run serve
 ```bash
 cd siswa
 npm run serve
-# → http://localhost:8081
+# → http://localhost:8082
 ```
 
 ### Skrip Lokal `start-all.sh` (opsional)
@@ -501,7 +501,7 @@ Implementasi: `backend/app/Imports/importSiswa.php` (pakai `maatwebsite/excel`).
 
 ## 🩺 Troubleshooting
 
-### CORS error saat login dari `:8080` / `:8081`
+### CORS error saat login dari `:8081` / `:8082`
 
 - Pastikan `SANCTUM_STATEFUL_DOMAINS` di `.env` mencakup origin frontend
 - Cek `backend/config/cors.php` → `allowed_origins`
@@ -516,7 +516,7 @@ Implementasi: `backend/app/Imports/importSiswa.php` (pakai `maatwebsite/excel`).
 
 ### `npm run serve` port bentrok
 
-- Frontend pakai 8080, siswa pakai 8081. Pastikan tidak ada service lain yang pakai port tersebut.
+- Frontend pakai 8081, siswa pakai 8082. Pastikan tidak ada service lain yang pakai port tersebut.
 
 ### Database kosong setelah `migrate`
 

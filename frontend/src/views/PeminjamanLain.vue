@@ -1,7 +1,7 @@
 <template>
   <q-page class="q-pa-sm">
     <div v-if="authenticated">
-        <q-card v-if="user.user.role_id==2">
+        <q-card v-if="user.user.role_id==1 || user.user.role_id==2">
           <q-card-section>
             <q-table
             title="Peminjaman Untuk Kegiatan Lain"

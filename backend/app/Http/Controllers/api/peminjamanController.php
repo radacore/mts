@@ -418,9 +418,9 @@ class peminjamanController extends Controller
             'modul_lkpd_ids.*'=>'exists:modul_lkpd,id',
         ]);
 
-        if (!$this->guruCanUseKelas($request->kelas_id)) {
-            return $this->rejectUnauthorizedGuruKelas();
-        }
+        // Validasi guruCanUseKelas dihapus untuk pinjamLab: guru boleh pinjam kelas
+        // apapun (kasus: peminjaman ruangan berdasarkan request siswa).
+        // Validasi ini masih aktif untuk pinjamAlatPost di bawah (lihat method call site di sana).
 
         $isClosed = informasi_terkini::where('status', 'aktif')
             ->where('tipe', 'penutupan_lab')

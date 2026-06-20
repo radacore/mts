@@ -242,6 +242,9 @@
                             </template>
                           </q-input>
                            <q-select outlined v-model="form.kelas_id" :options="kelasOptions" emit-value map-options option-value="id" option-label="kelas" label="Kelas *" class="q-my-sm" dense/>
+                           <q-banner v-if="isKelasPinjaman" dense rounded class="bg-orange-1 text-orange-10 q-my-sm">
+                             Anda tidak mengajar di kelas ini. Pastikan peminjaman ini untuk kebutuhan siswa.
+                           </q-banner>
                            <q-select
                              outlined
                              v-model="form.topik_id"
@@ -483,17 +486,15 @@ computed:{
       return this.rows.filter(row => row.status === this.statusFilter);
     },
     kelasOptions() {
-      if (this.user.user.role_id !== 3) {
-        return this.kelas;
-      }
-
-      const byId = new Map();
-      (this.guruClassrooms || []).forEach((item) => {
-        if (item.kelas && !byId.has(item.kelas.id)) {
-          byId.set(item.kelas.id, item.kelas);
-        }
-      });
-      return Array.from(byId.values());
+      return this.kelas;
+    },
+    isKelasPinjaman() {
+      if (!this.user || !this.user.user || this.user.user.role_id !== 3) return false;
+      if (!this.form.kelas_id) return false;
+      if (!Array.isArray(this.guruClassrooms) || this.guruClassrooms.length === 0) return false;
+      return !this.guruClassrooms.some(
+        (item) => item.kelas && item.kelas.id === this.form.kelas_id
+      );
     },
     selectedModulLkpd() {
       const selectedIds = this.form.modul_lkpd_ids || [];

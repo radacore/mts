@@ -95,7 +95,9 @@ isAdminOrLaboran() {
   return this.user?.user && [1, 2].includes(this.user.user.role_id);
 },
 filteredDatas() {
-  return (this.datas || []).filter(row => row.minta > 0);
+  const data = this.datas || [];
+  if (this.isGuru) return data;
+  return data.filter(row => row.minta > 0);
 },
 },
   watch:{

@@ -802,12 +802,32 @@ class peminjamanController extends Controller
     }
     public function jumlahPinjamPost2(Request $request)
     {
-        if($request->id){
-            $update=jumlah_pinjam::find($request->id);
+        if ($request->id) {
+            $update = jumlah_pinjam::find($request->id);
             if (!$update) {
+                return response()->json([
+                    'message' => 'Data tidak ditemukan.'
+                ], 404);
+            }
+
+            $pinjamLab = pinjam_lab::find($update->pinjam_lab_id);
+            if (!$pinjamLab) {
                 return response()->json([
                     'message' => 'Data peminjaman tidak ditemukan.'
                 ], 404);
+            }
+
+            $user = auth()->user();
+            if (!in_array((int) $user->role_id, [1, 2], true)) {
+                return response()->json([
+                    'message' => 'Hanya admin atau laboran yang dapat mengubah jumlah diberikan.'
+                ], 403);
+            }
+
+            if ($pinjamLab->status !== 'diajukan') {
+                return response()->json([
+                    'message' => 'Pengajuan sudah diproses, jumlah diberikan tidak dapat diubah.'
+                ], 422);
             }
 
             $diberi = (int) $request->diberi;
@@ -826,7 +846,7 @@ class peminjamanController extends Controller
             }
 
             $update->update([
-                'diberi'=>$diberi
+                'diberi' => $diberi
             ]);
         }
         return response()->json($update);

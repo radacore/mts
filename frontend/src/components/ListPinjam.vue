@@ -5,7 +5,7 @@
     <q-card style="width: 700px; max-width: 80vw;">
       <q-card-section>
         <q-table
-        :rows="datas"
+        :rows="filteredDatas"
         :columns="columns"
         :loading="loading"
         row-key="name"
@@ -32,8 +32,8 @@
             <q-avatar size="sm" text-color="white" color="secondary">
                 {{props.row.minta}}
             </q-avatar>
-            <q-popup-edit v-model="props.row.minta" title="diajukan"  buttons v-slot="scope">
-                <q-input type="number" v-model="scope.value" dense autofocus   />
+            <q-popup-edit v-if="isGuru" v-model="props.row.minta" title="diajukan" buttons v-slot="scope" @save="submitMinta(props.row)">
+                <q-input type="number" v-model="scope.value" dense autofocus />
             </q-popup-edit>
         </q-td>
       </template>
@@ -42,11 +42,16 @@
             <q-avatar size="sm" text-color="white" color="primary">
                 {{props.row.diberi}}
             </q-avatar>
-        </q-td>
-      </template>
-      <template v-slot:body-cell-aksi="props">
-        <q-td :props="props">
-          <save-jumlah :id="props.row.jpid" :minta="props.row.minta"/>
+            <q-popup-edit v-if="isAdminOrLaboran" v-model="props.row.diberi" title="diberikan" v-slot="scope">
+                <q-input type="number" v-model="scope.value" dense autofocus />
+                <div v-if="diberiErrors[props.row.jpid]" class="text-negative text-caption q-mt-xs">
+                  {{ diberiErrors[props.row.jpid] }}
+                </div>
+                <div class="row justify-end q-mt-sm">
+                  <q-btn flat label="Batal" color="grey" @click="scope.cancel()" />
+                  <q-btn flat label="Set" color="primary" @click="submitDiberi(scope, props.row)" />
+                </div>
+            </q-popup-edit>
         </q-td>
       </template>
       </q-table>
@@ -62,12 +67,8 @@
 <script>
 import { ref } from '@vue/reactivity'
 import axios from 'axios';
-import { mapState } from 'vuex';
-import SaveJumlah from './SaveJumlah.vue';
+import { mapState, mapGetters } from 'vuex';
 export default {
-components:{
-SaveJumlah,
-},
 props:["plid","katalog_id"],
 setup(){
     const columns=[
@@ -75,18 +76,27 @@ setup(){
         { name: 'jml', label: 'Tersedia',align:'left' },
         { name: 'minta', label: 'Diajukan', align:'left' },
         { name: 'diberi', label: 'Diberikan', field:'diberi', align:'left' },
-        { name: 'aksi', label: 'Aksi', align:'left' },
     ]
     return{
         columns,
         modal:ref(false),
         loading:ref(false),
         datas:ref([]),
-        angka:ref(""),
+        diberiErrors:ref({}),
     }
 },
 computed:{
-...mapState("kontrol",["triger"])
+...mapState("kontrol",["triger"]),
+...mapGetters({ user: "auth/user" }),
+isGuru() {
+  return this.user?.user?.role_id === 3;
+},
+isAdminOrLaboran() {
+  return this.user?.user && [1, 2].includes(this.user.user.role_id);
+},
+filteredDatas() {
+  return (this.datas || []).filter(row => row.minta > 0);
+},
 },
   watch:{
       triger(){
@@ -101,6 +111,41 @@ computed:{
       }
   },
   methods:{
+async submitMinta(row) {
+  const form = new FormData();
+  form.append("id", row.jpid);
+  form.append("minta", row.minta);
+  await axios.post("jumlahPinjam", form).then(() => {
+    this.$store.commit('kontrol/SET_TRIGER');
+    this.getKatalog();
+  });
+},
+async submitDiberi(scope, row) {
+  const jpid = row.jpid;
+  const val = parseInt(scope.value);
+
+  if (isNaN(val) || val < 0) {
+    this.diberiErrors[jpid] = 'Jumlah tidak valid';
+    return;
+  }
+
+  if (val > row.minta) {
+    this.diberiErrors[jpid] = 'Tidak boleh melebihi jumlah diajukan (' + row.minta + ')';
+    return;
+  }
+
+  this.diberiErrors[jpid] = '';
+  row.diberi = val;
+
+  const form = new FormData();
+  form.append("id", jpid);
+  form.append("diberi", val);
+  await axios.post("jumlahPinjam2", form).then(() => {
+    this.$store.commit('kontrol/SET_TRIGER');
+    this.getKatalog();
+    scope.cancel();
+  });
+},
 async getKatalog(){
     this.loading=true
     await axios.get("filterTopik/"+this.katalog_id+"/"+this.plid).then((response)=>{

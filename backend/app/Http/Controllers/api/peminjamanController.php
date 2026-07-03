@@ -232,6 +232,57 @@ class peminjamanController extends Controller
      *
      * Idempotent: melewati item yang sudah pernah dicatat (cek keterangan).
      */
+    /**
+     * Saat peminjaman lab disetujui:
+     * - Untuk barang habis_pakai → catat mutasi 'keluar' (stok berkurang permanen).
+     * - Untuk aset → tidak ada mutasi (reservasi virtual, tidak ada kolom waktu).
+     *
+     * Idempotent: melewati item yang sudah pernah dicatat (cek keterangan).
+     */
+    private function prosesMutasiLabDisetujui(pinjam_lab $proses): void
+    {
+        $items = DB::table('jumlah_pinjams as jp')
+            ->join('data_katalogs as dk', 'jp.data_katalog_id', '=', 'dk.id')
+            ->join('inventaris as inv', 'dk.inventaris_id', '=', 'inv.id')
+            ->where('jp.pinjam_lab_id', $proses->id)
+            ->where('jp.diberi', '>', 0)
+            ->select('jp.*', 'inv.id as inventaris_id', 'inv.jenis_barang')
+            ->get();
+
+        foreach ($items as $jpa) {
+            if (($jpa->jenis_barang ?? 'aset') !== 'habis_pakai') {
+                continue;
+            }
+
+            $stockService = app(InventoryStockService::class);
+            $inv = inventaris::find($jpa->inventaris_id);
+            if ($inv) {
+                $stockService->ensureConsumableInitialStock($inv, (int) date('Y'), auth()->id());
+            }
+
+            $keterangan = "Peminjaman lab #{$proses->id} disetujui (consumable)";
+            $sudahDicatat = inventaris_mutation::where('inventaris_id', $jpa->inventaris_id)
+                ->where('jenis', 'keluar')
+                ->where('keterangan', $keterangan)
+                ->exists();
+
+            if (!$sudahDicatat) {
+                inventaris_mutation::create([
+                    'inventaris_id' => $jpa->inventaris_id,
+                    'tahun' => (int) date('Y'),
+                    'qty' => (int) $jpa->diberi,
+                    'jenis' => 'keluar',
+                    'keterangan' => $keterangan,
+                    'created_by' => auth()->id(),
+                ]);
+            }
+
+            if ($inv) {
+                $stockService->sync($inv->fresh());
+            }
+        }
+    }
+
     private function prosesMutasiAlatDisetujui(pinjam_alat $proses): void
     {
         $items = jumlah_pinjam_alat::with('data_katalog.inventaris')
@@ -522,10 +573,18 @@ class peminjamanController extends Controller
                 return $error;
             }
 
-            $proses->update([
-                'status'=> $data,
-                'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
-            ]);
+            DB::transaction(function () use ($proses, $data, $alasanPenolakan) {
+                $proses->update([
+                    'status'=> $data,
+                    'alasan_penolakan' => $data === 'ditolak' ? $alasanPenolakan : null,
+                ]);
+
+                // Trigger mutasi stok inventaris sesuai transisi status.
+                // - disetujui: catat 'keluar' untuk barang habis_pakai
+                if ($data === 'disetujui') {
+                    $this->prosesMutasiLabDisetujui($proses);
+                }
+            });
 
             $pesan = 'Pengajuan peminjaman lab Anda telah ' . $data . '.';
             if ($data === 'ditolak' && $alasanPenolakan) {
@@ -728,8 +787,41 @@ class peminjamanController extends Controller
     {
         if($request->id){
             $update=jumlah_pinjam::find($request->id);
+            if (!$update) {
+                return response()->json([
+                    'message' => 'Data peminjaman lab tidak ditemukan.'
+                ], 404);
+            }
+
+            $pinjamLab = pinjam_lab::find($update->pinjam_lab_id);
+            if (!$pinjamLab) {
+                return response()->json([
+                    'message' => 'Data peminjaman lab tidak ditemukan.'
+                ], 404);
+            }
+
+            $user = auth()->user();
+            if ((int) $user->role_id !== 3) {
+                return response()->json([
+                    'message' => 'Hanya guru yang dapat mengubah jumlah diajukan.'
+                ], 403);
+            }
+
+            if ($pinjamLab->status !== 'diajukan') {
+                return response()->json([
+                    'message' => 'Pengajuan sudah diproses, jumlah diajukan tidak dapat diubah.'
+                ], 422);
+            }
+
+            $minta = (int) $request->minta;
+            if ($minta < 0) {
+                return response()->json([
+                    'message' => 'Jumlah diajukan tidak boleh kurang dari 0.'
+                ], 422);
+            }
+
             $update->update([
-                'minta'=>$request->minta
+                'minta'=>$minta
             ]);
         }
         return response()->json($update);

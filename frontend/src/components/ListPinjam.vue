@@ -34,7 +34,8 @@
                 {{props.row.minta}}
             </q-avatar>
             <template v-if="Number(role_id) === 3">
-              <q-popup-edit v-model="props.row.minta" title="diajukan" buttons v-slot="scope">
+              <q-popup-edit v-model="props.row.minta" title="diajukan" buttons v-slot="scope"
+                :disable="isLocked">
                   <q-input type="number" v-model="scope.value" dense autofocus
                     :max="Number(props.row.jml)"
                     :error="Number(scope.value) > Number(props.row.jml)"
@@ -50,6 +51,7 @@
             </q-avatar>
             <template v-if="Number(role_id) !== 3">
               <q-popup-edit v-model="props.row.diberi" title="diberikan" buttons v-slot="scope"
+                :disable="isLocked"
                 @save="saveDiberi(props.row.jpid, $event, props.row.minta)">
                   <q-input type="number" v-model="scope.value" dense autofocus
                     :max="Number(props.row.minta)"
@@ -81,7 +83,7 @@ export default {
 components:{
 SaveJumlah,
 },
-props:["plid","katalog_id","role_id"],
+props:["plid","katalog_id","role_id","status"],
 setup(){
     const columns=[
         { name: 'nabar', label: 'Alat/Bahan', align:'left' },
@@ -99,6 +101,9 @@ setup(){
 },
 computed:{
 ...mapState("kontrol",["triger"]),
+isLocked(){
+    return this.status !== 'diajukan'
+},
 filteredRows(){
     if (Number(this.role_id) === 3) return this.datas
     return this.datas.filter(d => d.minta > 0)
@@ -130,6 +135,7 @@ async getKatalog(){
     })
 },
 editableClass(){
+    if (this.isLocked) return ''
     return Number(this.role_id) !== 3 ? 'cursor-pointer' : ''
 },
 async saveDiberi(id, value, minta){

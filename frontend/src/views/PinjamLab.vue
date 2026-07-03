@@ -151,7 +151,7 @@
                 <template v-slot:body-cell-alba="props">
                   <q-td :props="props">
                     <div class="row justify-center">
-                    <list-pinjam :plid="props.row.id" :katalog_id="props.row.katalog_id" :role_id="user.user.role_id"/>
+                    <list-pinjam :plid="props.row.id" :katalog_id="props.row.katalog_id" :role_id="user.user.role_id" :status="props.row.status"/>
                 </div>
                   </q-td>
                 </template>

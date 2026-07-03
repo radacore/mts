@@ -282,7 +282,7 @@
                              </div>
                              <div v-else class="text-caption text-grey-7">Belum ada modul dipilih</div>
                            </div>
-                       <q-input outlined v-model="form.pekan" label="Pekan Ke- *" class="q-my-sm" color="green-3" dense />
+                       <q-input outlined v-model="form.pekan" label="Jumlah Peserta *" class="q-my-sm" color="green-3" dense />
                      </q-form>
                   </q-card-section>
                   <q-separator/>
@@ -412,7 +412,7 @@ setup(){
         { name: 'hari', align: 'left', label: 'hari', field: 'tgl', sortable: true },
         { name: 'jam', align: 'left', label: 'jam', field:'jam', sortable: true },
         { name: 'jam_selesai', align: 'left', label: 'jam Selesai', field:'jam_selesai', format: val => val ? String(val).slice(0, 5) : '', sortable: true },
-        { name: 'pekan', align: 'left', label: 'Pekan Ke-', field:'pekan', sortable: true },
+        { name: 'pekan', align: 'left', label: 'Jumlah Peserta', field:'pekan', sortable: true },
         { name: 'kelas', align: 'left', label: 'Kelas', field:'kelas', sortable: true },
         { name: 'topik', align: 'left', label: 'Topik', field:'topik', sortable: true },
         { name: 'status', align: 'center', label: 'Status', field:'status', sortable: true },

@@ -20,7 +20,7 @@
         <q-space/>
         <q-btn v-if="authenticated" flat round dense icon="o_notifications" class="q-mx-sm">
           <q-badge v-if="notifUnread>0" color="red" floating>{{ notifUnread }}</q-badge>
-          <q-menu content-class="notif-menu-layer" transition-show="jump-down" transition-hide="jump-up" style="min-width:340px;max-width:90vw;">
+          <q-menu transition-show="jump-down" transition-hide="jump-up" style="min-width:340px;max-width:90vw;z-index:100000;">
             <q-list separator>
               <q-item>
                 <q-item-section>
@@ -74,7 +74,7 @@
         <q-btn v-if="!authenticated && $route.name !== 'login'" label="Login" icon="o_login" color="green-7" to="/login" rounded flat/>
         <q-avatar v-if="authenticated" color="green-10">
           <q-img :src="url+user.pp.foto"/>
-          <q-menu  transition-show="jump-up" transition-hide="jump-down" class="text-green-7">
+          <q-menu transition-show="jump-up" transition-hide="jump-down" class="text-green-7" style="z-index:100000">
             <q-list style="min-width: 200px">
               <q-item clickable to="/profile" class="linkmenu" active-class="aktif">
                 <q-item-section side>
@@ -492,7 +492,5 @@ page
   .tata-tertib-list
     column-count: 1
 
-:deep(.notif-menu-layer)
-  z-index: 100000 !important
 
 </style>

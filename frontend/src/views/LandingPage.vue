@@ -186,10 +186,13 @@
                 Peminjaman Tahun {{ stats.tahun_aktif || new Date().getFullYear() }}
               </div>
               <div class="row q-col-gutter-sm">
-                <div class="col-4 col-sm-3" v-for="item in peminjamanBulanDisplay" :key="item.bulan">
-                  <div class="month-chip-solid q-pa-sm text-center">
-                    <div class="text-caption text-grey-7">{{ item.label }}</div>
-                    <div class="text-subtitle2 text-green-9 text-weight-bold">{{ item.total }}</div>
+                <div class="col-4 col-sm-3 col-md-2" v-for="item in peminjamanBulanDisplay" :key="item.bulan">
+                  <div class="month-chip-solid q-pa-sm text-center" :class="{ 'chip-peak': item.bulan === bulanBerjalan }">
+                    <div class="bulan-chip">{{ item.label }}</div>
+                    <div class="text-caption"><span class="text-green-8 text-weight-bold">Lab {{ item.lab }}</span></div>
+                    <div class="text-caption"><span class="text-blue-8 text-weight-bold">Alat {{ item.alat }}</span></div>
+                    <div class="text-caption"><span class="text-orange-8 text-weight-bold">Lain {{ item.lain }}</span></div>
+                    <div class="text-subtitle2 text-green-9 text-weight-bold">Total {{ item.total }}</div>
                   </div>
                 </div>
               </div>
@@ -300,23 +303,36 @@ export default {
       return [
         { label: 'Guru Aktif', value: this.stats.guru, icon: 'school' },
         { label: 'Siswa Terdaftar', value: this.stats.siswa, icon: 'groups' },
-        { label: 'Katalog Alat', value: this.stats.katalog, icon: 'biotech' },
+        { label: 'Total Unit Alat', value: this.stats.katalog, icon: 'biotech' },
         { label: 'Kelas Praktikum', value: this.stats.classroom, icon: 'class' },
       ];
     },
     peminjamanBulanDisplay() {
-      const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const labels = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
       const source = Array.isArray(this.stats.peminjaman_per_bulan) ? this.stats.peminjaman_per_bulan : [];
 
       return labels.map((label, idx) => {
         const bulan = idx + 1;
         const found = source.find((item) => Number(item.bulan) === bulan);
+        const lab = found ? Number(found.lab ?? found.total ?? 0) : 0;
+        const lain = found ? Number(found.lain ?? 0) : 0;
+        const alat = found ? Number(found.alat ?? 0) : 0;
         return {
           bulan,
           label,
-          total: found ? Number(found.total || 0) : 0,
+          lab,
+          lain,
+          alat,
+          total: found && found.total !== undefined ? Number(found.total) : lab + lain + alat,
         };
       });
+    },
+    totalTertinggi() {
+      const list = this.peminjamanBulanDisplay || [];
+      return list.reduce((max, item) => Math.max(max, Number(item.total || 0)), 0);
+    },
+    bulanBerjalan() {
+      return new Date().getMonth() + 1;
     },
   },
   methods: {
@@ -740,6 +756,18 @@ export default {
    border-radius: 12px;
    background: #f5faf6;
    border: 1px solid #e0eee3;
+}
+
+.month-chip-solid.chip-peak {
+   background: #e8f5e9;
+   border-color: #1b5e20;
+}
+
+.bulan-chip {
+   font-weight: 800;
+   font-size: 16px;
+   color: #1b5e20;
+   margin-bottom: 2px;
 }
 
 .glass-effect {

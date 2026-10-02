@@ -7,6 +7,7 @@ use App\Models\classroom;
 use App\Models\data_siswa;
 use App\Models\inventaris;
 use App\Models\katalog;
+use App\Models\pinjam_alat;
 use App\Models\pinjam_lab;
 use App\Models\pinjam_lain;
 use App\Models\SiteSetting;
@@ -22,23 +23,35 @@ class landingController extends Controller
         $now = now();
         $year = (int) $now->year;
 
-        $labPerBulan = pinjam_lab::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
-            ->whereYear('created_at', $year)
+        $labPerBulan = pinjam_lab::selectRaw('MONTH(tgl) as bulan, COUNT(*) as total')
+            ->whereYear('tgl', $year)
             ->groupBy('bulan')
             ->pluck('total', 'bulan')
             ->toArray();
 
-        $lainPerBulan = pinjam_lain::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
-            ->whereYear('created_at', $year)
+        $lainPerBulan = pinjam_lain::selectRaw('MONTH(tgl) as bulan, COUNT(*) as total')
+            ->whereYear('tgl', $year)
+            ->groupBy('bulan')
+            ->pluck('total', 'bulan')
+            ->toArray();
+
+        $alatPerBulan = pinjam_alat::selectRaw('MONTH(tgl_pakai) as bulan, COUNT(*) as total')
+            ->whereYear('tgl_pakai', $year)
             ->groupBy('bulan')
             ->pluck('total', 'bulan')
             ->toArray();
 
         $peminjamanPerBulan = [];
         for ($m = 1; $m <= 12; $m++) {
+            $lab = (int) ($labPerBulan[$m] ?? 0);
+            $lain = (int) ($lainPerBulan[$m] ?? 0);
+            $alat = (int) ($alatPerBulan[$m] ?? 0);
             $peminjamanPerBulan[] = [
                 'bulan' => $m,
-                'total' => (int) ($labPerBulan[$m] ?? 0) + (int) ($lainPerBulan[$m] ?? 0),
+                'lab' => $lab,
+                'lain' => $lain,
+                'alat' => $alat,
+                'total' => $lab + $lain + $alat,
             ];
         }
 
@@ -50,7 +63,7 @@ class landingController extends Controller
         return response()->json([
             'guru' => User::where('role_id', 3)->count(),
             'siswa' => data_siswa::count(),
-            'katalog' => katalog::count(),
+            'katalog' => $totalUnitAlat,
             'classroom' => classroom::count(),
             'tahun_aktif' => $year,
             'peminjaman_per_bulan' => $peminjamanPerBulan,

@@ -301,6 +301,49 @@
                         <q-icon name="search" />
                       </template>
                     </q-input>
+                    <q-expansion-item icon="cloud_upload" label="Upload LKPD Baru" dense header-class="text-green-8" class="q-mt-sm bg-green-1 rounded-borders">
+                      <q-card flat bordered class="q-pa-sm q-mt-xs">
+                        <q-input v-model="uploadJudul" dense outlined label="Judul / Keterangan *" class="q-mb-sm" />
+                        <q-option-group
+                          v-model="uploadMode"
+                          :options="[
+                            { label: 'Upload File', value: 'file' },
+                            { label: 'Input Link', value: 'link' }
+                          ]"
+                          inline
+                          dense
+                          color="green-7"
+                          class="q-mb-sm"
+                        />
+                        <q-file
+                          v-if="uploadMode === 'file'"
+                          v-model="uploadFile"
+                          dense
+                          outlined
+                          label="Pilih File (PDF, DOCX, XLSX, PPTX)"
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                        >
+                          <template v-slot:prepend>
+                            <q-icon name="attach_file" />
+                          </template>
+                        </q-file>
+                        <div v-if="uploadMode === 'file' && uploadFile" class="text-caption text-grey q-mt-xs">
+                          {{ uploadFile.name }} ({{ formatBytesUpload(uploadFile.size) }})
+                        </div>
+                        <q-input
+                          v-if="uploadMode === 'link'"
+                          v-model="uploadLink"
+                          dense
+                          outlined
+                          label="Link Modul/LKPD *"
+                          placeholder="https://..."
+                          class="q-mt-xs"
+                        />
+                        <div class="row justify-end q-mt-sm">
+                          <q-btn label="Upload & Pilih Otomatis" icon="cloud_upload" color="green-7" dense unelevated no-caps :loading="uploadingModul" :disable="!canSubmitUpload" @click="uploadModulBaru" />
+                        </div>
+                      </q-card>
+                    </q-expansion-item>
                   </q-card-section>
                   <q-card-section class="q-pt-none" style="max-height: 420px; overflow-y: auto;">
                     <q-list dense separator>
@@ -443,6 +486,11 @@ setup(){
         dialogAlasanPenolakan:ref(false),
         prosesRowId:ref(null),
         alasanPenolakanInput:ref(''),
+        uploadMode:ref('file'),
+        uploadJudul:ref(''),
+        uploadFile:ref(null),
+        uploadLink:ref(''),
+        uploadingModul:ref(false),
     }
 },
 data:()=>({
@@ -509,7 +557,13 @@ computed:{
         const uploader = (modul.uploader_name || '').toString().toLowerCase();
         return judul.includes(q) || file.includes(q) || uploader.includes(q);
       });
-    }
+    },
+    canSubmitUpload() {
+      const hasJudul = !!(this.uploadJudul && String(this.uploadJudul).trim());
+      if (!hasJudul) return false;
+      if (this.uploadMode === 'file') return !!this.uploadFile;
+      return !!(this.uploadLink && String(this.uploadLink).trim());
+    },
 },
 watch:{
 triger(){
@@ -618,6 +672,64 @@ methods:{
     },
     hapusModulTerpilih(id){
       this.form.modul_lkpd_ids=(this.form.modul_lkpd_ids || []).filter((modulId)=>modulId !== id)
+    },
+    resetUploadModul(){
+      this.uploadJudul=''
+      this.uploadFile=null
+      this.uploadLink=''
+      this.uploadMode='file'
+    },
+    formatBytesUpload(bytes, decimals = 2){
+      if (!bytes) return '0 Bytes'
+      const k = 1024
+      const dm = decimals < 0 ? 0 : decimals
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+    },
+    async uploadModulBaru(){
+      if (!this.uploadJudul || !String(this.uploadJudul).trim()) {
+        this.$toast.error('Judul LKPD wajib diisi')
+        return
+      }
+      if (this.uploadMode === 'file' && !this.uploadFile) {
+        this.$toast.error('Harap pilih file LKPD')
+        return
+      }
+      if (this.uploadMode === 'link' && !String(this.uploadLink || '').trim()) {
+        this.$toast.error('Harap isi link LKPD')
+        return
+      }
+      const formData = new FormData()
+      formData.append('judul', String(this.uploadJudul).trim())
+      if (this.uploadMode === 'file') {
+        formData.append('file', this.uploadFile)
+      } else {
+        formData.append('link', String(this.uploadLink).trim())
+      }
+      this.uploadingModul = true
+      try {
+        const response = await axios.post('modul/lkpd', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        const modul = response.data
+        if (modul && modul.id) {
+          if (!Array.isArray(this.modulLkpdOptions)) this.modulLkpdOptions = []
+          this.modulLkpdOptions.unshift(modul)
+          if (!this.isModulTerpilih(modul.id)) {
+            this.form.modul_lkpd_ids = [...(this.form.modul_lkpd_ids || []), modul.id]
+          }
+        } else {
+          await this.getModulLkpd()
+        }
+        this.$toast.success('LKPD berhasil diupload dan otomatis terpilih')
+        this.resetUploadModul()
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Upload LKPD gagal'
+        this.$toast.error(msg)
+      } finally {
+        this.uploadingModul = false
+      }
     },
     async simpan(){
         await axios.post("pinjamLab",this.form).then((response)=>{

@@ -164,6 +164,62 @@ class peminjamanController extends Controller
     }
 
     /**
+     * Stok efektif untuk peminjaman LAB: total dikurangi reservasi
+     * peminjaman lab lain yang sudah 'disetujui' pada tanggal & jam
+     * yang overlap. Aset tidak dikurangi saat acc (kembali setelah
+     * dipakai), jadi ketersediaan dihitung dari reservasi.
+     * Untuk barang habis_pakai, pakai stok total (sudah dikurangi
+     * via mutasi saat acc).
+     */
+    private function stokEfektifLab(
+        int $inventarisId,
+        string $tgl,
+        string $jamMulai,
+        string $jamSelesai,
+        $ignorePinjamLabId = null
+    ): int {
+        $inv = inventaris::find($inventarisId);
+        if (!$inv) {
+            return 0;
+        }
+        $stokTotal = (int) $inv->jml;
+
+        if (($inv->jenis_barang ?? 'aset') === 'habis_pakai') {
+            return max($stokTotal, 0);
+        }
+
+        $dataKatalogIds = DB::table('data_katalogs')
+            ->where('inventaris_id', $inventarisId)
+            ->pluck('id');
+
+        if ($dataKatalogIds->isEmpty()) {
+            return max($stokTotal, 0);
+        }
+
+        // Normalisasi ke HH:MM:SS agar perbandingan string = perbandingan kronologis.
+        // (Binding ditaruh di luar fungsi SQL karena placeholder di dalam
+        // TIME(?) tidak dievaluasi benar oleh native prepared statement.)
+        $mulaiBaru = date('H:i:s', strtotime($tgl . ' ' . $jamMulai));
+        $selesaiBaru = date('H:i:s', strtotime($tgl . ' ' . $jamSelesai));
+
+        $query = DB::table('jumlah_pinjams as jp')
+            ->join('pinjam_labs as pl', 'jp.pinjam_lab_id', '=', 'pl.id')
+            ->whereIn('jp.data_katalog_id', $dataKatalogIds)
+            ->where('pl.status', 'disetujui')
+            ->where('pl.tgl', $tgl)
+            ->whereRaw('TIME(pl.jam) < ?', [$selesaiBaru])
+            ->whereRaw('TIME(pl.jam_selesai) > ?', [$mulaiBaru]);
+
+        if (!empty($ignorePinjamLabId)) {
+            $query->where('pl.id', '!=', $ignorePinjamLabId);
+        }
+
+        $terpakai = (int) $query->sum('jp.diberi');
+
+        return max($stokTotal - $terpakai, 0);
+    }
+
+    /**
      * Validasi bentrok jadwal pada tabel peminjaman tertentu.
      *
      * Rule overlap: start_baru < selesai_lama DAN selesai_baru > start_lama.
@@ -446,10 +502,10 @@ class peminjamanController extends Controller
         $user = Auth()->User();
         // Laboran (2) & Admin (1) bisa lihat semua
         if ($user->role_id == 2 || $user->role_id == 1) {
-            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader'])->latest()->get();
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader','induk'])->withCount('susulan')->latest()->get();
         } else {
             // Guru/Siswa hanya lihat punya sendiri
-            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader'])
+            $data = pinjam_lab::with(['kelas','katalog','User.bioguru','modulLkpd.uploader','induk'])->withCount('susulan')
                 ->where('user_id', $user->id)
                 ->latest()
                 ->get();
@@ -517,6 +573,50 @@ class peminjamanController extends Controller
         $data->modulLkpd()->sync($request->modul_lkpd_ids ?? []);
         return response()->json($data->load('modulLkpd.uploader'));
     }
+    /**
+     * Pengajuan susulan ("Tambah Kekurangan") yang terhubung ke pengajuan induk.
+     * Hanya untuk induk berstatus disetujui; susulan tercatat sebagai pengajuan
+     * baru berstatus diajukan sehingga tetap melewati persetujuan laboran.
+     */
+    public function pinjamLabSusulan(Request $request)
+    {
+        $request->validate([
+            'parent_id' => 'required|exists:pinjam_labs,id',
+        ]);
+
+        $induk = pinjam_lab::findOrFail($request->parent_id);
+
+        if ($induk->status !== 'disetujui') {
+            return response()->json([
+                'message' => 'Susulan hanya bisa dibuat dari pengajuan yang sudah disetujui.',
+            ], 422);
+        }
+
+        $user = auth()->user();
+        if ((int) $user->role_id === 3 && (int) $induk->user_id !== (int) $user->id) {
+            return response()->json([
+                'message' => 'Anda hanya bisa membuat susulan dari pengajuan milik sendiri.',
+            ], 403);
+        }
+
+        $data = pinjam_lab::create([
+            'katalog_id' => $induk->katalog_id,
+            'kelas_id' => $induk->kelas_id,
+            'user_id' => $induk->user_id,
+            'tgl' => $induk->tgl,
+            'jam' => $induk->jam,
+            'jam_selesai' => $induk->jam_selesai,
+            'pekan' => $induk->pekan,
+            'peminjam' => $induk->peminjam,
+            'status' => 'diajukan',
+            'alasan_penolakan' => null,
+            'parent_id' => $induk->id,
+        ]);
+
+        $data->modulLkpd()->sync($induk->modulLkpd()->pluck('modul_lkpd.id')->toArray());
+
+        return response()->json($data->load(['modulLkpd.uploader', 'induk']), 201);
+    }
     public function pinjamLabEdit($id)
     {
         $data=pinjam_lab::with('modulLkpd.uploader')->where('id', $id)->first();
@@ -532,7 +632,7 @@ class peminjamanController extends Controller
     }
     public function peminjamanLab()
     {
-        $data=pinjam_lab::with(['kelas','katalog','user','modulLkpd.uploader'])->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak'])->latest()->get();
+        $data=pinjam_lab::with(['kelas','katalog','user','modulLkpd.uploader','induk'])->withCount('susulan')->with(['user.bioguru'])->whereIn('status',['diajukan','disetujui','ditolak'])->latest()->get();
         return response()->json($data);
     }
     public function peminjamanAlat()
@@ -709,10 +809,35 @@ class peminjamanController extends Controller
         $data=DB::table('data_katalogs as dakat')
                 ->leftJoin('inventaris as inv','dakat.inventaris_id','=','inv.id')
                 ->leftJoin('jumlah_pinjams as jp','dakat.id','=','jp.data_katalog_id')
-                ->select('dakat.*','inv.nabar','inv.jml','inv.noreg','jp.minta','jp.diberi','jp.id as jpid')
+                ->select('dakat.*','inv.nabar','inv.jml as jml_total','inv.noreg','jp.minta','jp.diberi','jp.id as jpid')
                 ->where('dakat.katalog_id',$id)
                 ->where('jp.pinjam_lab_id',$plid)
                 ->get();
+
+        // Hitung stok efektif berdasarkan jadwal pengajuan ini
+        // (memperhitungkan reservasi peminjaman lab lain yang masih 'disetujui').
+        $pinjamLab = pinjam_lab::find($plid);
+        if ($pinjamLab && $pinjamLab->tgl && $pinjamLab->jam && $pinjamLab->jam_selesai) {
+            foreach ($data as $row) {
+                if (empty($row->inventaris_id)) {
+                    $row->jml = (int) ($row->jml_total ?? 0);
+                    continue;
+                }
+                $row->jml = $this->stokEfektifLab(
+                    (int) $row->inventaris_id,
+                    $pinjamLab->tgl,
+                    $pinjamLab->jam,
+                    $pinjamLab->jam_selesai,
+                    $plid
+                );
+            }
+        } else {
+            // Fallback bila jadwal belum lengkap: pakai stok total
+            foreach ($data as $row) {
+                $row->jml = (int) ($row->jml_total ?? 0);
+            }
+        }
+
         return response()->json($data);
     }
     public function filterTopikAlat($id,$paid)
@@ -817,6 +942,28 @@ class peminjamanController extends Controller
             if ($minta < 0) {
                 return response()->json([
                     'message' => 'Jumlah diajukan tidak boleh kurang dari 0.'
+                ], 422);
+            }
+
+            // Stok efektif: dihitung pada jadwal pengajuan ini
+            // (memperhitungkan reservasi peminjaman lab lain yang masih 'disetujui').
+            $inventarisId = (int) DB::table('data_katalogs')
+                ->where('id', $update->data_katalog_id)
+                ->value('inventaris_id');
+
+            $stokTersedia = $inventarisId
+                ? $this->stokEfektifLab(
+                    $inventarisId,
+                    $pinjamLab->tgl,
+                    $pinjamLab->jam,
+                    $pinjamLab->jam_selesai,
+                    $pinjamLab->id
+                )
+                : 0;
+
+            if ($minta > $stokTersedia) {
+                return response()->json([
+                    'message' => "Jumlah diajukan ({$minta}) melebihi stok yang tersedia pada jadwal tersebut ({$stokTersedia})."
                 ], 422);
             }
 

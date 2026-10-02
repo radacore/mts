@@ -118,6 +118,14 @@
                           {{props.row.status}}
                       </q-chip>
                     </div>
+                    <div class="row justify-around q-mt-xs">
+                      <q-chip v-if="props.row.parent_id" color="teal-7" text-color="white" icon="subdirectory_arrow_right" dense size="sm">
+                        Susulan #{{ props.row.parent_id }}
+                      </q-chip>
+                      <q-chip v-if="Number(props.row.susulan_count || 0) > 0" color="teal-1" text-color="teal-10" icon="playlist_add" dense size="sm">
+                        {{ props.row.susulan_count }} susulan
+                      </q-chip>
+                    </div>
                     <div
                       v-if="props.row.status==='ditolak'"
                       class="text-caption text-negative q-mt-xs"
@@ -176,6 +184,9 @@
                   <q-td :props="props" v-if="user.user.role_id!=2">
                     <q-btn @click="edit(props.row.id)" round icon="far fa-edit" color="green-7" size="xs" flat/>
                     <q-btn @click="konfirmasi(props.row.id)" round icon="fas fa-trash-alt" color="red" size="xs" flat=""/>
+                    <q-btn v-if="user.user.role_id==3 && props.row.status=='disetujui'" @click="bukaDialogSusulan(props.row)" round icon="playlist_add" color="teal-7" size="xs" flat="">
+                      <q-tooltip>Tambah Kekurangan (pengajuan susulan)</q-tooltip>
+                    </q-btn>
                   </q-td>
                 </template>
                  </q-table>
@@ -405,6 +416,28 @@
                 </q-card>
               </q-dialog>
 
+              <q-dialog v-model="dialogSusulan" persistent>
+                <q-card style="width: 460px; max-width: 90vw;">
+                  <q-card-section>
+                    <div class="text-subtitle1 text-teal-8">Tambah Kekurangan Alat</div>
+                    <div v-if="susulanInduk" class="q-mt-sm text-body2">
+                      Pengajuan susulan terhubung ke <b>#{{ susulanInduk.id }}</b>
+                      ({{ susulanInduk.katalog ? susulanInduk.katalog.topik : '' }} ·
+                      {{ susulanInduk.tgl }}).
+                    </div>
+                    <q-banner dense rounded class="bg-teal-1 text-teal-10 q-mt-md">
+                      Data, jadwal, dan modul disalin dari pengajuan induk. Setelah dibuat,
+                      atur jumlah alat yang kurang lewat tombol rincian, lalu menunggu
+                      persetujuan laboran seperti pengajuan biasa.
+                    </q-banner>
+                  </q-card-section>
+                  <q-card-actions align="right">
+                    <q-btn flat label="Batal" color="grey-7" @click="tutupDialogSusulan" />
+                    <q-btn label="Buat Pengajuan Susulan" color="teal-7" unelevated @click="kirimSusulan" :loading="savingSusulan" />
+                  </q-card-actions>
+                </q-card>
+              </q-dialog>
+
               <q-dialog v-model="dialogAlasanPenolakan" persistent>
                 <q-card style="width: 460px; max-width: 90vw;">
                   <q-card-section>
@@ -491,6 +524,9 @@ setup(){
         uploadFile:ref(null),
         uploadLink:ref(''),
         uploadingModul:ref(false),
+        dialogSusulan:ref(false),
+        susulanInduk:ref(null),
+        savingSusulan:ref(false),
     }
 },
 data:()=>({
@@ -770,6 +806,30 @@ methods:{
             return response
         })
     },
+    bukaDialogSusulan(row){
+      this.susulanInduk = row
+      this.dialogSusulan = true
+    },
+    tutupDialogSusulan(){
+      this.dialogSusulan = false
+      this.susulanInduk = null
+    },
+    async kirimSusulan(){
+      if (!this.susulanInduk) return
+      this.savingSusulan = true
+      await axios.post('pinjamLab/susulan', { parent_id: this.susulanInduk.id }).then((response)=>{
+        const idBaru = response.data && response.data.id ? response.data.id : ''
+        this.tutupDialogSusulan()
+        this.statusFilter = 'diajukan'
+        this.getPinjam()
+        this.$toast.success(`Pengajuan susulan #${idBaru} dibuat, silakan atur jumlah alat lewat tombol rincian`)
+      }).catch((error)=>{
+        const msg = error.response?.data?.message || 'Gagal membuat pengajuan susulan'
+        this.$toast.error(msg)
+      }).finally(()=>{
+        this.savingSusulan = false
+      })
+    },
     bukaDialogPenolakan(id){
       this.prosesRowId = id
       this.alasanPenolakanInput = ''
@@ -803,13 +863,6 @@ methods:{
         this.$toast.error(msg)
       })
     },
-    startAutoRefresh(){
-      if (this.user.user.role_id === 3) {
-        this._refreshTimer = setInterval(() => {
-          this.getPinjam()
-        }, 15000)
-      }
-    }
 },
 created(){
 this.getPinjam()
@@ -817,12 +870,6 @@ this.getModulLkpd()
 this.getGuruClassrooms()
 this.$store.dispatch("kontrol/getKelas")
 this.$store.dispatch("kontrol/getKatalog").then(()=>this.resetKatalogOptions())
-this.startAutoRefresh()
 },
-beforeUnmount() {
-  if (this._refreshTimer) {
-    clearInterval(this._refreshTimer)
-  }
-}
 }
 </script>

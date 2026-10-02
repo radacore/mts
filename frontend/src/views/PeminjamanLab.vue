@@ -90,6 +90,12 @@
                      <q-chip v-else color="yellow-7" text-color="white" icon="pending" dense>
                          {{props.row.status}}
                      </q-chip>
+                     <q-chip v-if="props.row.parent_id" color="teal-7" text-color="white" icon="subdirectory_arrow_right" dense size="sm">
+                       Susulan #{{ props.row.parent_id }}
+                     </q-chip>
+                     <q-chip v-if="Number(props.row.susulan_count || 0) > 0" color="teal-1" text-color="teal-10" icon="playlist_add" dense size="sm">
+                       {{ props.row.susulan_count }} susulan
+                     </q-chip>
                      <q-item-label v-if="props.row.status==='ditolak'" caption class="text-red-9" style="max-width:260px;white-space:normal;line-height:1.2;">
                        {{ alasanPenolakanLabel(props.row.alasan_penolakan) }}
                      </q-item-label>

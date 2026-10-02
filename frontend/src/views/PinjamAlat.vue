@@ -746,13 +746,6 @@ methods:{
         this.$toast.error(msg)
       })
     },
-    startAutoRefresh(){
-      if (this.user.user.role_id === 3) {
-        this._refreshTimer = setInterval(() => {
-          this.getPinjamAlat()
-        }, 15000)
-      }
-    }
 
 },
 created(){
@@ -761,12 +754,6 @@ this.getModulLkpd()
 this.getGuruClassrooms()
 this.$store.dispatch("kontrol/getKelas")
 this.$store.dispatch("kontrol/getKatalog").then(()=>this.resetKatalogOptions())
-this.startAutoRefresh()
 },
-beforeUnmount() {
-  if (this._refreshTimer) {
-    clearInterval(this._refreshTimer)
-  }
-}
 }
 </script>

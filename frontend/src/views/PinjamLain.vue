@@ -411,23 +411,10 @@ methods:{
       this.$toast.error(msg)
     })
   },
-  startAutoRefresh(){
-    if (this.user.user.role_id === 3) {
-      this._refreshTimer = setInterval(() => {
-        this.getData()
-      }, 15000)
-    }
-  }
   
 },
 created(){
 this.getData()
-this.startAutoRefresh()
 },
-beforeUnmount() {
-  if (this._refreshTimer) {
-    clearInterval(this._refreshTimer)
-  }
-}
 }
 </script>

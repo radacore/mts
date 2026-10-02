@@ -1,7 +1,7 @@
 <template>
   <q-table
     title="Jadwal Penggunaan Lab untuk Kegiatan Praktikum"
-    :rows="rows"
+    :rows="tampilRows"
     :columns="columns"
     :pagination="pagination"
     :loading="loading"
@@ -45,6 +45,10 @@ import moment from "moment";
 import "moment/locale/id";
 moment.locale("id");
 export default {
+props: {
+  mendatang: { type: Boolean, default: false },
+  batas: { type: Number, default: 10 },
+},
 setup(){
     const columns = [
         { name: 'guru', align: 'left', label: 'Guru Mapel', field: 'peminjam', sortable: true },
@@ -59,6 +63,17 @@ setup(){
         loading:ref(false),
         rows:ref([]),
     }
+},
+computed:{
+    tampilRows(){
+      const list = this.rows || []
+      if (!this.mendatang) return list
+      const hariIni = moment().format('YYYY-MM-DD')
+      return list
+        .filter((row) => (row.tgl || '') >= hariIni)
+        .sort((a, b) => String(a.tgl || '').localeCompare(String(b.tgl || '')) || String(a.jam || '').localeCompare(String(b.jam || '')))
+        .slice(0, this.batas)
+    },
 },
 methods:{
     dateTime(value) {

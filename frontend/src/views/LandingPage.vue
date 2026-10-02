@@ -112,6 +112,25 @@
       </div>
     </section>
 
+    <!-- JADWAL SECTION -->
+    <section class="q-py-xl bg-white">
+      <div class="container q-pa-md">
+        <div class="text-center q-mb-xl" data-aos="fade-up">
+          <div class="text-overline text-green-7 q-mb-sm">JADWAL MENDATANG</div>
+          <h2 class="text-h4 text-weight-bold text-grey-9 q-mt-none">Jadwal Penggunaan Lab</h2>
+          <p class="text-grey-7 text-subtitle1" style="max-width: 700px; margin: 0 auto;">
+            Jadwal praktikum dan kegiatan lain yang akan datang di laboratorium.
+          </p>
+        </div>
+        <div class="q-mb-xl">
+          <JadwalLab mendatang />
+        </div>
+        <div>
+          <JadwalLain mendatang />
+        </div>
+      </div>
+    </section>
+
     <!-- FEATURES SECTION -->
     <section id="features" class="q-py-xl bg-gradient">
       <div class="container q-pa-md">
@@ -263,9 +282,15 @@
 import { ref } from 'vue';
 import axios from 'axios';
 import { mapState } from 'vuex';
+import JadwalLab from '@/components/JadwalLab.vue';
+import JadwalLain from '@/components/JadwalLain.vue';
 
 export default {
   name: 'LandingPage',
+  components: {
+    JadwalLab,
+    JadwalLain,
+  },
   setup() {
     return {
       slide: ref(0),

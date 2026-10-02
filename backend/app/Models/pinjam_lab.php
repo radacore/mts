@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class pinjam_lab extends Model
 {
     protected $table ="pinjam_labs";
-    public $fillable = ['kelas_id','katalog_id','tgl','peminjam','pekan','jam','jam_selesai','status','alasan_penolakan','user_id','lkpd'];
+    public $fillable = ['kelas_id','katalog_id','tgl','peminjam','pekan','jam','jam_selesai','status','alasan_penolakan','user_id','lkpd','parent_id'];
 
     public function kelas()
     {
@@ -30,5 +30,21 @@ class pinjam_lab extends Model
     {
         return $this->belongsToMany(ModulLkpd::class, 'pinjam_lab_modul_lkpd', 'pinjam_lab_id', 'modul_lkpd_id')
             ->withTimestamps();
+    }
+
+    /**
+     * Pengajuan induk (untuk pengajuan susulan "Tambah Kekurangan").
+     */
+    public function induk()
+    {
+        return $this->belongsTo(pinjam_lab::class, 'parent_id', 'id');
+    }
+
+    /**
+     * Daftar pengajuan susulan dari pengajuan ini.
+     */
+    public function susulan()
+    {
+        return $this->hasMany(pinjam_lab::class, 'parent_id', 'id');
     }
 }

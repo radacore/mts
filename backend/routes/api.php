@@ -145,6 +145,7 @@ Route::middleware('auth:api')->group(function () {
 Route::middleware('auth:api')->group(function () {
     Route::get('pinjamLab', [peminjamanController::class, 'index']);
     Route::post('pinjamLab', [peminjamanController::class, 'pinjamLabPost']);
+    Route::post('pinjamLab/susulan', [peminjamanController::class, 'pinjamLabSusulan']);
     Route::get('pinjamLab/{id}', [peminjamanController::class, 'pinjamLabEdit']);
     Route::get('pinjamLab/copy/{id}', [peminjamanController::class, 'pinjamLabCopy']);
     Route::delete('pinjamLab/{id}', [peminjamanController::class, 'pinjamLabHapus']);

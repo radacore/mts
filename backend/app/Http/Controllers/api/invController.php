@@ -154,7 +154,7 @@ class invController extends Controller
         } elseif ($stokStatus === 'menipis') {
             $defaultStokMinimum = 5;
             $query->where('jml', '>', 0)
-                ->whereRaw('jml <= COALESCE(stok_minimum, ?)', [$defaultStokMinimum]);
+                ->whereRaw('jml < COALESCE(stok_minimum, ?)', [$defaultStokMinimum]);
         }
 
         $data = $query->latest()->get();

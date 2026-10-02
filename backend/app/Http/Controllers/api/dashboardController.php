@@ -22,7 +22,7 @@ class dashboardController extends Controller
         $kondisi = (int) inventaris::sum('konbaik');
         $rusak = (int) inventaris::sum('konrusak');
         $stokHabis = (int) inventaris::where('jml', '<=', 0)->count();
-        $stokMenipis = (int) inventaris::where('jml', '>', 0)->where('jml', '<=', $batasStokMenipis)->count();
+        $stokMenipis = (int) inventaris::where('jml', '>', 0)->whereRaw('jml < COALESCE(stok_minimum, ?)', [$batasStokMenipis])->count();
         $pinjamLabPending = (int) pinjam_lab::where('status', 'diajukan')->count();
         $pinjamAlatPending = (int) pinjam_alat::where('status', 'diajukan')->count();
         $pinjamLainPending = (int) pinjam_lain::where('status', 'diajukan')->count();

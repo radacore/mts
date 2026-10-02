@@ -965,7 +965,7 @@ methods:{
         : Number(minRaw)
 
       if (jml <= 0) return { label: 'Habis', color: 'red' }
-      if (jml <= min) return { label: 'Menipis', color: 'orange-8' }
+      if (jml < min) return { label: 'Menipis', color: 'orange-8' }
       return { label: 'Aman', color: 'green-7' }
     },
     isNeedActionStock(row){
